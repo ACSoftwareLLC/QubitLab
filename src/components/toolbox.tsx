@@ -1,10 +1,4 @@
-import type { GateType } from '../App';
-
-type GateConfig = {
-  name: string;
-  color: string;
-  symbol: string;
-};
+import type { GateType, GateConfig } from '../types';
 
 interface ToolboxProps {
   gateConfigs: Record<GateType, GateConfig>;
