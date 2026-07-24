@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { KonvaEventObject } from 'konva/lib/Node';
-import type { GateType, AppNode, GateLine, NodeLine, DragPreview, DraggingGateLine } from '../types';
+import type { GateType, CanvasGate, GateLine, DragPreview, DraggingGateLine } from '../types';
 import {
   WORKSPACE_WIDTH,
   WORKSPACE_HEIGHT,
@@ -16,19 +16,14 @@ import { snapXToSegment, getClosestBitLine } from '../utils/geometry';
 export type CanvasState = ReturnType<typeof useCanvasState>;
 
 export function useCanvasState() {
-  const [nodes, setNodes] = useState<AppNode[]>([
-    { id: 1, x: 100, y: 100, gates: [] },
-  ]);
+  const [gates, setGates] = useState<CanvasGate[]>([]);
 
   const [selectedGate, setSelectedGate] = useState<GateType | null>(null);
-  const [isDraggingLine, setIsDraggingLine] = useState(false);
-  const [lineEnd, setLineEnd] = useState<{ x: number; y: number } | null>(null);
-  const [lineStartNode, setLineStartNode] = useState<number | null>(null);
   const [numBits, setNumBits] = useState<number>(4);
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const [draggingGateLine, setDraggingGateLine] = useState<DraggingGateLine | null>(null);
   const [gateLines, setGateLines] = useState<GateLine[]>([]);
-  const [nodeLines, setNodeLines] = useState<NodeLine[]>([]);
+  const [selectedPlacedGateId, setSelectedPlacedGateId] = useState<number | null>(null);
 
   const [stageScale, setStageScale] = useState(1);
 
@@ -51,36 +46,23 @@ export function useCanvasState() {
 
     const rawGateType = e.dataTransfer.getData('gateType') || e.dataTransfer.getData('text/plain') || selectedGate || 'H';
     const gateTypeFromData = (rawGateType in GATE_CONFIGS ? rawGateType : 'H') as GateType;
+    const config = GATE_CONFIGS[gateTypeFromData] || GATE_CONFIGS['H'];
 
-    setNodes(prevNodes => prevNodes.map(node => {
-      if (node.id === 1) {
-        const snappedX = snapXToSegment(pointerX);
-        const localX = snappedX - node.x - GATE_WIDTH / 2;
-        // Always snap Y — gate top so bottom edge is 10px above first bit line
-        const localY = SNAPPED_ABS_Y - node.y;
+    const snappedX = snapXToSegment(pointerX);
 
-        return {
-          ...node,
-          gates: [
-            ...node.gates,
-            {
-              id: Date.now(),
-              type: gateTypeFromData,
-              x: localX,
-              y: localY,
-              width: GATE_WIDTH,
-              height: GATE_HEIGHT,
-              color: (GATE_CONFIGS[gateTypeFromData] || GATE_CONFIGS['H']).color,
-            }
-          ]
-        };
-      }
-      return node;
-    }));
-
-    setIsDraggingLine(false);
-    setLineEnd(null);
-    setLineStartNode(null);
+    setGates(prev => [
+      ...prev,
+      {
+        id: Date.now(),
+        type: gateTypeFromData,
+        x: snappedX - GATE_WIDTH / 2,
+        y: SNAPPED_ABS_Y,
+        width: GATE_WIDTH,
+        height: GATE_HEIGHT,
+        color: config.color,
+        ...(config.defaultAngle != null ? { angle: config.defaultAngle } : {}),
+      },
+    ]);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -101,90 +83,89 @@ export function useCanvasState() {
     }
   };
 
-  const handleNodeDrag = (id: number, e: KonvaEventObject<DragEvent>) => {
-    const pos = e.currentTarget.position();
-    const { x, y } = pos;
-    setNodes(nodes => nodes.map(n => n.id === id ? { ...n, x, y } : n));
-  };
+  const handleGateDragEnd = (gateId: number, e: KonvaEventObject<DragEvent>) => {
+    const pos = e.currentTarget.position(); // absolute — gates live on the canvas root
 
-  const handleGateDragEnd = (nodeId: number, gateId: number, e: KonvaEventObject<DragEvent>) => {
-    // pos is local to the parent node Group
-    const pos = e.currentTarget.position();
+    // Use the gate center for segment lookup
+    const absX = pos.x + GATE_WIDTH / 2;
+    const isInColumnRange = absX >= SEGMENTS_START_X && absX <= WORKSPACE_WIDTH;
 
-    setNodes(prev => prev.map(node => {
-      if (node.id !== nodeId) return node;
+    if (!isInColumnRange) {
+      handleDeleteGate(gateId);
+      return;
+    }
 
-      // Convert local x to absolute to find the right segment
-      const absX = node.x + pos.x + GATE_WIDTH / 2; // use gate center for segment lookup
-      const isInColumnRange = absX >= SEGMENTS_START_X && absX <= WORKSPACE_WIDTH;
+    const snappedCenterX = snapXToSegment(absX);
+    const finalX = snappedCenterX - GATE_WIDTH / 2;
 
-      if (!isInColumnRange) {
-        return {
-          ...node,
-          gates: node.gates.filter(g => g.id !== gateId),
-        };
-      }
+    // Snap the Konva node imperatively too: if the gate lands back in its
+    // old segment, React sees unchanged props and wouldn't move the node
+    // back from wherever the drag left it.
+    e.currentTarget.position({ x: finalX, y: SNAPPED_ABS_Y });
 
-      // Snap X: segment center → back to local space (left edge of gate)
-      const snappedCenterX = snapXToSegment(absX);
-      const finalX = snappedCenterX - node.x - GATE_WIDTH / 2;
-
-      // Snap Y: always lock so bottom edge is 10px above first bit line
-      const finalY = SNAPPED_ABS_Y - node.y;
-
-      return {
-        ...node,
-        gates: node.gates.map(g => g.id === gateId ? { ...g, x: finalX, y: finalY } : g),
-      };
-    }));
-  };
-
-  const handleDotMouseDown = (id: number, dotX: number, dotY: number) => {
-    setIsDraggingLine(true);
-    setLineStartNode(id);
-    setLineEnd({ x: dotX, y: dotY });
+    setGates(prev => prev.map(g =>
+      g.id === gateId ? { ...g, x: finalX, y: SNAPPED_ABS_Y } : g,
+    ));
   };
 
   const handleTotalDragEnd = () => {
     setDragPreview(null);
   };
 
-  const handleGateLineStart = (nodeId: number, gateId: number, startX: number, startY: number) => {
-    setDraggingGateLine({ nodeId, gateId, startX, startY, currentX: startX, currentY: startY });
+  const handleGateLineStart = (gateId: number, originIndex: number, originX: number, startX: number, startY: number) => {
+    setDraggingGateLine({ gateId, originIndex, originX, startX, startY, currentX: startX, currentY: startY, rawX: startX, rawY: startY });
   };
 
-  const handleBarDotDragEnd = (lineId: number, e: KonvaEventObject<DragEvent>) => {
-    const y = e.target.y();
-    const nearestY = getClosestBitLine(y, numBits);
-    setGateLines(prev => prev.map(line => line.id === lineId ? { ...line, barY: nearestY } : line));
+  const handleDeleteGate = (gateId: number) => {
+    setGates(prev => prev.filter(g => g.id !== gateId));
+    setGateLines(prev => prev.filter(line => line.gateId !== gateId));
+    setSelectedPlacedGateId(prev => (prev === gateId ? null : prev));
   };
 
-  const handleDeleteGate = (nodeId: number, gateId: number) => {
-    setNodes(prev => prev.map(node =>
-      node.id === nodeId ? { ...node, gates: node.gates.filter(g => g.id !== gateId) } : node
+  const handleSelectGate = (gateId: number) => {
+    setSelectedPlacedGateId(prev => (prev === gateId ? null : gateId));
+  };
+
+  const handleGateAngleChange = (gateId: number, angle: number) => {
+    setGates(prev => prev.map(g => (g.id === gateId ? { ...g, angle } : g)));
+  };
+
+  const toggleGateLineRole = (lineId: number) => {
+    setGateLines(prev => prev.map(line =>
+      line.id === lineId
+        ? { ...line, role: line.role === 'target' ? 'control' : 'target' }
+        : line
     ));
   };
 
   const handleStageMouseMove = (e: KonvaEventObject<MouseEvent>) => {
+    if (!draggingGateLine) return;
     const stage = e.target.getStage();
     if (!stage) return;
     const pointer = stage.getPointerPosition();
     if (!pointer) return;
 
-    if (draggingGateLine) {
-      setDraggingGateLine({ ...draggingGateLine, currentX: pointer.x, currentY: pointer.y });
-      return;
-    }
+    // getPointerPosition is in unscaled CSS px — convert to canvas coords.
+    const scale = stage.scaleX() || 1;
+    const pointerX = pointer.x / scale;
+    const pointerY = pointer.y / scale;
 
-    if (!isDraggingLine) return;
-
-    const bitY = getClosestBitLine(pointer.y, numBits);
+    // The line stays inline with its origin: x is locked to the origin's
+    // absolute x. The end snaps to a bit line when within the same
+    // tolerance the drop check uses, otherwise follows the pointer.
+    const closestLine = getClosestBitLine(pointerY, numBits);
     const barTolerance = 20;
-    const snapY =
-      Math.abs(pointer.y - bitY) <= barTolerance && pointer.y >= FIRST_BIT_LINE_Y - barTolerance
-        ? bitY
-        : pointer.y;
-    setLineEnd({ x: pointer.x, y: snapY });
+    const snappedY =
+      Math.abs(pointerY - closestLine) <= barTolerance && pointerY >= FIRST_BIT_LINE_Y - barTolerance
+        ? closestLine
+        : pointerY;
+    setDraggingGateLine({
+      ...draggingGateLine,
+      currentX: draggingGateLine.startX,
+      currentY: snappedY,
+      rawX: pointerX,
+      rawY: pointerY,
+    });
   };
 
   const handleStageMouseUp = () => {
@@ -193,61 +174,48 @@ export function useCanvasState() {
       const closestLine = getClosestBitLine(line.currentY, numBits);
       const barTolerance = 20;
       if (Math.abs(line.currentY - closestLine) <= barTolerance && line.currentY >= FIRST_BIT_LINE_Y - barTolerance) {
-        setGateLines(prev => {
-          const existing = prev.find(item => item.gateId === line.gateId);
-          if (existing) {
-            return prev.map(item => item.gateId === line.gateId ? { ...item, barY: closestLine } : item);
-          }
-          return [...prev, { id: Date.now(), nodeId: line.nodeId, gateId: line.gateId, barY: closestLine }];
-        });
+        const gate = gates.find(g => g.id === line.gateId);
+        const config = gate ? GATE_CONFIGS[gate.type] : null;
+        if (config) {
+          const role: GateLine['role'] =
+            line.originIndex < config.targetCapacity ? 'target' : 'control';
+          setGateLines(prev => {
+            const existing = prev.find(
+              item => item.gateId === line.gateId && item.originIndex === line.originIndex,
+            );
+            if (existing) {
+              return prev.map(item => (item.id === existing.id ? { ...item, barY: closestLine } : item));
+            }
+            return [
+              ...prev,
+              {
+                id: Date.now(),
+                gateId: line.gateId,
+                barY: closestLine,
+                role,
+                originIndex: line.originIndex,
+                originX: line.originX,
+              },
+            ];
+          });
+        }
       }
       setDraggingGateLine(null);
-      return;
     }
-
-    if (isDraggingLine && lineEnd && lineStartNode !== null) {
-      const bitY = getClosestBitLine(lineEnd.y, numBits);
-      const barTolerance = 20;
-      if (
-        Math.abs(lineEnd.y - bitY) <= barTolerance &&
-        lineEnd.y >= FIRST_BIT_LINE_Y - barTolerance
-      ) {
-        setNodeLines(prev => {
-          const existing = prev.find(item => item.nodeId === lineStartNode);
-          if (existing) {
-            return prev.map(item =>
-              item.nodeId === lineStartNode ? { ...item, bitY } : item
-            );
-          }
-          return [...prev, { id: Date.now(), nodeId: lineStartNode, bitY }];
-        });
-      }
-    }
-
-    setIsDraggingLine(false);
-    setLineEnd(null);
-    setLineStartNode(null);
   };
 
   const updateGateLineBarY = (lineId: number, barY: number) => {
-    setGateLines(prev => prev.map(line => line.id === lineId ? { ...line, barY } : line));
-  };
-
-  const updateNodeLineBitY = (lineId: number, bitY: number) => {
-    setNodeLines(prev => prev.map(line => line.id === lineId ? { ...line, bitY } : line));
+    setGateLines(prev => prev.map(line => (line.id === lineId ? { ...line, barY } : line)));
   };
 
   return {
-    nodes,
+    gates,
     selectedGate,
-    isDraggingLine,
-    lineEnd,
-    lineStartNode,
     numBits,
     dragPreview,
     draggingGateLine,
     gateLines,
-    nodeLines,
+    selectedPlacedGateId,
     stageScale,
     gateConfigs: GATE_CONFIGS,
     workspaceWidth: WORKSPACE_WIDTH,
@@ -257,16 +225,15 @@ export function useCanvasState() {
     handleDragOver,
     handleDragLeave,
     handleTotalDragEnd,
-    handleNodeDrag,
     handleGateDragEnd,
-    handleDotMouseDown,
     handleGateLineStart,
-    handleBarDotDragEnd,
     handleDeleteGate,
+    handleSelectGate,
+    handleGateAngleChange,
+    toggleGateLineRole,
     handleStageMouseMove,
     handleStageMouseUp,
     updateGateLineBarY,
-    updateNodeLineBitY,
     setNumBits,
     zoomIn: () => setStageScale(s => Math.min(3, +(s + 0.1).toFixed(2))),
     zoomOut: () => setStageScale(s => Math.max(0.3, +(s - 0.1).toFixed(2))),

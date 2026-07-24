@@ -66,3 +66,22 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* Toolbox scrollbar */
+.toolbox {
+  scrollbar-width: thin;
+  scrollbar-color: #555 #222;
+}
+.toolbox::-webkit-scrollbar {
+  width: 8px;
+}
+.toolbox::-webkit-scrollbar-track {
+  background: #222;
+}
+.toolbox::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+.toolbox::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}

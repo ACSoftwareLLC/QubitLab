@@ -1,23 +1,33 @@
 import type { KonvaEventObject } from 'konva/lib/Node';
+import { Fragment } from 'react';
 import { Group, Rect, Circle, Line, Text } from 'react-konva';
 import { GATE_WIDTH, GATE_HEIGHT } from '../../constants/canvas';
-import type { AppNode, CanvasGate } from '../../types';
+import { GATE_CONFIGS, getGateOrigins } from '../../constants/gates';
+import type { CanvasGate } from '../../types';
 
 interface GateProps {
   gate: CanvasGate;
-  node: AppNode;
-  onDragEnd: (nodeId: number, gateId: number, e: KonvaEventObject<DragEvent>) => void;
-  onLineStart: (nodeId: number, gateId: number, startX: number, startY: number) => void;
-  onDelete: (nodeId: number, gateId: number) => void;
+  selected?: boolean;
+  onDragEnd: (gateId: number, e: KonvaEventObject<DragEvent>) => void;
+  onLineStart: (gateId: number, originIndex: number, originX: number, startX: number, startY: number) => void;
+  onDelete: (gateId: number) => void;
+  onSelect?: (gateId: number) => void;
 }
 
-export function Gate({ gate, node, onDragEnd, onLineStart, onDelete }: GateProps) {
+export function Gate({ gate, selected, onDragEnd, onLineStart, onDelete, onSelect }: GateProps) {
   const gateWidth = gate.width || GATE_WIDTH;
   const gateHeight = gate.height || GATE_HEIGHT;
-  const absGateCenterX = node.x + gate.x + gateWidth / 2;
+  const origins = getGateOrigins(GATE_CONFIGS[gate.type], gateWidth);
 
   return (
-    <Group key={gate.id} x={gate.x} y={gate.y} draggable onDragEnd={e => onDragEnd(node.id, gate.id, e)}>
+    <Group
+      key={gate.id}
+      x={gate.x}
+      y={gate.y}
+      draggable
+      // Free dragging in both axes; the fixed-row snap happens on drag end.
+      onDragEnd={e => onDragEnd(gate.id, e)}
+    >
       <Rect
         x={0}
         y={0}
@@ -28,28 +38,56 @@ export function Gate({ gate, node, onDragEnd, onLineStart, onDelete }: GateProps
         draggable={false}
         shadowBlur={6}
         cornerRadius={8}
+        stroke={selected ? '#fff' : undefined}
+        strokeWidth={selected ? 3 : 0}
+        onClick={() => onSelect?.(gate.id)}
       />
-      <Circle
-        x={gateWidth / 2}
-        y={gateHeight}
-        radius={6}
-        fill='#fff'
-        stroke='#000'
-        strokeWidth={2}
-        draggable={false}
-        onMouseDown={e => {
-          e.cancelBubble = true;
-          onLineStart(node.id, gate.id, absGateCenterX, node.y + gate.y + gateHeight);
-        }}
-        listening={true}
-      />
+
+      {/* Line origins: one per connection the gate accepts.
+          Filled = target, open = control. Each has an invisible larger
+          hit circle so the press doesn't accidentally drag the gate. */}
+      {origins.map(origin => (
+        <Fragment key={origin.index}>
+          <Circle
+            x={origin.offsetX}
+            y={gateHeight}
+            radius={13}
+            fill='#000'
+            opacity={0}
+            draggable={false}
+            onMouseDown={e => {
+              e.cancelBubble = true;
+              onLineStart(
+                gate.id,
+                origin.index,
+                origin.offsetX,
+                gate.x + origin.offsetX,
+                gate.y + gateHeight,
+              );
+            }}
+            listening={true}
+          />
+          <Circle
+            x={origin.offsetX}
+            y={gateHeight}
+            radius={6}
+            fill={origin.role === 'target' ? '#fff' : gate.color}
+            stroke='#fff'
+            strokeWidth={2}
+            draggable={false}
+            listening={false}
+          />
+        </Fragment>
+      ))}
+
+      {/* delete handle */}
       <Circle
         x={gateWidth}
         y={0}
         radius={10}
         fill={gate.color}
         shadowBlur={2}
-        onClick={() => onDelete(node.id, gate.id)}
+        onClick={() => onDelete(gate.id)}
         listening={true}
       />
       <Line
@@ -66,6 +104,7 @@ export function Gate({ gate, node, onDragEnd, onLineStart, onDelete }: GateProps
         lineCap='round'
         listening={false}
       />
+
       <Text
         text={gate.type}
         fontSize={14}
@@ -77,6 +116,19 @@ export function Gate({ gate, node, onDragEnd, onLineStart, onDelete }: GateProps
         x={gateWidth / 2}
         y={gateHeight / 2}
       />
+      {gate.angle != null && (
+        <Text
+          text={`${Math.round((gate.angle * 180) / Math.PI)}°`}
+          fontSize={9}
+          fill='#fff'
+          align='center'
+          listening={false}
+          draggable={false}
+          x={0}
+          y={gateHeight - 11}
+          width={gateWidth}
+        />
+      )}
     </Group>
   );
 }

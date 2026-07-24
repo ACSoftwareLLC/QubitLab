@@ -1,9 +1,6 @@
 export { BitLines } from './BitLines';
 export { SegmentGrid } from './SegmentGrid';
 export { GateLinePreview } from './GateLinePreview';
-export { NodeLinePreview } from './NodeLinePreview';
 export { GateLineConnection } from './GateLineConnection';
-export { NodeLineConnection } from './NodeLineConnection';
 export { Gate } from './Gate';
-export { Node } from './Node';
 export { QuantumCanvas } from './QuantumCanvas';

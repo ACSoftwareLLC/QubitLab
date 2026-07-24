@@ -1,4 +1,4 @@
-import { Line } from 'react-konva';
+import { Line, Rect } from 'react-konva';
 import {
   WORKSPACE_HEIGHT,
   NUM_SEGMENTS,
@@ -10,15 +10,32 @@ import {
 
 interface SegmentGridProps {
   numBits: number;
+  /** Segment being executed — highlighted when >= 0. */
+  currentSegment?: number;
+  /** When provided, hovering a segment column peeks its state. */
+  onPeekSegment?: (segment: number) => void;
+  onPeekEnd?: () => void;
 }
 
-export function SegmentGrid({ numBits }: SegmentGridProps) {
+export function SegmentGrid({ numBits, currentSegment = -1, onPeekSegment, onPeekEnd }: SegmentGridProps) {
+  const topY = WORKSPACE_HEIGHT * 0.2;
+  const bottomY = FIRST_BIT_LINE_Y + (numBits - 1) * BIT_LINE_SPACING + 20;
+
   return (
     <>
+      {currentSegment >= 0 && (
+        <Rect
+          x={SEGMENTS_START_X + currentSegment * SEGMENT_WIDTH}
+          y={topY}
+          width={SEGMENT_WIDTH}
+          height={bottomY - topY}
+          fill='rgba(33, 150, 243, 0.15)'
+          listening={false}
+        />
+      )}
+
       {Array.from({ length: NUM_SEGMENTS + 1 }).map((_, i) => {
         const x = SEGMENTS_START_X + i * SEGMENT_WIDTH;
-        const topY = WORKSPACE_HEIGHT * 0.2;
-        const bottomY = FIRST_BIT_LINE_Y + (numBits - 1) * BIT_LINE_SPACING + 20;
         return (
           <Line
             key={`seg-${i}`}
@@ -30,6 +47,20 @@ export function SegmentGrid({ numBits }: SegmentGridProps) {
           />
         );
       })}
+
+      {onPeekSegment &&
+        Array.from({ length: NUM_SEGMENTS }).map((_, i) => (
+          <Rect
+            key={`peek-${i}`}
+            x={SEGMENTS_START_X + i * SEGMENT_WIDTH}
+            y={topY}
+            width={SEGMENT_WIDTH}
+            height={bottomY - topY}
+            fill='rgba(0,0,0,0)'
+            onMouseEnter={() => onPeekSegment(i)}
+            onMouseLeave={() => onPeekEnd?.()}
+          />
+        ))}
     </>
   );
 }

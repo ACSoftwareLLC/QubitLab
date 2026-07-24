@@ -1,33 +1,29 @@
-export type GateType = 'H' | 'X' | 'Y' | 'Z' | 'S' | 'T' | 'C';
+export type GateType =
+  | 'H' | 'X' | 'Y' | 'Z' | 'S' | 'T' | 'Sdg' | 'Tdg' | 'SX' | 'I'
+  | 'Rx' | 'Ry' | 'Rz' | 'P'
+  | 'C' | 'CX' | 'CZ' | 'CCX' | 'SWAP'
+  | 'M';
+
+export type GateCategory = 'single' | 'parameterized' | 'multi' | 'measure';
 
 export type CanvasGate = {
   id: number;
   type: GateType;
-  x: number;
+  x: number; // absolute canvas coords
   y: number;
   width: number;
   height: number;
   color: string;
-};
-
-export type AppNode = {
-  id: number;
-  x: number;
-  y: number;
-  gates: CanvasGate[];
+  angle?: number; // radians — parameterized gates only
 };
 
 export type GateLine = {
   id: number;
-  nodeId: number;
   gateId: number;
   barY: number;
-};
-
-export type NodeLine = {
-  id: number;
-  nodeId: number;
-  bitY: number;
+  role: 'control' | 'target';
+  originIndex: number; // which origin dot on the gate this line came from
+  originX: number;     // local x offset of the origin within the gate
 };
 
 export type DragPreview = {
@@ -38,16 +34,23 @@ export type DragPreview = {
 };
 
 export type DraggingGateLine = {
-  nodeId: number;
   gateId: number;
-  startX: number;
+  originIndex: number;
+  originX: number; // local x offset within the gate
+  startX: number;  // absolute
   startY: number;
-  currentX: number;
+  currentX: number; // snapped: inline with origin, y snapped to bit lines
   currentY: number;
+  rawX: number;     // raw cursor position (canvas coords)
+  rawY: number;
 };
 
 export type GateConfig = {
   name: string;
   color: string;
   symbol: string;
+  category: GateCategory;
+  defaultAngle?: number; // radians, applied on drop for parameterized gates
+  targetCapacity: number; // max 'target' lines the gate accepts
+  controlCapacity: number; // max 'control' lines the gate accepts
 };
