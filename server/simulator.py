@@ -1,21 +1,40 @@
-"""Naive numpy statevector simulator.
+"""Qiskit statevector simulator backend for Quantum-Dnd.
 
-This module is the qiskit seam: every route in main.py talks only to
-`validate`, `simulate`, and `StepSession`. When qiskit lands, reimplement
-these three against qiskit.Aer and leave the routes untouched.
+Replaces the naive numpy implementation with qiskit.quantum_info.Statevector
+while keeping the same public API (validate, simulate, StepSession). The route
+layer in main.py does not need to change.
 
 Conventions (see docs/api.md):
-- basis strings have qubit 0 leftmost; internally qubit i maps to bit
-  position (num_bits - 1 - i) of the statevector index.
+- basis strings have qubit 0 leftmost; Qiskit is little-endian, so API wire
+  i maps to Qiskit qubit (num_bits - 1 - i) and statevector indices are
+  reversed when formatted as basis strings.
 - snapshots are sparse: amplitudes with prob < EPS are omitted.
 """
 
 from __future__ import annotations
 
-import math
 import random
 
 import numpy as np
+from qiskit import QuantumCircuit
+from qiskit.circuit.library import (
+    HGate,
+    IGate,
+    PhaseGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    SdgGate,
+    SGate,
+    SwapGate,
+    SXGate,
+    TdgGate,
+    TGate,
+    XGate,
+    YGate,
+    ZGate,
+)
+from qiskit.quantum_info import Operator, Statevector
 
 EPS = 1e-6
 MAX_BITS = 16
@@ -25,118 +44,90 @@ SINGLE_QUBIT_GATES = {"H", "X", "Y", "Z", "S", "T", "Sdg", "Tdg", "SX", "I"}
 PARAMETERIZED_GATES = {"Rx", "Ry", "Rz", "P"}
 ALL_GATE_TYPES = SINGLE_QUBIT_GATES | PARAMETERIZED_GATES | {"C", "CX", "CZ", "CCX", "SWAP", "M"}
 
-
-def gate_matrix(op_type: str, angle: float | None) -> np.ndarray:
-    s2 = 1 / math.sqrt(2)
-    if op_type == "H":
-        return np.array([[s2, s2], [s2, -s2]], dtype=complex)
-    if op_type == "X":
-        return np.array([[0, 1], [1, 0]], dtype=complex)
-    if op_type == "Y":
-        return np.array([[0, -1j], [1j, 0]], dtype=complex)
-    if op_type == "Z":
-        return np.array([[1, 0], [0, -1]], dtype=complex)
-    if op_type == "S":
-        return np.array([[1, 0], [0, 1j]], dtype=complex)
-    if op_type == "T":
-        return np.array([[1, 0], [0, np.exp(1j * math.pi / 4)]], dtype=complex)
-    if op_type == "Sdg":
-        return np.array([[1, 0], [0, -1j]], dtype=complex)
-    if op_type == "Tdg":
-        return np.array([[1, 0], [0, np.exp(-1j * math.pi / 4)]], dtype=complex)
-    if op_type == "SX":
-        return np.array([[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]], dtype=complex)
-    if op_type == "I":
-        return np.eye(2, dtype=complex)
-    if op_type == "Rx":
-        a = angle or 0.0
-        return np.array(
-            [[math.cos(a / 2), -1j * math.sin(a / 2)], [-1j * math.sin(a / 2), math.cos(a / 2)]],
-            dtype=complex,
-        )
-    if op_type == "Ry":
-        a = angle or 0.0
-        return np.array(
-            [[math.cos(a / 2), -math.sin(a / 2)], [math.sin(a / 2), math.cos(a / 2)]], dtype=complex
-        )
-    if op_type == "Rz":
-        a = angle or 0.0
-        return np.array(
-            [[np.exp(-0.5j * a), 0], [0, np.exp(0.5j * a)]], dtype=complex
-        )
-    if op_type == "P":
-        a = angle or 0.0
-        return np.array([[1, 0], [0, np.exp(1j * a)]], dtype=complex)
-    raise ValueError(f"no matrix for gate type {op_type!r}")
-
-
-def _bit_pos(qubit: int, num_bits: int) -> int:
-    return num_bits - 1 - qubit
-
-
-def apply_single(state: np.ndarray, mat: np.ndarray, target: int, controls: list[int], num_bits: int) -> None:
-    idx = np.arange(len(state))
-    tmask = 1 << _bit_pos(target, num_bits)
-    cmask = 0
-    for c in controls:
-        cmask |= 1 << _bit_pos(c, num_bits)
-    lo = idx[((idx & tmask) == 0) & ((idx & cmask) == cmask)]
-    hi = lo | tmask
-    a = state[lo].copy()
-    b = state[hi].copy()
-    state[lo] = mat[0, 0] * a + mat[0, 1] * b
-    state[hi] = mat[1, 0] * a + mat[1, 1] * b
-
-
-def apply_swap(state: np.ndarray, q0: int, q1: int, controls: list[int], num_bits: int) -> None:
-    idx = np.arange(len(state))
-    m0 = 1 << _bit_pos(q0, num_bits)
-    m1 = 1 << _bit_pos(q1, num_bits)
-    cmask = 0
-    for c in controls:
-        cmask |= 1 << _bit_pos(c, num_bits)
-    b0 = (idx & m0) != 0
-    b1 = (idx & m1) != 0
-    sel = (b0 & ~b1) & ((idx & cmask) == cmask)
-    lo = idx[sel]
-    hi = (lo & ~m0) | m1
-    tmp = state[lo].copy()
-    state[lo] = state[hi]
-    state[hi] = tmp
-
-
-def measure(state: np.ndarray, target: int, num_bits: int, outcome: int | None = None) -> int:
-    """Collapse `target` in place; returns the classical outcome."""
-    idx = np.arange(len(state))
-    tmask = 1 << _bit_pos(target, num_bits)
-    p1 = float(np.sum(np.abs(state[(idx & tmask) != 0]) ** 2))
-    if outcome is None:
-        outcome = 1 if random.random() < p1 else 0
-    keep = (idx & tmask) != 0 if outcome == 1 else (idx & tmask) == 0
-    state[~keep] = 0.0
-    norm = float(np.linalg.norm(state))
-    if norm > 0:
-        state /= norm
-    return outcome
-
-
 # Multi-qubit named gates are just controlled versions of a base gate.
 CONTROLLED_BASE = {"C": "X", "CX": "X", "CZ": "Z", "CCX": "X"}
 
+GATE_CLASSES: dict[str, type] = {
+    "H": HGate,
+    "X": XGate,
+    "Y": YGate,
+    "Z": ZGate,
+    "S": SGate,
+    "Sdg": SdgGate,
+    "T": TGate,
+    "Tdg": TdgGate,
+    "SX": SXGate,
+    "I": IGate,
+    "Rx": RXGate,
+    "Ry": RYGate,
+    "Rz": RZGate,
+    "P": PhaseGate,
+}
 
-def apply_op(state: np.ndarray, op: dict, num_bits: int, measurements: dict[int, int]) -> None:
+
+def _api_to_qiskit_bit(api_bit: int, num_bits: int) -> int:
+    """API wire index (qubit 0 leftmost) -> Qiskit qubit index (little-endian)."""
+    return num_bits - 1 - api_bit
+
+
+def _make_unitary_op(op_type: str, angle: float | None, targets: list[int], controls: list[int], num_bits: int) -> Operator:
+    """Build a Qiskit Operator for a single gate operation."""
+    base_type = CONTROLLED_BASE.get(op_type, op_type)
+    qiskit_controls = [_api_to_qiskit_bit(c, num_bits) for c in controls]
+
+    if base_type == "SWAP":
+        qiskit_targets = [_api_to_qiskit_bit(t, num_bits) for t in targets]
+        gate = SwapGate()
+        qubits = qiskit_controls + qiskit_targets
+    else:
+        gate_cls = GATE_CLASSES[base_type]
+        qiskit_target = _api_to_qiskit_bit(targets[0], num_bits)
+        if base_type in PARAMETERIZED_GATES:
+            gate = gate_cls(angle or 0.0)
+        else:
+            gate = gate_cls()
+        qubits = qiskit_controls + [qiskit_target]
+
+    if qiskit_controls:
+        gate = gate.control(len(qiskit_controls))
+
+    qc = QuantumCircuit(num_bits)
+    qc.append(gate, qubits)
+    return Operator(qc)
+
+
+def _measure(state: Statevector, api_target: int, num_bits: int, measurements: dict[int, int], op_id: int) -> Statevector:
+    """Collapse `target` in place; returns the updated state and records outcome."""
+    qiskit_target = _api_to_qiskit_bit(api_target, num_bits)
+    probs = state.probabilities([qiskit_target])
+    p1 = float(probs[1])
+    outcome = measurements.get(op_id)
+    if outcome is None:
+        outcome = 1 if random.random() < p1 else 0
+
+    data = np.asarray(state.data, dtype=complex).copy()
+    idx = np.arange(len(data))
+    tmask = 1 << qiskit_target
+    zero_on_target = (idx & tmask) == 0
+    if outcome == 1:
+        data[zero_on_target] = 0.0
+    else:
+        data[~zero_on_target] = 0.0
+
+    norm = float(np.linalg.norm(data))
+    if norm > EPS:
+        data /= norm
+    measurements[op_id] = outcome
+    return Statevector(data)
+
+
+def _apply_op(state: Statevector, op: dict, num_bits: int, measurements: dict[int, int]) -> Statevector:
     op_type = op["type"]
     targets = op.get("targets") or []
     controls = op.get("controls") or []
     if op_type == "M":
-        measurements[op["id"]] = measure(
-            state, targets[0], num_bits, outcome=measurements.get(op["id"])
-        )
-    elif op_type == "SWAP":
-        apply_swap(state, targets[0], targets[1], controls, num_bits)
-    else:
-        mat = gate_matrix(CONTROLLED_BASE.get(op_type, op_type), op.get("angle"))
-        apply_single(state, mat, targets[0], controls, num_bits)
+        return _measure(state, targets[0], num_bits, measurements, op["id"])
+    return state.evolve(_make_unitary_op(op_type, op.get("angle"), targets, controls, num_bits))
 
 
 def validate(circuit: dict) -> list[dict]:
@@ -181,14 +172,17 @@ def validate(circuit: dict) -> list[dict]:
     return errors
 
 
-def _snapshot(state: np.ndarray, measurements: dict[int, int], num_bits: int, segment: int) -> dict:
-    probs = np.abs(state) ** 2
+def _snapshot(state: Statevector, measurements: dict[int, int], num_bits: int, segment: int) -> dict:
+    data = np.asarray(state.data, dtype=complex)
+    probs = np.abs(data) ** 2
     nz = np.nonzero(probs >= EPS)[0]
+    # Qiskit indices are little-endian; reverse the binary string so that
+    # qubit 0 (leftmost in the API basis) appears first.
     statevector = [
         {
             "basis": format(int(i), f"0{num_bits}b"),
-            "re": round(float(state[i].real), 6),
-            "im": round(float(state[i].imag), 6),
+            "re": round(float(data[i].real), 6),
+            "im": round(float(data[i].imag), 6),
             "prob": round(float(probs[i]), 6),
         }
         for i in nz
@@ -206,14 +200,13 @@ def simulate(circuit: dict, through_segment: int | None = None) -> dict:
     if errors:
         raise ValueError(errors)
     num_bits = circuit["numBits"]
-    state = np.zeros(2**num_bits, dtype=complex)
-    state[0] = 1.0
+    state = Statevector.from_label("0" * num_bits)
     measurements: dict[int, int] = {}
     last_segment = -1
     for op in sorted(circuit.get("ops", []), key=lambda o: o["segment"]):
         if through_segment is not None and op["segment"] > through_segment:
             break
-        apply_op(state, op, num_bits, measurements)
+        state = _apply_op(state, op, num_bits, measurements)
         last_segment = max(last_segment, op["segment"])
     return _snapshot(state, measurements, num_bits, last_segment)
 
@@ -229,8 +222,7 @@ class StepSession:
         self.num_bits = circuit["numBits"]
         self.segments = sorted({op["segment"] for op in circuit.get("ops", [])})
         self.cursor = -1
-        self.state = np.zeros(2**self.num_bits, dtype=complex)
-        self.state[0] = 1.0
+        self.state = Statevector.from_label("0" * self.num_bits)
         self.measurements: dict[int, int] = {}
 
     @property
@@ -243,7 +235,7 @@ class StepSession:
     def _apply_segment(self, segment: int) -> None:
         for op in self.circuit["ops"]:
             if op["segment"] == segment:
-                apply_op(self.state, op, self.num_bits, self.measurements)
+                self.state = _apply_op(self.state, op, self.num_bits, self.measurements)
 
     def step(self) -> dict | None:
         """Advance one segment; returns None when already at the end."""
@@ -261,8 +253,7 @@ class StepSession:
 
     def reset(self) -> dict:
         self.cursor = -1
-        self.state[:] = 0.0
-        self.state[0] = 1.0
+        self.state = Statevector.from_label("0" * self.num_bits)
         self.measurements.clear()
         return self.snapshot()
 
@@ -272,17 +263,17 @@ class StepSession:
         Re-simulates from scratch; measurement ops already observed in this
         session keep their recorded outcome so peeks stay consistent.
         """
-        state = np.zeros(2**self.num_bits, dtype=complex)
-        state[0] = 1.0
+        state = Statevector.from_label("0" * self.num_bits)
         measurements: dict[int, int] = dict(self.measurements)
         seen: dict[int, int] = {}
         for op in sorted(self.circuit["ops"], key=lambda o: o["segment"]):
             if op["segment"] > segment:
                 break
             if op["type"] == "M":
-                seen[op["id"]] = measure(
-                    state, op["targets"][0], self.num_bits, outcome=self.measurements.get(op["id"])
+                state = _measure(
+                    state, op["targets"][0], self.num_bits, measurements, op["id"]
                 )
+                seen[op["id"]] = measurements[op["id"]]
             else:
-                apply_op(state, op, self.num_bits, seen)
+                state = _apply_op(state, op, self.num_bits, seen)
         return _snapshot(state, seen, self.num_bits, segment)

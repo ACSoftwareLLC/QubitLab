@@ -1,9 +1,8 @@
 # Quantum-Dnd Simulation API
 
 Contract between the React frontend and the Python simulation backend.
-The backend is currently a FastAPI stub with a naive numpy simulator;
-the route surface and payloads below are stable and will be backed by
-qiskit later without changes.
+The backend is a FastAPI service backed by Qiskit (`qiskit.quantum_info.Statevector`).
+The route surface and payloads below are stable.
 
 Base URL: same origin in dev (Vite proxies `/api` and `/ws` to
 `localhost:8000`).
@@ -63,7 +62,7 @@ the backend applies it controlled on all listed controls.
 ### `GET /api/health`
 
 ```json
-{ "status": "ok", "engine": "stub" }
+{ "status": "ok", "engine": "qiskit" }
 ```
 
 ### `POST /api/validate`

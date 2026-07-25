@@ -26,7 +26,7 @@ app.add_middleware(
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok", "engine": "stub"}
+    return {"status": "ok", "engine": "qiskit"}
 
 
 @app.post("/api/validate")

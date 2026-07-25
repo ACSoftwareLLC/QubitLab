@@ -1,6 +1,6 @@
 # Quantum-Dnd
 
-A quantum-circuit designer frontend (React + Vite) with a FastAPI simulation backend and a Fastify authentication backend backed by PostgreSQL.
+A quantum-circuit designer frontend (React + Vite) with a FastAPI simulation backend backed by Qiskit and a Fastify authentication backend backed by PostgreSQL.
 
 ## Authentication
 
