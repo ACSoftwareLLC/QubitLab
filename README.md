@@ -1,3 +1,69 @@
+# Quantum-Dnd
+
+A quantum-circuit designer frontend (React + Vite) with a FastAPI simulation backend and a Fastify authentication backend backed by PostgreSQL.
+
+## Authentication
+
+The auth service lives in `auth-server/` and is orchestrated with Docker Compose.
+
+### Quick start (Docker)
+
+```bash
+# 1. Copy the example environment and set a strong secret
+cp .env.example .env
+
+# 2. Start PostgreSQL and the Fastify auth API
+docker compose up -d
+
+# 3. Open the auth page
+open http://localhost:3000/auth
+```
+
+Services:
+
+- `postgres` — PostgreSQL 16, port `5432` (configurable via `.env`)
+- `auth-server` — Fastify API on port `3000`
+
+### Auth API endpoints
+
+- `POST /auth/register` — create account
+- `POST /auth/login` — sign in
+- `POST /auth/logout` — sign out
+- `GET  /auth/me` — current user
+- `GET  /auth/health` — health check
+- `GET  /auth` — static auth page (served by the Fastify backend)
+
+### Frontend auth gate
+
+The React app now starts with an auth screen. After logging in or registering, it redirects to the circuit editor. A top header shows the logged-in user and a logout button.
+
+Components:
+
+- `src/context/AuthContext.tsx` — `useAuth` hook, session handling, login/register/logout
+- `src/components/AuthPage.tsx` — login / register UI
+- `src/App.tsx` — gates the circuit editor behind authentication
+
+### Local development
+
+Terminal 1 — auth server & database:
+
+```bash
+docker compose up -d
+# or
+cd auth-server && npm install && npm run dev
+```
+
+Terminal 2 — Vite frontend:
+
+```bash
+npm install
+npm run dev
+```
+
+Then open http://localhost:5173.
+
+---
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
