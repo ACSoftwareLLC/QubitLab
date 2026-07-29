@@ -38,7 +38,7 @@ export function Gate({ gate, selected, onDragEnd, onLineStart, onDelete, onSelec
         draggable={false}
         shadowBlur={6}
         cornerRadius={8}
-        stroke={selected ? '#fff' : undefined}
+        stroke={selected ? '#38bdf8' : undefined}
         strokeWidth={selected ? 3 : 0}
         onClick={() => onSelect?.(gate.id)}
       />
@@ -113,8 +113,10 @@ export function Gate({ gate, selected, onDragEnd, onLineStart, onDelete, onSelec
         verticalAlign='middle'
         listening={false}
         draggable={false}
-        x={gateWidth / 2}
-        y={gateHeight / 2}
+        x={0}
+        y={0}
+        width={gateWidth}
+        height={gateHeight}
       />
       {gate.angle != null && (
         <Text

@@ -20,12 +20,12 @@ export function GateLinePreview({ draggingGateLine }: GateLinePreviewProps) {
           draggingGateLine.rawX,
           draggingGateLine.rawY,
         ]}
-        stroke='#999'
+        stroke='#64748b'
         strokeWidth={2}
         lineCap='round'
         lineJoin='round'
       />
-      {/* black: origin → snapped end, dot on the end */}
+      {/* solid: origin → snapped end, dot on the end */}
       <Line
         points={[
           draggingGateLine.startX,
@@ -33,8 +33,8 @@ export function GateLinePreview({ draggingGateLine }: GateLinePreviewProps) {
           draggingGateLine.currentX,
           draggingGateLine.currentY,
         ]}
-        stroke='#000'
-        strokeWidth={3}
+        stroke='#e2e8f0'
+        strokeWidth={2.5}
         opacity={1}
         lineCap='round'
         lineJoin='round'
@@ -43,7 +43,7 @@ export function GateLinePreview({ draggingGateLine }: GateLinePreviewProps) {
         x={draggingGateLine.currentX}
         y={draggingGateLine.currentY}
         radius={7}
-        fill='#000'
+        fill='#e2e8f0'
       />
     </Group>
   );

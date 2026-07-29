@@ -1,75 +1,167 @@
-/* Toolbox styles */
-.toolbox {
-  min-width: 100px;
-  background: #222;
-  color: #fff;
+/* ---------------------------------------------------------------------------
+ * App shell: header + three-column builder layout.
+ * ------------------------------------------------------------------------- */
+
+.app-shell {
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* --- Header ------------------------------------------------------------ */
+.app-header {
+  display: flex;
   align-items: center;
-  padding-top: 24px;
-  box-shadow: 2px 0 8px #0002;
-  z-index: 2;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
 }
-.toolbox > div {
-  margin-bottom: 12px;
+
+.app-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
 }
-.toolbox .toolbox-title {
-  font-weight: bold;
-  font-size: 18px;
-  margin-bottom: 24px;
+
+.app-header-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--accent), #818cf8);
+  color: var(--accent-contrast);
+  font-size: 0.95rem;
+  flex: 0 0 auto;
 }
-.toolbox .toolbox-item {
-  background: #444;
-  border-radius: 8px;
-  padding: 12px;
-  width: 60px;
-  text-align: center;
+
+.app-header-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.app-header-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.app-user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  background: var(--bg-deep);
+  white-space: nowrap;
+}
+
+.app-user-chip i {
+  color: var(--accent);
+}
+
+/* --- Buttons ------------------------------------------------------------ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  padding: 0.35rem 0.8rem;
+  font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
-  margin-bottom: 12px;
-  transition: background 0.2s;
-}
-.toolbox .toolbox-item:hover {
-  background: #666;
-}
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.btn:hover:not(:disabled) {
+  background: var(--panel-2);
+  border-color: var(--faint);
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-icon {
+  padding: 0;
+  width: 34px;
+  height: 34px;
+  font-size: 1rem;
+}
+
+/* --- Builder layout ------------------------------------------------------ */
+.builder-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.builder-canvas-region {
+  flex: 1 1 auto;
+  min-width: 0; /* allow the fluid canvas to shrink instead of clipping */
+  min-height: 0;
+  position: relative;
+  background: var(--bg);
+}
+
+/* --- Loading screen ------------------------------------------------------ */
+.app-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.app-loading-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: app-spin 0.8s linear infinite;
+}
+
+@keyframes app-spin {
   to {
     transform: rotate(360deg);
   }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
 }

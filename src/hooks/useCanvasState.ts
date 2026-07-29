@@ -10,12 +10,43 @@ import {
   SNAPPED_ABS_Y,
   FIRST_BIT_LINE_Y,
 } from '../constants/canvas';
-import { GATE_CONFIGS } from '../constants/gates';
-import { snapXToSegment, getClosestBitLine } from '../utils/geometry';
+import { GATE_CONFIGS, getGateWidth } from '../constants/gates';
+import {
+  getSegmentWidths,
+  getSegmentLayout,
+  getSegmentIndex,
+  getClosestBitLine,
+} from '../utils/geometry';
 
 export type CanvasState = ReturnType<typeof useCanvasState>;
 
-export function useCanvasState() {
+/** Re-derives every gate's x from its segment and the current layout:
+ *  segments that hold wide gates are expanded, so gates to their right
+ *  shift over; emptied segments shrink back and gates shift left again. */
+const reflowGates = (list: CanvasGate[]): CanvasGate[] => {
+  const widths = getSegmentWidths(list);
+  const layout = getSegmentLayout(widths);
+  return list.map(g =>
+    g.segment == null
+      ? g
+      : { ...g, x: layout.starts[g.segment] + widths[g.segment] / 2 - g.width / 2 },
+  );
+};
+
+/** Collision-safe id generator: Date.now() alone can repeat within the same
+ *  millisecond (e.g. a gate and its connection created together). */
+let idCounter = 0;
+const nextId = () => {
+  idCounter = (idCounter + 1) % 1000;
+  return Date.now() * 1000 + idCounter;
+};
+
+/**
+ * @param fitScale  Scale applied to the stage so the workspace fits its
+ *                  container (QuantumCanvas measures it). Drop coordinates
+ *                  are divided by `fitScale * stageScale`. Defaults to 1.
+ */
+export function useCanvasState(fitScale = 1) {
   const [gates, setGates] = useState<CanvasGate[]>([]);
 
   const [selectedGate, setSelectedGate] = useState<GateType | null>(null);
@@ -39,30 +70,39 @@ export function useCanvasState() {
     e.preventDefault();
     setDragPreview(null);
 
-    const scrollContainer = document.getElementById('stage-scroll-container') as HTMLDivElement | null;
-    const rect = (scrollContainer || (e.currentTarget as HTMLDivElement)).getBoundingClientRect();
-    const scrollLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
-    const pointerX = (e.clientX - rect.left + scrollLeft) / stageScale;
+    // Map client coords → canvas coords through the stage holder, whose
+    // on-screen rect already reflects the effective (fit × zoom) scale.
+    const holder = document.getElementById('stage-holder') as HTMLDivElement | null;
+    const rect = (holder || (e.currentTarget as HTMLDivElement)).getBoundingClientRect();
+    const pointerX = (e.clientX - rect.left) / (stageScale * fitScale);
 
     const rawGateType = e.dataTransfer.getData('gateType') || e.dataTransfer.getData('text/plain') || selectedGate || 'H';
     const gateTypeFromData = (rawGateType in GATE_CONFIGS ? rawGateType : 'H') as GateType;
     const config = GATE_CONFIGS[gateTypeFromData] || GATE_CONFIGS['H'];
 
-    const snappedX = snapXToSegment(pointerX);
+    // Segment lookup against the current (possibly expanded) layout.
+    const widths = getSegmentWidths(gates);
+    const segment = getSegmentIndex(pointerX, widths);
+    const gateWidth = getGateWidth(config);
 
-    setGates(prev => [
-      ...prev,
-      {
-        id: Date.now(),
-        type: gateTypeFromData,
-        x: snappedX - GATE_WIDTH / 2,
-        y: SNAPPED_ABS_Y,
-        width: GATE_WIDTH,
-        height: GATE_HEIGHT,
-        color: config.color,
-        ...(config.defaultAngle != null ? { angle: config.defaultAngle } : {}),
-      },
-    ]);
+    // x is provisional — reflow centers the gate in its (now possibly
+    // widened) segment and shifts the gates to its right.
+    setGates(prev =>
+      reflowGates([
+        ...prev,
+        {
+          id: nextId(),
+          type: gateTypeFromData,
+          x: 0,
+          y: SNAPPED_ABS_Y,
+          width: gateWidth,
+          height: GATE_HEIGHT,
+          color: config.color,
+          segment,
+          ...(config.defaultAngle != null ? { angle: config.defaultAngle } : {}),
+        },
+      ]),
+    );
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -86,26 +126,32 @@ export function useCanvasState() {
   const handleGateDragEnd = (gateId: number, e: KonvaEventObject<DragEvent>) => {
     const pos = e.currentTarget.position(); // absolute — gates live on the canvas root
 
-    // Use the gate center for segment lookup
-    const absX = pos.x + GATE_WIDTH / 2;
-    const isInColumnRange = absX >= SEGMENTS_START_X && absX <= WORKSPACE_WIDTH;
+    // Use the gate center for segment lookup (respecting per-type widths)
+    const gateWidth = gates.find(g => g.id === gateId)?.width ?? GATE_WIDTH;
+    const absX = pos.x + gateWidth / 2;
+    const widths = getSegmentWidths(gates);
+    const layout = getSegmentLayout(widths);
+    const isInColumnRange = absX >= SEGMENTS_START_X && absX <= layout.right;
 
     if (!isInColumnRange) {
       handleDeleteGate(gateId);
       return;
     }
 
-    const snappedCenterX = snapXToSegment(absX);
-    const finalX = snappedCenterX - GATE_WIDTH / 2;
+    const segment = getSegmentIndex(absX, widths);
 
-    // Snap the Konva node imperatively too: if the gate lands back in its
-    // old segment, React sees unchanged props and wouldn't move the node
-    // back from wherever the drag left it.
-    e.currentTarget.position({ x: finalX, y: SNAPPED_ABS_Y });
+    // Reflow: the old segment shrinks back if it lost its widest gate, the
+    // new segment widens to fit. Same-segment drops leave x unchanged.
+    const next = reflowGates(
+      gates.map(g => (g.id === gateId ? { ...g, segment, y: SNAPPED_ABS_Y } : g)),
+    );
+    const moved = next.find(g => g.id === gateId);
 
-    setGates(prev => prev.map(g =>
-      g.id === gateId ? { ...g, x: finalX, y: SNAPPED_ABS_Y } : g,
-    ));
+    // Snap the Konva node imperatively to its post-reflow spot: if the gate
+    // lands back in its old segment, React sees unchanged props and wouldn't
+    // move the node back from wherever the drag left it.
+    if (moved) e.currentTarget.position({ x: moved.x, y: SNAPPED_ABS_Y });
+    setGates(next);
   };
 
   const handleTotalDragEnd = () => {
@@ -117,7 +163,8 @@ export function useCanvasState() {
   };
 
   const handleDeleteGate = (gateId: number) => {
-    setGates(prev => prev.filter(g => g.id !== gateId));
+    // Reflow so the freed segment shrinks back to its default width.
+    setGates(prev => reflowGates(prev.filter(g => g.id !== gateId)));
     setGateLines(prev => prev.filter(line => line.gateId !== gateId));
     setSelectedPlacedGateId(prev => (prev === gateId ? null : prev));
   };
@@ -189,7 +236,7 @@ export function useCanvasState() {
             return [
               ...prev,
               {
-                id: Date.now(),
+                id: nextId(),
                 gateId: line.gateId,
                 barY: closestLine,
                 role,

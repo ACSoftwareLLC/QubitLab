@@ -2,11 +2,10 @@ import { Line, Rect } from 'react-konva';
 import {
   WORKSPACE_HEIGHT,
   NUM_SEGMENTS,
-  SEGMENTS_START_X,
-  SEGMENT_WIDTH,
   BIT_LINE_SPACING,
   FIRST_BIT_LINE_Y,
 } from '../../constants/canvas';
+import { getSegmentLayout } from '../../utils/geometry';
 
 interface SegmentGridProps {
   numBits: number;
@@ -15,46 +14,47 @@ interface SegmentGridProps {
   /** When provided, hovering a segment column peeks its state. */
   onPeekSegment?: (segment: number) => void;
   onPeekEnd?: () => void;
+  /** Per-segment cell widths — segments holding wide gates are expanded. */
+  widths: number[];
 }
 
-export function SegmentGrid({ numBits, currentSegment = -1, onPeekSegment, onPeekEnd }: SegmentGridProps) {
+export function SegmentGrid({ numBits, currentSegment = -1, onPeekSegment, onPeekEnd, widths }: SegmentGridProps) {
   const topY = WORKSPACE_HEIGHT * 0.2;
   const bottomY = FIRST_BIT_LINE_Y + (numBits - 1) * BIT_LINE_SPACING + 20;
+  const layout = getSegmentLayout(widths);
+  const boundaries = [...layout.starts, layout.right];
 
   return (
     <>
       {currentSegment >= 0 && (
         <Rect
-          x={SEGMENTS_START_X + currentSegment * SEGMENT_WIDTH}
+          x={layout.starts[currentSegment]}
           y={topY}
-          width={SEGMENT_WIDTH}
+          width={widths[currentSegment]}
           height={bottomY - topY}
-          fill='rgba(33, 150, 243, 0.15)'
+          fill='rgba(56, 189, 248, 0.1)'
           listening={false}
         />
       )}
 
-      {Array.from({ length: NUM_SEGMENTS + 1 }).map((_, i) => {
-        const x = SEGMENTS_START_X + i * SEGMENT_WIDTH;
-        return (
-          <Line
-            key={`seg-${i}`}
-            points={[x, topY, x, bottomY]}
-            stroke={'#e53935'}
-            strokeWidth={2}
-            dash={[4, 4]}
-            listening={false}
-          />
-        );
-      })}
+      {boundaries.map((x, i) => (
+        <Line
+          key={`seg-${i}`}
+          points={[x, topY, x, bottomY]}
+          stroke={'#334155'}
+          strokeWidth={1.5}
+          dash={[4, 4]}
+          listening={false}
+        />
+      ))}
 
       {onPeekSegment &&
         Array.from({ length: NUM_SEGMENTS }).map((_, i) => (
           <Rect
             key={`peek-${i}`}
-            x={SEGMENTS_START_X + i * SEGMENT_WIDTH}
+            x={layout.starts[i]}
             y={topY}
-            width={SEGMENT_WIDTH}
+            width={widths[i]}
             height={bottomY - topY}
             fill='rgba(0,0,0,0)'
             onMouseEnter={() => onPeekSegment(i)}

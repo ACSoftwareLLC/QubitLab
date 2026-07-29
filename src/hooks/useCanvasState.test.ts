@@ -105,6 +105,23 @@ describe('useCanvasState', () => {
       const gate = dropGate(result, SEGMENT0_CENTER, '' as GateType);
       expect(gate.type).toBe('H');
     });
+
+    it('widens multi-origin gates and centers them in their cell', () => {
+      const { result } = renderHook(() => useCanvasState());
+
+      // 2 origins → 80px: fits the default 84px cell, so no widening —
+      // the gate just centers in segment 0.
+      const cx = dropGate(result, SEGMENT0_CENTER, 'CX');
+      expect(cx.width).toBe(80);
+      expect(cx.segment).toBe(0);
+      expect(cx.x).toBe(SEGMENT0_CENTER - 40);
+
+      // 3 origins → 120px: segment 0 widens to 120 and re-centers the gate.
+      const ccx = dropGate(result, SEGMENT0_CENTER, 'CCX');
+      expect(ccx.width).toBe(120);
+      expect(ccx.segment).toBe(0);
+      expect(ccx.x).toBe(SEGMENTS_START_X);
+    });
   });
 
   describe('handleGateDragEnd', () => {
@@ -130,6 +147,52 @@ describe('useCanvasState', () => {
       act(() => result.current.handleGateDragEnd(gate.id, event));
 
       expect(result.current.gates).toEqual([]);
+    });
+
+    it('shifts later gates right when a cell widens, and back when it empties', () => {
+      const { result } = renderHook(() => useCanvasState());
+
+      // CCX widens segment 0 to 120, so segment 1 starts at START + 120.
+      const ccx = dropGate(result, SEGMENT0_CENTER, 'CCX');
+      const h = dropGate(result, SEGMENTS_START_X + 120 + SEGMENT_WIDTH / 2, 'H');
+
+      expect(h.segment).toBe(1);
+      // START + 120 (cell start) + 42 (cell center) − 20 (half gate)
+      expect(h.x).toBe(SEGMENTS_START_X + 120 + SEGMENT_WIDTH / 2 - 20);
+
+      // Deleting the wide gate shrinks segment 0 back; H shifts left.
+      act(() => result.current.handleDeleteGate(ccx.id));
+      expect(result.current.gates[0].x).toBe(SEGMENT0_CENTER + SEGMENT_WIDTH - 20);
+    });
+
+    it('keeps the same layout when a gate is dragged within its cell', () => {
+      const { result } = renderHook(() => useCanvasState());
+      const ccx = dropGate(result, SEGMENT0_CENTER, 'CCX'); // x = START, cell 120 wide
+
+      // Drag around inside widened segment 0 ([START, START + 120)).
+      const { event, getPos } = makeKonvaDragEndEvent(SEGMENTS_START_X + 40, 0);
+      act(() => result.current.handleGateDragEnd(ccx.id, event));
+
+      expect(result.current.gates[0]).toMatchObject({ x: SEGMENTS_START_X, segment: 0 });
+      // Konva node is snapped back to the unchanged layout position.
+      expect(getPos()).toEqual({ x: SEGMENTS_START_X, y: SNAPPED_ABS_Y });
+    });
+
+    it('snaps a wide gate using its own width and re-flows both cells', () => {
+      const { result } = renderHook(() => useCanvasState());
+      const gate = dropGate(result, SEGMENT0_CENTER, 'CCX'); // 120px wide
+
+      // Segment 0 is widened to 120, so segment 1 currently starts at START + 120.
+      const segment1Center = SEGMENTS_START_X + 120 + SEGMENT_WIDTH / 2;
+      // Node position is the top-left corner; center must land in segment 1.
+      const { event, getPos } = makeKonvaDragEndEvent(segment1Center - 60 + 3, 0);
+      act(() => result.current.handleGateDragEnd(gate.id, event));
+
+      // After the move, segment 0 shrinks back to 84 and segment 1 widens
+      // to 120: x = START + 84 + 60 (center) − 60 (half gate).
+      const expectedX = SEGMENTS_START_X + SEGMENT_WIDTH;
+      expect(result.current.gates[0]).toMatchObject({ x: expectedX, y: SNAPPED_ABS_Y, segment: 1 });
+      expect(getPos()).toEqual({ x: expectedX, y: SNAPPED_ABS_Y });
     });
   });
 
@@ -291,6 +354,61 @@ describe('useCanvasState', () => {
       const { result } = renderHook(() => useCanvasState());
       act(() => result.current.setNumBits(7));
       expect(result.current.numBits).toBe(7);
+    });
+  });
+
+  describe('handleDrop with fitScale', () => {
+    it('maps client coordinates through the fit scale', () => {
+      const { result } = renderHook(() => useCanvasState(0.5));
+
+      // Displayed at half size: dropping at half the canvas x lands on segment 0.
+      const gate = dropGate(result, SEGMENT0_CENTER * 0.5, 'X');
+
+      expect(gate.x).toBe(SEGMENT0_CENTER - GATE_WIDTH / 2);
+      expect(gate.y).toBe(SNAPPED_ABS_Y);
+    });
+
+    it('combines the fit scale with the user zoom multiplier', () => {
+      const { result } = renderHook(() => useCanvasState(0.5));
+      act(() => result.current.zoomIn()); // stageScale 1.1 → effective 0.55
+
+      const gate = dropGate(result, SEGMENT0_CENTER * 0.55);
+
+      expect(gate.x).toBe(SEGMENT0_CENTER - GATE_WIDTH / 2);
+    });
+
+    it('snaps drops outside the workspace to the nearest segment', () => {
+      const { result } = renderHook(() => useCanvasState(0.5));
+
+      // Way past the right edge: clamps to the last segment's center.
+      const lastCenter = SEGMENTS_START_X + SEGMENT_WIDTH * 9 + SEGMENT_WIDTH / 2;
+      const gate = dropGate(result, 9999);
+
+      expect(gate.x).toBe(lastCenter - GATE_WIDTH / 2);
+    });
+  });
+
+  describe('id generation', () => {
+    it('never reuses ids, even for gates created in the same millisecond', () => {
+      vi.spyOn(Date, 'now').mockReturnValue(12345);
+      const { result } = renderHook(() => useCanvasState());
+
+      const a = dropGate(result, SEGMENT0_CENTER, 'H');
+      const b = dropGate(result, SEGMENT0_CENTER, 'X');
+
+      expect(a.id).not.toBe(b.id);
+    });
+
+    it('gate ids and line ids never collide', () => {
+      vi.spyOn(Date, 'now').mockReturnValue(999);
+      const { result } = renderHook(() => useCanvasState());
+
+      const gate = dropGate(result, SEGMENT0_CENTER, 'H');
+      act(() => result.current.handleGateLineStart(gate.id, 0, 20, 400, FIRST_BIT_LINE_Y));
+      act(() => result.current.handleStageMouseUp());
+
+      expect(result.current.gateLines).toHaveLength(1);
+      expect(result.current.gateLines[0].id).not.toBe(gate.id);
     });
   });
 });

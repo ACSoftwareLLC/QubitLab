@@ -1,4 +1,5 @@
 import type { GateType, GateConfig } from '../types';
+import { GATE_WIDTH } from './canvas';
 
 const single = { category: 'single', targetCapacity: 1, controlCapacity: 0 } as const;
 
@@ -54,4 +55,12 @@ export const getGateOrigins = (config: GateConfig, gateWidth: number): GateOrigi
     offsetX: (gateWidth * (i + 1)) / (count + 1),
     role: i < config.targetCapacity ? 'target' : 'control',
   }));
+};
+
+/** Gate block width is the default size multiplied by the number of line
+ *  origins the gate has, so multi-input gates aren't squished. Single-origin
+ *  gates keep the standard width (origins = 1). */
+export const getGateWidth = (config: GateConfig): number => {
+  const origins = config.targetCapacity + config.controlCapacity;
+  return GATE_WIDTH * origins;
 };

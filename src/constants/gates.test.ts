@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { GATE_CONFIGS, getGateOrigins } from './gates';
+import { GATE_CONFIGS, getGateOrigins, getGateWidth } from './gates';
+import { GATE_WIDTH } from './canvas';
 
 describe('getGateOrigins', () => {
   it('creates one origin per accepted connection', () => {
@@ -29,6 +30,31 @@ describe('getGateOrigins', () => {
     const [origin] = getGateOrigins(GATE_CONFIGS.H, 40);
     expect(origin.offsetX).toBeCloseTo(20);
     expect(origin.role).toBe('target');
+  });
+});
+
+describe('getGateWidth', () => {
+  it('keeps single-origin gates at the default width', () => {
+    expect(getGateWidth(GATE_CONFIGS.H)).toBe(GATE_WIDTH);
+    expect(getGateWidth(GATE_CONFIGS.Rx)).toBe(GATE_WIDTH);
+    expect(getGateWidth(GATE_CONFIGS.M)).toBe(GATE_WIDTH);
+  });
+
+  it('doubles the width of two-origin gates', () => {
+    expect(getGateWidth(GATE_CONFIGS.CX)).toBe(GATE_WIDTH * 2);
+    expect(getGateWidth(GATE_CONFIGS.C)).toBe(GATE_WIDTH * 2);
+    expect(getGateWidth(GATE_CONFIGS.CZ)).toBe(GATE_WIDTH * 2);
+    expect(getGateWidth(GATE_CONFIGS.SWAP)).toBe(GATE_WIDTH * 2);
+  });
+
+  it('triples the width of three-origin gates', () => {
+    expect(getGateWidth(GATE_CONFIGS.CCX)).toBe(GATE_WIDTH * 3);
+  });
+
+  it('never shrinks below the default width', () => {
+    for (const config of Object.values(GATE_CONFIGS)) {
+      expect(getGateWidth(config)).toBeGreaterThanOrEqual(GATE_WIDTH);
+    }
   });
 });
 

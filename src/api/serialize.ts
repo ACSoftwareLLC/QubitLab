@@ -34,7 +34,9 @@ export function serializeCircuit(
     ops.push({
       id: gate.id,
       type: gate.type,
-      segment: getSegmentIndex(absCenterX),
+      // Prefer the tracked segment (exact under widened layouts); fall back
+      // to a geometric lookup for gates placed before segments were tracked.
+      segment: gate.segment ?? getSegmentIndex(absCenterX),
       targets,
       controls,
       angle: gate.angle ?? null,
