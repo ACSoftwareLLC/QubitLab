@@ -10,6 +10,7 @@ import {
 export interface User {
   id: string;
   username: string;
+  pfpUrl: string | null;
 }
 
 interface AuthContextValue {
@@ -20,6 +21,9 @@ interface AuthContextValue {
   register: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   clearError: () => void;
+  updateUsername: (username: string) => Promise<string | null>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<string | null>;
+  uploadAvatar: (file: File) => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -27,16 +31,18 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const authFetch = async (
   method: string,
   path: string,
-  body?: Record<string, unknown>
+  body?: Record<string, unknown> | FormData
 ) => {
+  const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
   const res = await fetch(path, {
     method,
     credentials: 'include',
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
+    // FormData sets its own multipart Content-Type (with boundary) — never override it.
+    headers: body && !isForm ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
   });
   const data = (await res.json().catch(() => ({}))) as { error?: string; user?: User };
-  return { ok: res.ok, data };
+  return { ok: res.ok, status: res.status, data };
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -92,9 +98,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearError = useCallback(() => setError(null), []);
 
+  // Account mutators return an error message on failure, null on success.
+  const updateUsername = useCallback(async (username: string) => {
+    const { ok, status, data } = await authFetch('PATCH', '/auth/account/username', { username });
+    if (status === 401) {
+      setUser(null);
+      return 'Session expired';
+    }
+    if (ok && data.user) {
+      setUser(data.user);
+      return null;
+    }
+    return data.error || 'Failed to update username';
+  }, []);
+
+  const updatePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    const { ok, status, data } = await authFetch('PATCH', '/auth/account/password', {
+      currentPassword,
+      newPassword,
+    });
+    if (status === 401) {
+      setUser(null);
+      return 'Session expired';
+    }
+    if (ok) return null;
+    return data.error || 'Failed to update password';
+  }, []);
+
+  const uploadAvatar = useCallback(async (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    const { ok, status, data } = await authFetch('POST', '/auth/account/avatar', form);
+    if (status === 401) {
+      setUser(null);
+      return 'Session expired';
+    }
+    if (ok && data.user) {
+      setUser(data.user);
+      return null;
+    }
+    return data.error || 'Failed to upload avatar';
+  }, []);
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, error, login, register, logout, clearError }}
+      value={{
+        user,
+        loading,
+        error,
+        login,
+        register,
+        logout,
+        clearError,
+        updateUsername,
+        updatePassword,
+        uploadAvatar,
+      }}
     >
       {children}
     </AuthContext.Provider>
