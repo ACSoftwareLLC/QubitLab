@@ -135,3 +135,269 @@
   color: var(--auth-text);
   font-size: 1.25rem;
 }
+
+/* ---------- App header ---------- */
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: var(--auth-panel);
+  color: var(--auth-text);
+  border-bottom: 1px solid #334155;
+}
+
+.app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.app-header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.app-title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.app-nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.app-nav-link {
+  color: var(--auth-muted);
+  text-decoration: none;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.9rem;
+}
+
+.app-nav-link:hover {
+  color: var(--auth-text);
+}
+
+.app-nav-link.active {
+  color: #0f172a;
+  background: var(--auth-accent);
+  font-weight: 600;
+}
+
+.app-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.app-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.app-avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--auth-accent);
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.app-username {
+  color: var(--auth-muted);
+}
+
+.app-save-button {
+  background: var(--auth-accent);
+  border: none;
+  color: #0f172a;
+  border-radius: 0.375rem;
+  padding: 0.35rem 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.app-save-button:hover {
+  background: var(--auth-accent-hover);
+}
+
+.app-logout-button {
+  background: transparent;
+  border: 1px solid #475569;
+  color: var(--auth-text);
+  border-radius: 0.375rem;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+}
+
+/* ---------- Modal ---------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-card {
+  margin: 1rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.modal-cancel {
+  flex: 1;
+  background: transparent;
+  border: 1px solid #475569;
+  color: var(--auth-text);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  cursor: pointer;
+}
+
+.modal-submit {
+  flex: 1;
+  margin-top: 0;
+}
+
+/* ---------- Pages (account / circuits) ---------- */
+
+.page-container {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--auth-bg);
+  color: var(--auth-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 2rem 1rem;
+}
+
+.page-content {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.page-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+}
+
+.page-muted {
+  color: var(--auth-muted);
+}
+
+.account-container {
+  min-height: unset;
+  flex: 1;
+  overflow-y: auto;
+  align-items: flex-start;
+  padding: 2rem 1rem;
+}
+
+.account-stack {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.auth-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.auth-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  font-size: 2rem;
+}
+
+.auth-file-input {
+  color: var(--auth-muted);
+  font-size: 0.875rem;
+}
+
+/* ---------- Circuit cards ---------- */
+
+.circuit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.circuit-card {
+  position: relative;
+  background: var(--auth-panel);
+  border-radius: 1rem;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.1s ease;
+}
+
+.circuit-card:hover {
+  transform: translateY(-2px);
+}
+
+.circuit-thumb {
+  background: #f9f9f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+}
+
+.circuit-thumb img {
+  width: 100%;
+  display: block;
+}
+
+.circuit-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.75rem 1rem 1rem;
+}
+
+.circuit-name {
+  font-weight: 600;
+}
+
+.circuit-detail {
+  color: var(--auth-muted);
+  font-size: 0.8rem;
+}
+
+.circuit-delete {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid #475569;
+  color: var(--auth-danger);
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}

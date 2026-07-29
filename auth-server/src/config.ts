@@ -7,6 +7,15 @@ export const config = {
   sessionSecret: process.env.SESSION_SECRET || 'dev-secret-change-me',
   cookieSecure: process.env.COOKIE_SECURE === 'true',
   nodeEnv: process.env.NODE_ENV || 'development',
+  minio: {
+    endpoint: process.env.MINIO_ENDPOINT || 'localhost',
+    port: Number(process.env.MINIO_PORT || 9000),
+    useSsl: process.env.MINIO_USE_SSL === 'true',
+    accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
+    secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
+    bucketAvatars: 'avatars',
+    bucketThumbnails: 'circuit-thumbnails',
+  },
 };
 
 if (!config.databaseUrl) {

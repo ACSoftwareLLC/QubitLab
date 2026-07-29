@@ -1,4 +1,6 @@
 import type { KonvaEventObject } from 'konva/lib/Node';
+import type Konva from 'konva';
+import type { Ref } from 'react';
 import { Stage, Layer } from 'react-konva';
 import { WORKSPACE_WIDTH, WORKSPACE_HEIGHT } from '../../constants/canvas';
 import type { CanvasGate, GateLine, DragPreview, DraggingGateLine, GateType, GateConfig } from '../../types';
@@ -47,6 +49,7 @@ interface QuantumCanvasProps {
   zoomIn: () => void;
   zoomOut: () => void;
   resetZoom: () => void;
+  stageRef?: Ref<Konva.Stage>;
 }
 
 const STATUS_LABELS: Record<SimStatus, string> = {
@@ -91,6 +94,7 @@ export function QuantumCanvas({
   zoomIn,
   zoomOut,
   resetZoom,
+  stageRef,
 }: QuantumCanvasProps) {
   const executing = simStatus === 'ready' || simStatus === 'running' || simStatus === 'done';
   const canInteract = simStatus === 'ready' || simStatus === 'running';
@@ -186,6 +190,7 @@ export function QuantumCanvas({
 
       <div id="stage-holder" className="canvas-stage-holder" style={{ width: stageW, height: stageH }}>
         <Stage
+          ref={stageRef}
           width={stageW}
           height={stageH}
           scaleX={effectiveScale}

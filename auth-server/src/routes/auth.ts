@@ -1,13 +1,14 @@
 import { randomUUID } from 'crypto';
-import { FastifyPluginAsync } from 'fastify';
+import { FastifyPluginAsync, FastifyReply } from 'fastify';
 import bcrypt from 'bcryptjs';
 import { pool } from '../db.js';
 import { config } from '../config.js';
 import { registerSchema, loginSchema } from '../schemas/auth.js';
+import { publicUser } from '../utils/user.js';
 
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-function setSessionCookie(reply: any, sessionId: string, expires: Date) {
+function setSessionCookie(reply: FastifyReply, sessionId: string, expires: Date) {
   reply.setCookie('sessionId', sessionId, {
     path: '/',
     httpOnly: true,
@@ -17,7 +18,7 @@ function setSessionCookie(reply: any, sessionId: string, expires: Date) {
   });
 }
 
-function clearSessionCookie(reply: any) {
+function clearSessionCookie(reply: FastifyReply) {
   reply.clearCookie('sessionId', { path: '/' });
 }
 
@@ -32,7 +33,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       const {
         rows: [user],
       } = await pool.query(
-        'INSERT INTO users(username, password_hash) VALUES($1, $2) RETURNING id, username, created_at',
+        'INSERT INTO users(username, password_hash) VALUES($1, $2) RETURNING id, username, pfp_key, created_at',
         [username, hash]
       );
 
@@ -44,9 +45,9 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       );
       setSessionCookie(reply, sessionId, expires);
 
-      return { user: { id: user.id, username: user.username } };
-    } catch (err: any) {
-      if (err.code === '23505') {
+      return { user: publicUser(user) };
+    } catch (err: unknown) {
+      if ((err as { code?: string }).code === '23505') {
         reply.code(409);
         return { error: 'Username already taken' };
       }
@@ -59,7 +60,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     const {
       rows: [user],
     } = await pool.query(
-      'SELECT id, username, password_hash FROM users WHERE username = $1',
+      'SELECT id, username, password_hash, pfp_key FROM users WHERE username = $1',
       [username]
     );
 
@@ -76,7 +77,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     );
     setSessionCookie(reply, sessionId, expires);
 
-    return { user: { id: user.id, username: user.username } };
+    return { user: publicUser(user) };
   });
 
   app.post('/logout', async (req, reply) => {
@@ -93,7 +94,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       reply.code(401);
       return { error: 'Unauthorized' };
     }
-    return { user: req.user };
+    return { user: publicUser(req.user) };
   });
 };
 
