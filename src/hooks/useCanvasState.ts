@@ -12,6 +12,8 @@ import {
 } from '../constants/canvas';
 import { GATE_CONFIGS } from '../constants/gates';
 import { snapXToSegment, getClosestBitLine } from '../utils/geometry';
+import { deserializeCircuit } from '../api/deserialize';
+import type { Circuit } from '../api/types';
 
 export type CanvasState = ReturnType<typeof useCanvasState>;
 
@@ -208,6 +210,16 @@ export function useCanvasState() {
     setGateLines(prev => prev.map(line => (line.id === lineId ? { ...line, barY } : line)));
   };
 
+  const loadCircuit = (circuit: Circuit) => {
+    const loaded = deserializeCircuit(circuit);
+    setGates(loaded.gates);
+    setGateLines(loaded.gateLines);
+    setNumBits(loaded.numBits);
+    setSelectedPlacedGateId(null);
+    setDraggingGateLine(null);
+    setDragPreview(null);
+  };
+
   return {
     gates,
     selectedGate,
@@ -234,6 +246,7 @@ export function useCanvasState() {
     handleStageMouseMove,
     handleStageMouseUp,
     updateGateLineBarY,
+    loadCircuit,
     setNumBits,
     zoomIn: () => setStageScale(s => Math.min(3, +(s + 0.1).toFixed(2))),
     zoomOut: () => setStageScale(s => Math.max(0.3, +(s - 0.1).toFixed(2))),
