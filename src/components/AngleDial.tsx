@@ -58,9 +58,9 @@ export function AngleDial({ angle, onChange }: AngleDialProps) {
           max={359}
           value={text}
           onChange={e => handleTextChange(e.target.value)}
-          style={{ width: 64, background: '#333', color: '#fff', border: '1px solid #555', borderRadius: 4, padding: '4px 6px' }}
+          style={{ width: 64, background: '#243349', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 6, padding: '4px 6px' }}
         />
-        <span style={{ color: '#aaa' }}>degrees</span>
+        <span style={{ color: '#94a3b8' }}>degrees</span>
       </div>
 
       <svg
@@ -78,7 +78,7 @@ export function AngleDial({ angle, onChange }: AngleDialProps) {
         onPointerCancel={() => setDragging(false)}
       >
         {/* dial face */}
-        <circle cx={CENTER} cy={CENTER} r={RADIUS} fill='#2a2a2a' stroke='#555' strokeWidth={2} />
+        <circle cx={CENTER} cy={CENTER} r={RADIUS} fill='#0b1220' stroke='#334155' strokeWidth={2} />
         {/* quarter ticks */}
         {[0, 90, 180, 270].map(d => {
           const t = toRadians(d);
@@ -89,19 +89,19 @@ export function AngleDial({ angle, onChange }: AngleDialProps) {
               y1={CENTER - (RADIUS - 6) * Math.sin(t)}
               x2={CENTER + RADIUS * Math.cos(t)}
               y2={CENTER - RADIUS * Math.sin(t)}
-              stroke='#777'
+              stroke='#475569'
               strokeWidth={2}
             />
           );
         })}
         {/* angle line */}
-        <line x1={CENTER} y1={CENTER} x2={tipX} y2={tipY} stroke='#4DB6AC' strokeWidth={3} strokeLinecap='round' />
+        <line x1={CENTER} y1={CENTER} x2={tipX} y2={tipY} stroke='#38bdf8' strokeWidth={3} strokeLinecap='round' />
         {/* handle */}
-        <circle cx={tipX} cy={tipY} r={6} fill='#4DB6AC' stroke='#fff' strokeWidth={2} />
+        <circle cx={tipX} cy={tipY} r={6} fill='#38bdf8' stroke='#e2e8f0' strokeWidth={2} />
         {/* center dot */}
-        <circle cx={CENTER} cy={CENTER} r={3} fill='#888' />
+        <circle cx={CENTER} cy={CENTER} r={3} fill='#64748b' />
         {/* label */}
-        <text x={CENTER} y={SIZE - 4} textAnchor='middle' fill='#aaa' fontSize={11}>
+        <text x={CENTER} y={SIZE - 4} textAnchor='middle' fill='#94a3b8' fontSize={11}>
           {Math.round(degrees)}°
         </text>
       </svg>

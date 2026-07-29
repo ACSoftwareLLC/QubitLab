@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   getSegmentIndex,
   snapXToSegment,
+  getSegmentWidths,
+  getSegmentLayout,
+  DEFAULT_SEGMENT_WIDTHS,
   getBitLineYs,
   getBitIndex,
   getClosestBitLine,
@@ -56,6 +59,80 @@ describe('snapXToSegment', () => {
     expect(snapXToSegment(-100)).toBe(SEGMENTS_START_X + SEGMENT_WIDTH / 2);
     expect(snapXToSegment(WORKSPACE_WIDTH + 100)).toBe(
       SEGMENTS_START_X + (NUM_SEGMENTS - 1) * SEGMENT_WIDTH + SEGMENT_WIDTH / 2,
+    );
+  });
+});
+
+describe('getSegmentWidths', () => {
+  it('returns uniform default widths when no gate has a segment', () => {
+    expect(getSegmentWidths([])).toEqual(DEFAULT_SEGMENT_WIDTHS);
+    expect(getSegmentWidths([{ width: 120 }])).toEqual(DEFAULT_SEGMENT_WIDTHS);
+  });
+
+  it('widens a cell to fit its widest gate', () => {
+    const widths = getSegmentWidths([
+      { segment: 2, width: 80 },
+      { segment: 2, width: 120 },
+      { segment: 4, width: 80 },
+    ]);
+    expect(widths[2]).toBe(120);
+    expect(widths[4]).toBe(Math.max(SEGMENT_WIDTH, 80));
+    expect(widths[0]).toBe(SEGMENT_WIDTH);
+  });
+
+  it('never shrinks a cell below the default width', () => {
+    const widths = getSegmentWidths([{ segment: 0, width: 10 }]);
+    expect(widths[0]).toBe(SEGMENT_WIDTH);
+  });
+
+  it('ignores out-of-range segments', () => {
+    const widths = getSegmentWidths([
+      { segment: -1, width: 999 },
+      { segment: NUM_SEGMENTS, width: 999 },
+    ]);
+    expect(widths).toEqual(DEFAULT_SEGMENT_WIDTHS);
+  });
+});
+
+describe('getSegmentLayout', () => {
+  it('produces uniform boundaries by default', () => {
+    const layout = getSegmentLayout();
+    expect(layout.starts[0]).toBe(SEGMENTS_START_X);
+    expect(layout.starts[1]).toBe(SEGMENTS_START_X + SEGMENT_WIDTH);
+    expect(layout.right).toBe(SEGMENTS_START_X + NUM_SEGMENTS * SEGMENT_WIDTH);
+  });
+
+  it('shifts starts to the right of widened segments', () => {
+    const widths = [...DEFAULT_SEGMENT_WIDTHS];
+    widths[0] = 120;
+    const layout = getSegmentLayout(widths);
+    expect(layout.starts[1]).toBe(SEGMENTS_START_X + 120);
+    expect(layout.right).toBe(SEGMENTS_START_X + NUM_SEGMENTS * SEGMENT_WIDTH + (120 - SEGMENT_WIDTH));
+  });
+});
+
+describe('getSegmentIndex with custom widths', () => {
+  const widths = [...DEFAULT_SEGMENT_WIDTHS];
+  widths[0] = 120; // segment 0 now spans [START, START + 120)
+
+  it('respects widened boundaries', () => {
+    expect(getSegmentIndex(SEGMENTS_START_X + SEGMENT_WIDTH, widths)).toBe(0);
+    expect(getSegmentIndex(SEGMENTS_START_X + 119.9, widths)).toBe(0);
+    expect(getSegmentIndex(SEGMENTS_START_X + 120, widths)).toBe(1);
+  });
+
+  it('clamps beyond the expanded right edge to the last segment', () => {
+    expect(getSegmentIndex(99999, widths)).toBe(NUM_SEGMENTS - 1);
+  });
+});
+
+describe('snapXToSegment with custom widths', () => {
+  it('returns the center of the widened segment', () => {
+    const widths = [...DEFAULT_SEGMENT_WIDTHS];
+    widths[0] = 120;
+    expect(snapXToSegment(SEGMENTS_START_X + 10, widths)).toBe(SEGMENTS_START_X + 60);
+    expect(snapXToSegment(SEGMENTS_START_X + 130, widths)).toBe(
+      SEGMENTS_START_X + 120 + SEGMENT_WIDTH / 2,
     );
   });
 });

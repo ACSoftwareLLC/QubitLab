@@ -12,6 +12,8 @@ import {
   GateLineConnection,
   Gate,
 } from './index';
+import { getSegmentWidths, getSegmentLayout } from '../../utils/geometry';
+import './QuantumCanvas.css';
 
 interface QuantumCanvasProps {
   gates: CanvasGate[];
@@ -20,6 +22,8 @@ interface QuantumCanvasProps {
   draggingGateLine: DraggingGateLine | null;
   gateLines: GateLine[];
   stageScale: number;
+  /** Base scale that fits the workspace into the container (ResizeObserver). */
+  fitScale: number;
   gateConfigs: Record<GateType, GateConfig>;
   selectedPlacedGateId: number | null;
   simStatus: SimStatus;
@@ -48,11 +52,13 @@ interface QuantumCanvasProps {
   stageRef?: Ref<Konva.Stage>;
 }
 
-const simButtonStyle: React.CSSProperties = {
-  width: 64,
-  height: 28,
-  fontSize: 12,
-  cursor: 'pointer',
+const STATUS_LABELS: Record<SimStatus, string> = {
+  idle: 'Idle',
+  ready: 'Ready',
+  running: 'Running',
+  done: 'Done',
+  invalid: 'Invalid',
+  offline: 'Offline',
 };
 
 export function QuantumCanvas({
@@ -62,6 +68,7 @@ export function QuantumCanvas({
   draggingGateLine,
   gateLines,
   stageScale,
+  fitScale,
   gateConfigs,
   selectedPlacedGateId,
   simStatus,
@@ -93,109 +100,141 @@ export function QuantumCanvas({
   const canInteract = simStatus === 'ready' || simStatus === 'running';
   const idle = !draggingGateLine;
 
+  // The stage viewport is sized to the *displayed* pixels so the whole
+  // workspace is always visible and never clipped; content is drawn at
+  // effectiveScale, keeping pointer math exact.
+  const effectiveScale = fitScale * stageScale;
+  const stageW = Math.max(1, Math.round(WORKSPACE_WIDTH * effectiveScale));
+  const stageH = Math.max(1, Math.round(WORKSPACE_HEIGHT * effectiveScale));
+
+  // Segments widen around wide gates; bit lines extend to the layout's
+  // right edge (never past the stage viewport).
+  const segmentWidths = getSegmentWidths(gates);
+  const layoutRight = getSegmentLayout(segmentWidths).right;
+  const linesWidth = Math.max(WORKSPACE_WIDTH, layoutRight);
+
   return (
     <div
-      style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}
+      className="quantum-canvas"
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
+      onMouseUp={handleStageMouseUp}
     >
-      <div style={{ position: 'absolute', right: 12, top: '40%', zIndex: 3, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <button onClick={zoomIn} style={{ width: 40, height: 40 }}>+</button>
-        <button onClick={zoomOut} style={{ width: 40, height: 40 }}>−</button>
-        <button onClick={resetZoom} style={{ width: 40, height: 28 }}>reset</button>
-      </div>
-
-      {/* Execution controls */}
-      <div style={{ position: 'absolute', left: 12, top: 12, zIndex: 3, display: 'flex', gap: 8, alignItems: 'center' }}>
+      {/* Simulation controls */}
+      <div className="canvas-toolbar canvas-toolbar-sim">
         {!executing ? (
-          <button onClick={onSimStart} style={simButtonStyle}>▶ start</button>
+          <button className="btn btn-icon btn-primary" onClick={onSimStart} title="Start simulation" aria-label="Start simulation">
+            <i className="bi bi-play-fill" />
+          </button>
         ) : (
           <>
-            <button onClick={onSimStep} disabled={!canInteract} style={simButtonStyle}>step</button>
-            <button onClick={onSimRun} disabled={!canInteract} style={simButtonStyle}>run</button>
-            <button onClick={onSimReset} style={simButtonStyle}>reset</button>
-            <span style={{ fontSize: 12, color: '#555' }}>
-              {simStatus === 'done' ? 'done' : `segment ${currentSegment} / ${numSteps > 0 ? numSteps - 1 : 0}`}
-            </span>
+            <button className="btn btn-icon" onClick={onSimStep} disabled={!canInteract} title="Step one segment" aria-label="Step one segment">
+              <i className="bi bi-skip-end-fill" />
+            </button>
+            <button className="btn btn-icon" onClick={onSimRun} disabled={!canInteract} title="Run to completion" aria-label="Run to completion">
+              <i className="bi bi-fast-forward-fill" />
+            </button>
+            <button className="btn btn-icon" onClick={onSimReset} title="Reset simulation" aria-label="Reset simulation">
+              <i className="bi bi-arrow-counterclockwise" />
+            </button>
           </>
+        )}
+        <span className={`canvas-status-pill canvas-status-${simStatus}`}>{STATUS_LABELS[simStatus]}</span>
+        {executing && (
+          <span className="canvas-segment-readout">
+            {simStatus === 'done' ? `${numSteps > 0 ? numSteps - 1 : 0} / ${numSteps > 0 ? numSteps - 1 : 0}` : `${currentSegment} / ${numSteps > 0 ? numSteps - 1 : 0}`}
+          </span>
         )}
       </div>
 
-      <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        {dragPreview && dragPreview.visible && (
-          <div
-            style={{
-              position: 'absolute',
-              left: dragPreview.x,
-              top: dragPreview.y,
-              transform: 'translate(-50%, -50%)',
-              pointerEvents: 'none',
-              width: 48,
-              height: 48,
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              borderRadius: 16,
-              background: gateConfigs[dragPreview.gateType]?.color || '#444',
-              color: '#fff',
-              fontWeight: 700,
-              zIndex: 5,
-              boxShadow: '0 8px 18px rgba(0,0,0,0.25)',
-            }}
-          >
-            {dragPreview.gateType}
-          </div>
-        )}
+      {/* Zoom controls */}
+      <div className="canvas-toolbar canvas-toolbar-zoom">
+        <button className="btn btn-icon" onClick={zoomOut} title="Zoom out" aria-label="Zoom out">
+          <i className="bi bi-dash" />
+        </button>
+        <span className="canvas-zoom-label">{Math.round(effectiveScale * 100)}%</span>
+        <button className="btn btn-icon" onClick={zoomIn} title="Zoom in" aria-label="Zoom in">
+          <i className="bi bi-plus" />
+        </button>
+        <span className="canvas-toolbar-divider" />
+        <button className="btn btn-icon" onClick={resetZoom} title="Fit to window" aria-label="Fit to window">
+          <i className="bi bi-aspect-ratio" />
+        </button>
+      </div>
 
-        <div id="stage-scroll-container" style={{ width: WORKSPACE_WIDTH, height: WORKSPACE_HEIGHT, overflow: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <Stage
-            ref={stageRef}
-            width={WORKSPACE_WIDTH}
-            height={WORKSPACE_HEIGHT}
-            scaleX={stageScale}
-            scaleY={stageScale}
-            style={{ border: '1px solid #ccc', background: '#f9f9f9' }}
-            onMouseMove={handleStageMouseMove}
-            onMouseUp={handleStageMouseUp}
-          >
-            <Layer>
-              <BitLines numBits={numBits} workspaceWidth={WORKSPACE_WIDTH} />
-
-              <SegmentGrid
-                numBits={numBits}
-                currentSegment={executing ? currentSegment : -1}
-                onPeekSegment={idle && executing ? onPeekSegment : undefined}
-                onPeekEnd={onPeekEnd}
-              />
-
-              {draggingGateLine && <GateLinePreview draggingGateLine={draggingGateLine} />}
-
-              {gateLines.map(line => (
-                <GateLineConnection
-                  key={line.id}
-                  line={line}
-                  gates={gates}
-                  numBits={numBits}
-                  onUpdateBarY={updateGateLineBarY}
-                  onToggleRole={toggleGateLineRole}
-                />
-              ))}
-
-              {gates.map(gate => (
-                <Gate
-                  key={gate.id}
-                  gate={gate}
-                  selected={gate.id === selectedPlacedGateId}
-                  onDragEnd={handleGateDragEnd}
-                  onLineStart={handleGateLineStart}
-                  onDelete={handleDeleteGate}
-                  onSelect={handleSelectGate}
-                />
-              ))}
-            </Layer>
-          </Stage>
+      {/* Empty-state hint */}
+      {gates.length === 0 && (
+        <div className="canvas-empty-hint">
+          <i className="bi bi-box-arrow-in-left" />
+          <span className="canvas-empty-hint-title">Drag gates from the toolbox onto the canvas</span>
+          <span className="canvas-empty-hint-sub">
+            Drop a gate on a segment, connect the dots below it to bit lines, then press Start.
+          </span>
         </div>
+      )}
+
+      {/* Drag preview chip */}
+      {dragPreview && dragPreview.visible && (
+        <div
+          className="canvas-drag-preview"
+          style={{
+            left: dragPreview.x,
+            top: dragPreview.y,
+            background: gateConfigs[dragPreview.gateType]?.color || '#444',
+          }}
+        >
+          {gateConfigs[dragPreview.gateType]?.symbol ?? dragPreview.gateType}
+        </div>
+      )}
+
+      <div id="stage-holder" className="canvas-stage-holder" style={{ width: stageW, height: stageH }}>
+        <Stage
+          ref={stageRef}
+          width={stageW}
+          height={stageH}
+          scaleX={effectiveScale}
+          scaleY={effectiveScale}
+          onMouseMove={handleStageMouseMove}
+          onMouseUp={handleStageMouseUp}
+        >
+          <Layer>
+            <BitLines numBits={numBits} workspaceWidth={linesWidth} />
+
+            <SegmentGrid
+              numBits={numBits}
+              widths={segmentWidths}
+              currentSegment={executing ? currentSegment : -1}
+              onPeekSegment={idle && executing ? onPeekSegment : undefined}
+              onPeekEnd={onPeekEnd}
+            />
+
+            {draggingGateLine && <GateLinePreview draggingGateLine={draggingGateLine} />}
+
+            {gateLines.map(line => (
+              <GateLineConnection
+                key={line.id}
+                line={line}
+                gates={gates}
+                numBits={numBits}
+                onUpdateBarY={updateGateLineBarY}
+                onToggleRole={toggleGateLineRole}
+              />
+            ))}
+
+            {gates.map(gate => (
+              <Gate
+                key={gate.id}
+                gate={gate}
+                selected={gate.id === selectedPlacedGateId}
+                onDragEnd={handleGateDragEnd}
+                onLineStart={handleGateLineStart}
+                onDelete={handleDeleteGate}
+                onSelect={handleSelectGate}
+              />
+            ))}
+          </Layer>
+        </Stage>
       </div>
     </div>
   );

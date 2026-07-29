@@ -1,0 +1,184 @@
+/* ---------------------------------------------------------------------------
+ * State panel: statevector inspector on the right edge.
+ * ------------------------------------------------------------------------- */
+
+.state-panel {
+  width: 300px;
+  flex: 0 0 auto;
+  background: var(--panel);
+  color: var(--text);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 0.9rem;
+  overflow-y: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+}
+
+.state-panel-collapsed {
+  width: 44px;
+  align-items: center;
+  padding: 10px 0 0;
+}
+
+.state-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.state-panel-title {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-weight: 650;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.state-panel-peek-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--accent);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  white-space: nowrap;
+}
+
+.state-panel-collapse-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.state-panel-collapse-btn:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+
+/* --- Messages -------------------------------------------------------------- */
+.state-msg {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.65rem;
+  margin-bottom: 0.75rem;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.state-msg i {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+}
+
+.state-msg-error {
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: var(--danger);
+}
+
+.state-msg-warn {
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  color: var(--warn);
+}
+
+.state-msg-info {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.state-msg ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+}
+
+/* --- Statevector entries ---------------------------------------------------- */
+.state-entry {
+  margin-bottom: 0.7rem;
+}
+
+.state-entry-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.state-entry-basis {
+  color: var(--text);
+}
+
+.state-entry-amp {
+  color: var(--accent);
+}
+
+.state-entry-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.state-entry-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--panel-3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.state-entry-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-hover), var(--accent));
+  border-radius: 3px;
+  transition: width 0.2s ease;
+}
+
+.state-entry-prob {
+  font-size: 0.72rem;
+  color: var(--muted);
+  width: 46px;
+  text-align: right;
+  flex: 0 0 auto;
+}
+
+/* --- Measurements ------------------------------------------------------------ */
+.state-measurements {
+  margin-top: 0.9rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.7rem;
+  font-size: 0.8rem;
+}
+
+.state-measurements-label {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.4rem;
+}
+
+.state-measurement-outcome {
+  color: var(--success);
+  font-weight: 700;
+}

@@ -12,17 +12,8 @@ function App() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#0f172a',
-          color: '#e2e8f0',
-          fontSize: '1.25rem',
-        }}
-      >
+      <div className="app-loading">
+        <span className="app-loading-spinner" aria-hidden="true" />
         Loading…
       </div>
     );

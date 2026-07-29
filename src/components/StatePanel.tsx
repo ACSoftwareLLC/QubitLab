@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Snapshot, ValidationError } from '../api/types';
 import type { SimStatus } from '../hooks/useSimulation';
+import './StatePanel.css';
 
 interface StatePanelProps {
   status: SimStatus;
@@ -22,13 +23,14 @@ export function StatePanel({ status, snapshot, peekSnapshot, errors, unconnected
 
   if (collapsed) {
     return (
-      <div style={{ width: 36, background: '#1b1b1b', borderLeft: '1px solid #333', display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
+      <div className="state-panel state-panel-collapsed">
         <button
+          className="state-panel-collapse-btn"
           onClick={() => setCollapsed(false)}
-          title='Show state'
-          style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16 }}
+          title="Show state panel"
+          aria-label="Show state panel"
         >
-          ◀
+          <i className="bi bi-chevron-left" />
         </button>
       </div>
     );
@@ -38,101 +40,102 @@ export function StatePanel({ status, snapshot, peekSnapshot, errors, unconnected
   const isPeek = peekSnapshot != null;
 
   return (
-    <div
-      style={{
-        width: '20%',
-        minWidth: 240,
-        background: '#1b1b1b',
-        color: '#eee',
-        borderLeft: '1px solid #333',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: 16,
-        overflowY: 'auto',
-        fontFamily: 'monospace',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <span style={{ fontWeight: 'bold', fontSize: 15 }}>
-          {isPeek ? `peek @ segment ${displayed?.segment}` : 'state'}
+    <aside className="state-panel scrollbar-thin">
+      <div className="state-panel-header">
+        <span className="state-panel-title">
+          State
+          {isPeek && <span className="state-panel-peek-badge">peek @{displayed?.segment}</span>}
         </span>
         <button
+          className="state-panel-collapse-btn"
           onClick={() => setCollapsed(true)}
-          title='Collapse'
-          style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: 16 }}
+          title="Collapse state panel"
+          aria-label="Collapse state panel"
         >
-          ▶
+          <i className="bi bi-chevron-right" />
         </button>
       </div>
 
       {status === 'offline' && (
-        <div style={{ color: '#ef9a9a' }}>simulation server offline — is uvicorn running on :8000?</div>
+        <div className="state-msg state-msg-error">
+          <i className="bi bi-wifi-off" />
+          <span>Simulation server offline — is uvicorn running on :8000?</span>
+        </div>
       )}
 
       {status === 'invalid' && (
-        <div>
-          <div style={{ color: '#ef9a9a', marginBottom: 8 }}>invalid circuit:</div>
-          {errors.map((e, i) => (
-            <div key={i} style={{ color: '#ef9a9a', fontSize: 12, marginBottom: 4 }}>
-              • {e.message}
-            </div>
-          ))}
+        <div className="state-msg state-msg-error">
+          <i className="bi bi-exclamation-triangle" />
+          <span>
+            Invalid circuit:
+            <ul>
+              {errors.map((e, i) => (
+                <li key={i}>{e.message}</li>
+              ))}
+            </ul>
+          </span>
         </div>
       )}
 
       {unconnectedGateIds.length > 0 && status !== 'invalid' && (
-        <div style={{ color: '#ffb74d', fontSize: 12, marginBottom: 12 }}>
-          {unconnectedGateIds.length} gate(s) not connected to a bit line — skipped
+        <div className="state-msg state-msg-warn">
+          <i className="bi bi-plug" />
+          <span>{unconnectedGateIds.length} gate(s) not connected to a bit line — skipped</span>
         </div>
       )}
 
       {status === 'idle' && (
-        <div style={{ color: '#888' }}>press ▶ start to execute the circuit</div>
+        <div className="state-msg state-msg-info">
+          <i className="bi bi-info-circle" />
+          <span>Press <b>Start</b> to execute the circuit</span>
+        </div>
       )}
 
       {displayed ? (
         <>
           {displayed.statevector.length === 0 && (
-            <div style={{ color: '#888' }}>|0…0⟩ (no amplitudes above ε)</div>
+            <div className="state-msg state-msg-info">
+              <i className="bi bi-circle" />
+              <span>|0…0⟩ (no amplitudes above ε)</span>
+            </div>
           )}
           {displayed.statevector.map(entry => (
-            <div key={entry.basis} style={{ marginBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                <span>|{entry.basis}⟩</span>
-                <span style={{ color: '#90caf9' }}>{formatAmplitude(entry.re, entry.im)}</span>
+            <div key={entry.basis} className="state-entry">
+              <div className="state-entry-row">
+                <span className="state-entry-basis">|{entry.basis}⟩</span>
+                <span className="state-entry-amp">{formatAmplitude(entry.re, entry.im)}</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-                <div style={{ flex: 1, height: 6, background: '#333', borderRadius: 3 }}>
+              <div className="state-entry-bar-row">
+                <div className="state-entry-bar-track">
                   <div
-                    style={{
-                      width: `${(entry.prob * 100).toFixed(1)}%`,
-                      height: '100%',
-                      background: '#2196F3',
-                      borderRadius: 3,
-                    }}
+                    className="state-entry-bar-fill"
+                    style={{ width: `${(entry.prob * 100).toFixed(1)}%` }}
                   />
                 </div>
-                <span style={{ fontSize: 11, color: '#aaa', width: 48, textAlign: 'right' }}>
-                  {(entry.prob * 100).toFixed(1)}%
-                </span>
+                <span className="state-entry-prob">{(entry.prob * 100).toFixed(1)}%</span>
               </div>
             </div>
           ))}
 
           {Object.keys(displayed.measurements).length > 0 && (
-            <div style={{ marginTop: 12, borderTop: '1px solid #333', paddingTop: 8, fontSize: 12 }}>
-              <div style={{ color: '#90A4AE', marginBottom: 4 }}>measurements</div>
+            <div className="state-measurements">
+              <div className="state-measurements-label">Measurements</div>
               {Object.entries(displayed.measurements).map(([gateId, outcome]) => (
-                <div key={gateId}>gate {gateId}: <b>{outcome}</b></div>
+                <div key={gateId}>
+                  gate {gateId}: <span className="state-measurement-outcome">{outcome}</span>
+                </div>
               ))}
             </div>
           )}
         </>
       ) : (
         status !== 'idle' && status !== 'offline' && status !== 'invalid' && (
-          <div style={{ color: '#888' }}>initial state |0…0⟩ — step to execute</div>
+          <div className="state-msg state-msg-info">
+            <i className="bi bi-hourglass-split" />
+            <span>Initial state |0…0⟩ — step to execute</span>
+          </div>
         )
       )}
-    </div>
+    </aside>
   );
 }

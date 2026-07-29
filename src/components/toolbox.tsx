@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import type { GateType, GateConfig, CanvasGate } from '../types';
 import { GATE_CATEGORIES } from '../constants/gates';
+import { MAX_BITS } from '../constants/canvas';
 import { AngleDial } from './AngleDial';
+import './toolbox.css';
 
 interface ToolboxProps {
   gateConfigs: Record<GateType, GateConfig>;
@@ -29,65 +32,94 @@ export function Toolbox({
   onNumBitsChange,
   onGateAngleChange,
 }: ToolboxProps) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  if (collapsed) {
+    return (
+      <div className="toolbox toolbox-collapsed">
+        <button
+          className="toolbox-collapse-btn"
+          onClick={() => setCollapsed(false)}
+          title="Show toolbox"
+          aria-label="Show toolbox"
+        >
+          <i className="bi bi-chevron-right" />
+        </button>
+      </div>
+    );
+  }
+
+  const angleGate =
+    selectedPlacedGate && gateConfigs[selectedPlacedGate.type]?.defaultAngle != null
+      ? selectedPlacedGate
+      : null;
+
   return (
-    <div
-      className="toolbox"
-      style={{ width: '25%', minWidth: 140, background: '#222', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 24, boxShadow: '2px 0 8px #0002', zIndex: 2, overflowY: 'auto' }}
-    >
-      <div style={{ marginBottom: 24, fontWeight: 'bold', fontSize: 18 }}>Toolbox</div>
+    <aside className="toolbox">
+      <div className="toolbox-header">
+        <span className="toolbox-title">Gates</span>
+        <button
+          className="toolbox-collapse-btn"
+          onClick={() => setCollapsed(true)}
+          title="Collapse toolbox"
+          aria-label="Collapse toolbox"
+        >
+          <i className="bi bi-chevron-left" />
+        </button>
+      </div>
 
-      {GATE_CATEGORIES.map(({ key, label, color }) => {
-        const gates = (Object.keys(gateConfigs) as GateType[]).filter(
-          g => gateConfigs[g].category === key,
-        );
-        if (gates.length === 0) return null;
-        return (
-          <div key={key} style={{ marginBottom: 24, width: '100%' }}>
-            <div style={{ marginBottom: 8, fontWeight: 'bold', fontSize: 14, color }}>{label}</div>
-            {gates.map(gateType => (
-              <div
-                key={gateType}
-                className="toolbox-item"
-                draggable
-                onDragStart={(e) => onDragStart(e, gateType)}
-                onDragEnd={onDragEnd}
-                style={{
-                  padding: 8,
-                  margin: '4px 0',
-                  background: selectedGate === gateType ? '#444' : '#333',
-                  cursor: 'grab',
-                  borderRadius: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  justifyContent: 'flex-start',
-                  paddingLeft: 12,
-                }}
-              >
-                <div style={{ width: 24, height: 24, borderRadius: 12, background: gateConfigs[gateType].color, boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
-                <span style={{ color: '#fff', fontWeight: 600 }}>{gateConfigs[gateType].symbol}</span>
+      <div className="toolbox-body scrollbar-thin">
+        <p className="toolbox-hint">Drag a gate onto the canvas to place it.</p>
+
+        {GATE_CATEGORIES.map(({ key, label }) => {
+          const gates = (Object.keys(gateConfigs) as GateType[]).filter(
+            g => gateConfigs[g].category === key,
+          );
+          if (gates.length === 0) return null;
+          return (
+            <div key={key} className="toolbox-category">
+              <div className="toolbox-category-label">{label}</div>
+              <div className="toolbox-grid">
+                {gates.map(gateType => (
+                  <div
+                    key={gateType}
+                    className={`toolbox-item${selectedGate === gateType ? ' selected' : ''}`}
+                    draggable
+                    onDragStart={(e) => onDragStart(e, gateType)}
+                    onDragEnd={onDragEnd}
+                    title={`${gateConfigs[gateType].name} gate`}
+                  >
+                    <span
+                      className="toolbox-item-chip"
+                      style={{ background: gateConfigs[gateType].color }}
+                    >
+                      {gateConfigs[gateType].symbol}
+                    </span>
+                    <span className="toolbox-item-name">{gateConfigs[gateType].name}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        );
-      })}
+            </div>
+          );
+        })}
+      </div>
 
-      {/* Selected gate properties */}
-      {selectedPlacedGate && gateConfigs[selectedPlacedGate.type]?.defaultAngle != null && (
-        <div style={{ width: '100%', padding: '12px 8px', borderTop: '1px solid #444' }}>
-          <div style={{ marginBottom: 8, fontWeight: 'bold', fontSize: 14, color: '#4DB6AC', textAlign: 'center' }}>
-            {gateConfigs[selectedPlacedGate.type].name} angle
+      {/* Selected gate angle editor */}
+      {angleGate && (
+        <div className="toolbox-section">
+          <div className="toolbox-section-label">
+            <span>{gateConfigs[angleGate.type].name} angle</span>
           </div>
           <AngleDial
-            angle={selectedPlacedGate.angle ?? 0}
-            onChange={rad => onGateAngleChange(selectedPlacedGate.id, rad)}
+            angle={angleGate.angle ?? 0}
+            onChange={rad => onGateAngleChange(angleGate.id, rad)}
           />
-          <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 8 }}>
+          <div className="toolbox-quick-angles">
             {QUICK_ANGLES.map(({ label, value }) => (
               <button
                 key={label}
-                onClick={() => onGateAngleChange(selectedPlacedGate.id, value)}
-                style={{ background: '#333', color: '#fff', border: '1px solid #555', borderRadius: 4, padding: '4px 8px', cursor: 'pointer' }}
+                className="btn"
+                onClick={() => onGateAngleChange(angleGate.id, value)}
               >
                 {label}
               </button>
@@ -96,18 +128,22 @@ export function Toolbox({
         </div>
       )}
 
-      {/* Bits slider */}
-      <div style={{ width: '100%', padding: '12px 8px' }}>
-        <label style={{ color: '#fff', display: 'block', marginBottom: 6 }}>Bits: {numBits}</label>
+      {/* Bits control */}
+      <div className="toolbox-section toolbox-bits">
+        <label className="toolbox-section-label" htmlFor="bits-range">
+          <span>Bits</span>
+          <span className="toolbox-bits-value">{numBits}</span>
+        </label>
         <input
+          id="bits-range"
+          className="toolbox-range"
           type="range"
           min={1}
-          max={16}
+          max={MAX_BITS}
           value={numBits}
           onChange={e => onNumBitsChange(Number.parseInt(e.target.value))}
-          style={{ width: '100%' }}
         />
       </div>
-    </div>
+    </aside>
   );
 }

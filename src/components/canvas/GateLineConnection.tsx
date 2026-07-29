@@ -23,8 +23,8 @@ export function GateLineConnection({ line, gates, numBits, onUpdateBarY, onToggl
     <Group key={`line-group-${line.id}`}>
       <Line
         points={[originAbsX, gateCenterY, originAbsX, line.barY]}
-        stroke='#000'
-        strokeWidth={3}
+        stroke='#cbd5e1'
+        strokeWidth={2.5}
         lineCap='round'
         lineJoin='round'
         listening={false}
@@ -34,8 +34,8 @@ export function GateLineConnection({ line, gates, numBits, onUpdateBarY, onToggl
         x={originAbsX}
         y={line.barY}
         radius={7}
-        fill={isControl ? '#fff' : '#000'}
-        stroke='#000'
+        fill={isControl ? '#0b1220' : '#e2e8f0'}
+        stroke='#cbd5e1'
         strokeWidth={2}
         draggable={true}
         dragBoundFunc={pos => ({ x: originAbsX, y: pos.y })}

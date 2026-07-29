@@ -1,0 +1,211 @@
+/* ---------------------------------------------------------------------------
+ * Toolbox: gate palette, angle editor, bits control.
+ * ------------------------------------------------------------------------- */
+
+.toolbox {
+  width: 264px;
+  flex: 0 0 auto;
+  background: var(--panel);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.toolbox-collapsed {
+  width: 44px;
+  align-items: center;
+  padding-top: 10px;
+}
+
+.toolbox-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.9rem 0.5rem;
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  z-index: 1;
+}
+
+.toolbox-title {
+  font-weight: 650;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+}
+
+.toolbox-body {
+  padding: 0 0.9rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.toolbox-hint {
+  font-size: 0.75rem;
+  color: var(--faint);
+  margin: 0 0 0.75rem;
+}
+
+.toolbox-collapse-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+}
+
+.toolbox-collapse-btn:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+
+/* --- Gate categories ------------------------------------------------------ */
+.toolbox-category {
+  margin-bottom: 1rem;
+}
+
+.toolbox-category-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 0.45rem;
+}
+
+.toolbox-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.toolbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.55rem;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: grab;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  user-select: none;
+}
+
+.toolbox-item:hover {
+  background: var(--panel-3);
+  border-color: var(--faint);
+  transform: translateY(-1px);
+}
+
+.toolbox-item:active {
+  cursor: grabbing;
+}
+
+.toolbox-item.selected {
+  border-color: var(--accent);
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.toolbox-item-chip {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+
+.toolbox-item-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Sections (angle editor, bits) ---------------------------------------- */
+.toolbox-section {
+  border-top: 1px solid var(--border);
+  padding: 0.85rem 0.9rem;
+}
+
+.toolbox-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toolbox-quick-angles {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+  margin-top: 0.6rem;
+}
+
+.toolbox-quick-angles .btn {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.78rem;
+}
+
+/* --- Bits control ---------------------------------------------------------- */
+.toolbox-bits {
+  margin-top: auto;
+}
+
+.toolbox-bits-value {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.toolbox-range {
+  width: 100%;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--panel-3);
+  outline: none;
+  cursor: pointer;
+}
+
+.toolbox-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-deep);
+  box-shadow: var(--shadow-sm);
+  cursor: grab;
+}
+
+.toolbox-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-deep);
+  cursor: grab;
+}

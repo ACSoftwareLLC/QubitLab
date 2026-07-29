@@ -89,6 +89,15 @@ describe('serializeCircuit', () => {
     expect(circuit.ops[0].segment).toBe(3);
   });
 
+  it('prefers the tracked segment over the geometric lookup', () => {
+    // Under a widened layout an x-derived lookup can land in the wrong
+    // cell, so an explicitly tracked segment must win.
+    const gate = makeGate({ segment: 5 });
+    const line = makeLine({ gateId: gate.id });
+    const { circuit } = serializeCircuit([gate], [line], 4);
+    expect(circuit.ops[0].segment).toBe(5);
+  });
+
   it('passes the gate angle through and uses null when absent', () => {
     const rx = makeGate({ type: 'Rx', angle: Math.PI / 4 });
     const h = makeGate({ type: 'H' });

@@ -1,11 +1,36 @@
+/* ---------------------------------------------------------------------------
+ * Design tokens — shared with the auth page palette (slate / sky).
+ * ------------------------------------------------------------------------- */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --bg: #0f172a;
+  --bg-deep: #0b1220;
+  --panel: #1e293b;
+  --panel-2: #243349;
+  --panel-3: #2d3f58;
+  --border: #334155;
+  --border-strong: #475569;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --faint: #64748b;
+  --accent: #38bdf8;
+  --accent-hover: #0ea5e9;
+  --accent-contrast: #0f172a;
+  --danger: #f87171;
+  --warn: #fbbf24;
+  --success: #34d399;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.45);
+
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color: var(--text);
+  background-color: var(--bg);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,75 +38,56 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+/* ---------------------------------------------------------------------------
+ * Minimal reset
+ * ------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
-a:hover {
-  color: #535bf2;
+
+html,
+body,
+#root {
+  height: 100%;
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+  background: var(--bg);
+  color: var(--text);
 }
 
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
-/* Toolbox scrollbar */
-.toolbox {
+/* ---------------------------------------------------------------------------
+ * Shared thin dark scrollbars
+ * ------------------------------------------------------------------------- */
+.scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: #555 #222;
+  scrollbar-color: var(--border-strong) transparent;
 }
-.toolbox::-webkit-scrollbar {
+.scrollbar-thin::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
-.toolbox::-webkit-scrollbar-track {
-  background: #222;
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
 }
-.toolbox::-webkit-scrollbar-thumb {
-  background: #555;
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
   border-radius: 4px;
 }
-.toolbox::-webkit-scrollbar-thumb:hover {
-  background: #777;
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--faint);
 }

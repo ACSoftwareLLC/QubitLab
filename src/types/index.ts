@@ -9,12 +9,13 @@ export type GateCategory = 'single' | 'parameterized' | 'multi' | 'measure';
 export type CanvasGate = {
   id: number;
   type: GateType;
-  x: number; // absolute canvas coords
+  x: number; // absolute canvas coords (derived from segment via the layout)
   y: number;
   width: number;
   height: number;
   color: string;
   angle?: number; // radians — parameterized gates only
+  segment?: number; // instruction-step cell the gate occupies (0-based)
 };
 
 export type GateLine = {
