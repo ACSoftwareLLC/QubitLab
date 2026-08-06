@@ -11,7 +11,7 @@
 ## Repository changes before work starts
 
 - [ ] Decide final project name for Cloudflare resources.
-- [ ] Remove or archive `auth-server/Dockerfile` and `docker-compose.yml` from the deployment pipeline.
+- [x] Remove or archive `auth-server/Dockerfile` and `docker-compose.yml` from the deployment pipeline.
 - [ ] Confirm Rust + `wasm-pack` are available in CI (the generated `src/wasm/pkg` is gitignored and must be rebuilt on every deploy).
 
 ## Phase 1 — Cloudflare project foundation
@@ -231,11 +231,11 @@ Goal: verify parity with the existing backend and add production safeguards.
 
 ## Phase 12 — Cleanup
 
-- [ ] Remove `auth-server` from the production deployment path.
-- [ ] Archive or delete unused `docker-compose.yml` and `auth-server/Dockerfile`.
-- [ ] Update root `README.md` with Cloudflare deployment instructions.
-- [ ] Update `AGENTS.md` with Cloudflare conventions, environment names, and seed commands.
-- [ ] Update `.env.example` to reflect only frontend/development variables if still needed.
+- [x] Remove `auth-server` from the production deployment path.
+- [x] Archive or delete unused `docker-compose.yml` and `auth-server/Dockerfile`.
+- [x] Update root `README.md` with Cloudflare deployment instructions.
+- [x] Update `AGENTS.md` with Cloudflare conventions, environment names, and seed commands.
+- [x] Update `.env.example` to reflect only frontend/development variables if still needed.
 
 ## Not in scope
 

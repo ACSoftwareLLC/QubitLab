@@ -157,6 +157,7 @@ This validates that the configured D1 database and R2 buckets exist for the targ
 
 ## Notes for agents
 
+- The legacy Docker/Fastify `auth-server` directory and `docker-compose.yml` have been removed as part of Phase 12 cleanup. All backend code lives in `src/worker/` and is deployed as a single Cloudflare Worker.
 - Do not edit or create files outside the workspace without explicit user permission.
 - Do not commit secrets or `.dev.vars` to git.
 - Do not run `git commit` or `git push` unless explicitly requested.

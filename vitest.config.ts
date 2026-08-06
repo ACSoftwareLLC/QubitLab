@@ -6,6 +6,6 @@ export default defineConfig({
   ...viteConfig,
   test: {
     environment: 'jsdom',
-    exclude: [...configDefaults.exclude, 'e2e/**', 'auth-server/**'],
+    exclude: [...configDefaults.exclude, 'e2e/**'],
   },
 })
