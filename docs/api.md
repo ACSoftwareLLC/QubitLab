@@ -1,18 +1,27 @@
 # Quantum-Dnd Simulation API
 
-Contract between the React frontend and the Python simulation backend.
-The backend is a FastAPI service backed by Qiskit (`qiskit.quantum_info.Statevector`).
-The route surface and payloads below are stable.
+Contract between the React frontend and the simulation engine. The engine is a
+Rust crate (`simulator/`) compiled to WASM and executed **in the browser** —
+there is no simulation backend. It is a drop-in port of the former
+FastAPI/Qiskit service: payload shapes and behavior are unchanged, only the
+transport (HTTP/WebSocket) is gone.
 
-Base URL: same origin in dev (Vite proxies `/api` and `/ws` to
-`localhost:8000`).
+Build the WASM bundle once after cloning and after any change to `simulator/`:
+
+```bash
+npm run build:wasm   # wasm-pack build simulator --target web --out-dir ../src/wasm/pkg --release
+```
+
+The TypeScript facade lives in `src/api/wasm.ts`; `src/api/client.ts`
+(one-shot validate/simulate) and `src/api/ws.ts` (stepping sessions) expose
+the same signatures the network client had.
 
 ---
 
 ## 1. Circuit JSON
 
 The payload produced by the frontend serializer (`src/api/serialize.ts`)
-and accepted by every endpoint that runs or checks a circuit.
+and accepted by every entry point that runs or checks a circuit.
 
 ```json
 {
@@ -53,21 +62,19 @@ and accepted by every endpoint that runs or checks a circuit.
 | `M`               | 1 target                 | no    | Measurement; collapses state.  |
 
 Any gate may also be expressed as `controls: [...]` + single-qubit type;
-the backend applies it controlled on all listed controls.
+the engine applies it controlled on all listed controls.
 
 ---
 
-## 2. REST endpoints
+## 2. One-shot API (`src/api/client.ts` → `src/api/wasm.ts`)
 
-### `GET /api/health`
+### `apiHealth(): Promise<{ status: string; engine: string }>`
 
-```json
-{ "status": "ok", "engine": "qiskit" }
-```
+Resolves locally with `{ status: "ok", engine: "rust-wasm" }`.
 
-### `POST /api/validate`
+### `validateCircuit(circuit): Promise<ValidationResult>`
 
-Body: a circuit. Returns structural problems without simulating.
+Structural problems without simulating:
 
 ```json
 {
@@ -79,18 +86,12 @@ Body: a circuit. Returns structural problems without simulating.
 }
 ```
 
-### `POST /api/simulate`
-
-One-shot simulation.
-
-```json
-{ "circuit": { "...": "..." }, "throughSegment": 3 }
-```
+### `simulateCircuit(circuit, throughSegment?): Promise<Snapshot>`
 
 `throughSegment` (optional, int 0–9 or null): execute only segments
 `<= throughSegment`. Null/absent = full circuit.
 
-Response `200`:
+Response:
 
 ```json
 {
@@ -105,25 +106,26 @@ Response `200`:
 - `statevector` is **sparse**: entries with `prob < 1e-6` are omitted.
 - `basis` is a bit string, qubit 0 leftmost (`basis[i]` = bit on wire i).
 - `measurements` maps measurement-gate id → classical outcome (0/1).
-- Invalid circuit → `422` with the same body shape as `/api/validate`.
+- Invalid circuit → resolves with `{ "valid": false, "errors": [...] }`
+  (the shape the old backend's HTTP 422 carried).
 
 ---
 
-## 3. WebSocket `/ws/simulate`
+## 3. Stepping sessions (`src/api/ws.ts`)
 
-One interactive stepping session per connection. JSON text frames both ways.
+`SimulationSession` keeps the old WebSocket client's public API and message
+shapes, but drives a local WASM `StepSession`. `connect()` resolves
+immediately. One session per instance.
 
-### Client → server
+### Methods and resolved messages
 
-| Message                              | Effect                                             |
-|--------------------------------------|----------------------------------------------------|
-| `{ "type": "start", "circuit": {...} }` | Load circuit, reset to segment −1, reply `ready`. |
-| `{ "type": "step" }`                 | Execute next segment, reply `state`.               |
-| `{ "type": "run" }`                  | Execute to the end, reply `state` then `done`.     |
-| `{ "type": "peek", "segment": 2 }`   | Reply `state` as of that segment **without** moving the cursor. |
-| `{ "type": "reset" }`                | Back to segment −1, reply `state` for the initial state. |
-
-### Server → client
+| Method                              | Effect                                                        |
+|-------------------------------------|---------------------------------------------------------------|
+| `start(circuit)`                    | Load circuit, reset to segment −1, resolve `ready`.           |
+| `step()`                            | Execute next segment, resolve `state` (or `done` at the end). |
+| `run()`                             | Execute to the end, resolve final `state`.                    |
+| `peek(segment)`                     | Resolve `state` as of that segment **without** moving the cursor. |
+| `reset()`                           | Back to segment −1, resolve `state` for the initial state.    |
 
 ```json
 { "type": "ready", "numSteps": 4 }
@@ -139,7 +141,7 @@ One interactive stepping session per connection. JSON text frames both ways.
 ```
 
 `segment` is the last executed segment (−1 = initial state).
-`statevector`/`measurements` follow the REST shapes above.
+`statevector`/`measurements` follow the one-shot shapes above.
 
 ```json
 { "type": "done" }
@@ -148,8 +150,21 @@ One interactive stepping session per connection. JSON text frames both ways.
 
 ### Session rules
 
-- `step` past the last segment replies `done` (cursor unchanged).
+- `step` past the last segment resolves `done` (cursor unchanged).
 - `peek` never changes the cursor; consecutive peeks are cheap.
-- Sending `start` re-initializes the session at any time.
+- Calling `start` re-initializes the session at any time.
 - Measurement outcomes are sampled per-session; `reset` re-rolls on the
   next pass.
+
+---
+
+## 4. Engine internals (`simulator/`)
+
+Pure-Rust core (`cargo test` runs the full suite natively) plus a
+wasm-bindgen facade. Statevector of `2^numBits` complex amplitudes; gates are
+applied directly to the statevector (no materialized unitary), so per-gate
+cost is O(2^n). Internal indices are little-endian: API wire `i` maps to bit
+`numBits - 1 - i`, which is why basis strings print qubit 0 leftmost.
+Measurement sampling uses OS/browser entropy (`getrandom` via
+`crypto.getRandomValues`); the Rust test suite seeds its own RNG for
+determinism.

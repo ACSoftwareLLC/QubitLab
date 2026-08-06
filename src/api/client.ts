@@ -1,33 +1,16 @@
 import type { Circuit, HealthResponse, Snapshot, ValidationResult } from './types';
+import { simulate, validate } from './wasm';
 
-async function postJson<T>(url: string, body: unknown): Promise<T> {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    // 422s carry the ValidationResult shape; surface it uniformly.
-    if (res.status === 422 && data && Array.isArray(data.errors)) {
-      return data as T;
-    }
-    throw new Error(`POST ${url} failed: ${res.status}`);
-  }
-  return data as T;
-}
+// Simulation now runs locally in the Rust/WASM engine (see wasm.ts), so these
+// keep their old network-API signatures but resolve without any backend.
 
 export const apiHealth = (): Promise<HealthResponse> =>
-  fetch('/api/health').then(r => {
-    if (!r.ok) throw new Error(`health check failed: ${r.status}`);
-    return r.json();
-  });
+  Promise.resolve({ status: 'ok', engine: 'rust-wasm' });
 
 export const validateCircuit = (circuit: Circuit): Promise<ValidationResult> =>
-  postJson('/api/validate', circuit);
+  validate(circuit);
 
 export const simulateCircuit = (
   circuit: Circuit,
   throughSegment: number | null = null,
-): Promise<Snapshot> =>
-  postJson('/api/simulate', { circuit, throughSegment });
+): Promise<Snapshot> => simulate(circuit, throughSegment);

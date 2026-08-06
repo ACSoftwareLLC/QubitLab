@@ -59,7 +59,7 @@ export function StatePanel({ status, snapshot, peekSnapshot, errors, unconnected
       {status === 'offline' && (
         <div className="state-msg state-msg-error">
           <i className="bi bi-wifi-off" />
-          <span>Simulation server offline — is uvicorn running on :8000?</span>
+          <span>Simulation engine failed to load — try reloading the page.</span>
         </div>
       )}
 

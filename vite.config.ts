@@ -9,8 +9,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': 'http://localhost:8000',
-      '/ws': { target: 'ws://localhost:8000', ws: true },
+      // Simulation runs locally in WASM; only the auth server is proxied.
       '/auth': 'http://localhost:3000',
     },
   },

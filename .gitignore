@@ -151,3 +151,7 @@ docker-compose.*.yml
 # Docker environment files
 .env.docker
 .env.compo
+
+# Rust / WASM
+simulator/target/
+src/wasm/pkg/
