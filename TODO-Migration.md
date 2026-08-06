@@ -107,15 +107,15 @@ Goal: port `/auth/*` account and session routes.
 
 Goal: port `/auth/circuits/*`.
 
-- [ ] `POST /auth/circuits` — create circuit with optional thumbnail.
-- [ ] `GET /auth/circuits` — list current user’s circuits.
-- [ ] `GET /auth/circuits/:id` — get owned circuit.
-- [ ] `PATCH /auth/circuits/:id` — update name, circuit JSON, thumbnail, shared flag.
-- [ ] `DELETE /auth/circuits/:id` — delete circuit and its thumbnail.
-- [ ] `GET /auth/circuits/:id/thumbnail` — return circuit thumbnail from R2.
-- [ ] Replace MinIO `putObject`/`getObject`/`removeObject` with R2 bindings.
-- [ ] Implement PNG data URL decoding using `Uint8Array` and `atob`.
-- [ ] Record `circuit_created` and `circuit_shared` analytics events.
+- [x] `POST /auth/circuits` — create circuit with optional thumbnail.
+- [x] `GET /auth/circuits` — list current user’s circuits.
+- [x] `GET /auth/circuits/:id` — get owned circuit.
+- [x] `PATCH /auth/circuits/:id` — update name, circuit JSON, thumbnail, shared flag.
+- [x] `DELETE /auth/circuits/:id` — delete circuit and its thumbnail.
+- [x] `GET /auth/circuits/:id/thumbnail` — return circuit thumbnail from R2.
+- [x] Replace MinIO `putObject`/`getObject`/`removeObject` with R2 bindings.
+- [x] Implement PNG data URL decoding using `Uint8Array` and `atob`.
+- [x] Record `circuit_created` and `circuit_shared` analytics events.
 
 ## Phase 6 — Marketplace routes
 

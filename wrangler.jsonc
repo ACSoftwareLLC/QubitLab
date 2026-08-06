@@ -48,8 +48,8 @@
 				}
 			],
 			"vars": {
-				"TURNSTILE_SITE_KEY": "",
-				"ADMINS": ""
+				"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv",
+				"ADMINS": "alex"
 			}
 		},
 		"production": {
@@ -71,10 +71,11 @@
 					"bucket_name": "qubitlab-thumbnails"
 				}
 			],
-			"vars": {
-				"TURNSTILE_SITE_KEY": "834ec542-b730-4946-9489-5786ea7c737e",
-				"ADMINS": ""
-			}
+		"vars": {
+			"TURNSTILE_SITE_KEY": "3x00000000000000000000FF",
+			"ADMINS": "alex",
+			"DISABLE_RATE_LIMIT": "true"
+		}
 		}
 	}
 }

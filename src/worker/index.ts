@@ -5,6 +5,7 @@ import { validateOrigin } from './origin.js';
 import authRoutes from './routes/auth.js';
 import accountRoutes from './routes/account.js';
 import mediaRoutes from './routes/media.js';
+import circuitRoutes from './routes/circuits.js';
 
 const app = new Hono<HonoEnv>();
 
@@ -16,6 +17,7 @@ auth.use(validateOrigin);
 
 auth.route('/', authRoutes);
 auth.route('/account', accountRoutes);
+auth.route('/circuits', circuitRoutes);
 auth.route('/', mediaRoutes);
 
 app.route('/auth', auth);

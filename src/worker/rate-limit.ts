@@ -27,6 +27,10 @@ export function rateLimit(
   windowMs = 15 * 60 * 1000
 ): MiddlewareHandler {
   return (c, next) => {
+    if (c.env.DISABLE_RATE_LIMIT?.toLowerCase() === 'true') {
+      return next();
+    }
+
     const ip = getClientIp(c);
     const key = rateLimitKey(ip, action);
     if (isRateLimited(key, maxRequests, windowMs)) {

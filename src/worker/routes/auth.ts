@@ -32,7 +32,9 @@ auth.post('/register', rateLimit('register', 5, 15 * 60 * 1000), async (c) => {
 
   const { username, password, turnstileToken } = result.data;
 
-  if (c.env.TURNSTILE_SECRET_KEY) {
+  const siteKey = c.env.TURNSTILE_SITE_KEY?.trim();
+  const secretKey = c.env.TURNSTILE_SECRET_KEY?.trim();
+  if (siteKey && secretKey) {
     if (!turnstileToken) {
       return jsonError(c, 'Turnstile verification required', 400);
     }

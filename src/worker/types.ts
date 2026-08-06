@@ -8,6 +8,7 @@ export type WorkerBindings = {
   TURNSTILE_SECRET_KEY: string;
   TURNSTILE_SITE_KEY: string;
   ADMINS: string;
+  DISABLE_RATE_LIMIT?: string;
 };
 
 export type SessionUser = {
