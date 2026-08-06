@@ -1,0 +1,80 @@
+{
+	"name": "qubitlab",
+	"compatibility_date": "2026-08-06",
+	"main": "src/worker/index.ts",
+	"assets": {
+		"directory": "./dist",
+		"not_found_handling": "single-page-application"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "qubitlab-dev",
+			"database_id": "<dev-database-id>"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "AVATARS",
+			"bucket_name": "qubitlab-avatars-dev"
+		},
+		{
+			"binding": "THUMBNAILS",
+			"bucket_name": "qubitlab-thumbnails-dev"
+		}
+	],
+	"vars": {
+		"TURNSTILE_SITE_KEY": "",
+		"ADMINS": ""
+	},
+	"env": {
+		"dev": {
+			"name": "qubitlab-dev",
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "qubitlab-dev",
+					"database_id": "<dev-database-id>"
+				}
+			],
+			"r2_buckets": [
+				{
+					"binding": "AVATARS",
+					"bucket_name": "qubitlab-avatars-dev"
+				},
+				{
+					"binding": "THUMBNAILS",
+					"bucket_name": "qubitlab-thumbnails-dev"
+				}
+			],
+			"vars": {
+				"TURNSTILE_SITE_KEY": "",
+				"ADMINS": ""
+			}
+		},
+		"production": {
+			"name": "qubitlab",
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "qubitlab",
+					"database_id": "<production-database-id>"
+				}
+			],
+			"r2_buckets": [
+				{
+					"binding": "AVATARS",
+					"bucket_name": "qubitlab-avatars"
+				},
+				{
+					"binding": "THUMBNAILS",
+					"bucket_name": "qubitlab-thumbnails"
+				}
+			],
+			"vars": {
+				"TURNSTILE_SITE_KEY": "",
+				"ADMINS": ""
+			}
+		}
+	}
+}

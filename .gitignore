@@ -70,6 +70,12 @@ web_modules/
 .env.*
 !.env.example
 
+# Wrangler local secrets
+.dev.vars
+
+# Wrangler generated cache and local state
+.wrangler/
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
