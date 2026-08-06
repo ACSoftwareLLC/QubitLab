@@ -1,0 +1,153 @@
+import { Hono } from 'hono';
+import type { HonoEnv } from '../types.js';
+import { jsonError, formatZodError } from '../errors.js';
+import { publicUser } from '../types.js';
+import { registerSchema, loginSchema } from '../schemas.js';
+import { verifyTurnstileToken } from '../turnstile.js';
+import { hashPassword, verifyPassword } from '../password.js';
+import { randomUUID } from '../crypto.js';
+import { queryFirst, runQuery, uniqueConstraintError } from '../db.js';
+import { setSessionCookie, clearSessionCookie, sessionExpiration } from '../cookie.js';
+import { requireAuth } from '../auth.js';
+import { rateLimit } from '../rate-limit.js';
+
+const auth = new Hono<HonoEnv>();
+
+auth.get('/health', (c) => c.json({ status: 'ok' }));
+
+auth.get('/turnstile-sitekey', (c) => {
+  const siteKey = c.env.TURNSTILE_SITE_KEY;
+  if (!siteKey) {
+    return jsonError(c, 'Turnstile site key not configured', 500);
+  }
+  return c.json({ siteKey });
+});
+
+auth.post('/register', rateLimit('register', 5, 15 * 60 * 1000), async (c) => {
+  const body = await c.req.json();
+  const result = registerSchema.safeParse(body);
+  if (!result.success) {
+    return jsonError(c, formatZodError(result), 400);
+  }
+
+  const { username, password, turnstileToken } = result.data;
+
+  const siteKey = c.env.TURNSTILE_SITE_KEY?.trim();
+  const secretKey = c.env.TURNSTILE_SECRET_KEY?.trim();
+  if (siteKey && secretKey) {
+    if (!turnstileToken) {
+      return jsonError(c, 'Turnstile verification required', 400);
+    }
+    const valid = await verifyTurnstileToken(c, turnstileToken);
+    if (!valid) {
+      return jsonError(c, 'Turnstile verification failed', 400);
+    }
+  }
+
+  const hash = await hashPassword(password);
+  const userId = randomUUID();
+  const now = new Date().toISOString();
+
+  try {
+    await runQuery(
+      c,
+      `INSERT INTO users (id, username, password_hash, created_at)
+       VALUES (?, ?, ?, ?)`,
+      [userId, username, hash, now]
+    );
+  } catch (err) {
+    if (uniqueConstraintError(err)) {
+      return jsonError(c, 'Username already taken', 409);
+    }
+    throw err;
+  }
+
+  const sessionId = randomUUID();
+  const expires = sessionExpiration();
+  await runQuery(
+    c,
+    `INSERT INTO sessions (id, user_id, expires_at, created_at)
+     VALUES (?, ?, ?, ?)`,
+    [sessionId, userId, expires.toISOString(), now]
+  );
+  setSessionCookie(c, sessionId, expires);
+
+  const user = await queryFirst<
+    {
+      id: string;
+      username: string;
+      pfp_key: string | null;
+      first_name: string | null;
+      last_name: string | null;
+      bio: string | null;
+      created_at: string;
+    }
+  >(
+    c,
+    `SELECT id, username, pfp_key, first_name, last_name, bio, created_at
+     FROM users WHERE id = ?`,
+    [userId]
+  );
+
+  return c.json({ user: publicUser(user!, c.env.ADMINS) });
+});
+
+auth.post('/login', rateLimit('login', 10, 15 * 60 * 1000), async (c) => {
+  const body = await c.req.json();
+  const result = loginSchema.safeParse(body);
+  if (!result.success) {
+    return jsonError(c, formatZodError(result), 400);
+  }
+
+  const { username, password } = result.data;
+
+  const user = await queryFirst<
+    {
+      id: string;
+      username: string;
+      password_hash: string;
+      pfp_key: string | null;
+      first_name: string | null;
+      last_name: string | null;
+      bio: string | null;
+      created_at: string;
+    }
+  >(
+    c,
+    `SELECT id, username, password_hash, pfp_key, first_name, last_name, bio, created_at
+     FROM users WHERE username = ?`,
+    [username]
+  );
+
+  if (!user || !(await verifyPassword(password, user.password_hash))) {
+    return jsonError(c, 'Invalid credentials', 401);
+  }
+
+  const sessionId = randomUUID();
+  const expires = sessionExpiration();
+  await runQuery(
+    c,
+    `INSERT INTO sessions (id, user_id, expires_at, created_at)
+     VALUES (?, ?, ?, ?)`,
+    [sessionId, user.id, expires.toISOString(), new Date().toISOString()]
+  );
+  setSessionCookie(c, sessionId, expires);
+
+  return c.json({ user: publicUser(user, c.env.ADMINS) });
+});
+
+auth.post('/logout', requireAuth, async (c) => {
+  const sessionId = c.req.header('Cookie')?.match(/(?:^|;\s*)sessionId=([^;]+)/)?.[1];
+  if (sessionId) {
+    await runQuery(c, `DELETE FROM sessions WHERE id = ?`, [decodeURIComponent(sessionId)]);
+  }
+  clearSessionCookie(c);
+  return c.json({ success: true });
+});
+
+auth.get('/me', requireAuth, (c) => {
+  const user = c.get('user');
+  return c.json({ user: publicUser(user!, c.env.ADMINS) });
+});
+
+export default auth;

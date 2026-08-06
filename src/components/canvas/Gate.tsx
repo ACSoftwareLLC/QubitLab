@@ -44,41 +44,58 @@ export function Gate({ gate, selected, onDragEnd, onLineStart, onDelete, onSelec
       />
 
       {/* Line origins: one per connection the gate accepts.
-          Filled = target, open = control. Each has an invisible larger
+          Filled white = target, hollow = control. Each has an invisible larger
           hit circle so the press doesn't accidentally drag the gate. */}
-      {origins.map(origin => (
-        <Fragment key={origin.index}>
-          <Circle
-            x={origin.offsetX}
-            y={gateHeight}
-            radius={13}
-            fill='#000'
-            opacity={0}
-            draggable={false}
-            onMouseDown={e => {
-              e.cancelBubble = true;
-              onLineStart(
-                gate.id,
-                origin.index,
-                origin.offsetX,
-                gate.x + origin.offsetX,
-                gate.y + gateHeight,
-              );
-            }}
-            listening={true}
-          />
-          <Circle
-            x={origin.offsetX}
-            y={gateHeight}
-            radius={6}
-            fill={origin.role === 'target' ? '#fff' : gate.color}
-            stroke='#fff'
-            strokeWidth={2}
-            draggable={false}
-            listening={false}
-          />
-        </Fragment>
-      ))}
+      {origins.map(origin => {
+        const isTarget = origin.role === 'target';
+        return (
+          <Fragment key={origin.index}>
+            <Circle
+              x={origin.offsetX}
+              y={gateHeight}
+              radius={15}
+              fill='#000'
+              opacity={0}
+              draggable={false}
+              onMouseDown={e => {
+                e.cancelBubble = true;
+                onLineStart(
+                  gate.id,
+                  origin.index,
+                  origin.offsetX,
+                  gate.x + origin.offsetX,
+                  gate.y + gateHeight,
+                );
+              }}
+              listening={true}
+            />
+            <Circle
+              x={origin.offsetX}
+              y={gateHeight}
+              radius={7}
+              fill={isTarget ? '#fff' : 'transparent'}
+              stroke='#fff'
+              strokeWidth={2.5}
+              draggable={false}
+              listening={false}
+            />
+            <Text
+              x={origin.offsetX - 7}
+              y={gateHeight - 7}
+              width={14}
+              height={14}
+              text={isTarget ? 'T' : 'C'}
+              fontSize={7}
+              fontStyle='bold'
+              fill={isTarget ? '#0b1220' : '#fff'}
+              align='center'
+              verticalAlign='middle'
+              listening={false}
+              draggable={false}
+            />
+          </Fragment>
+        );
+      })}
 
       {/* delete handle */}
       <Circle

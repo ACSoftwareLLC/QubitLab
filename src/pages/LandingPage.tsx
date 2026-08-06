@@ -1,0 +1,102 @@
+import { Link } from 'react-router-dom';
+import { QuantumField } from '../components/QuantumField';
+
+const stats = [
+  { label: 'Circuits designed', value: '12,400+' },
+  { label: 'Community gates', value: '89,200+' },
+  { label: 'Simulations run', value: '2.1M+' },
+];
+
+const features = [
+  {
+    icon: 'bi-cpu',
+    title: 'Visual Quantum Editor',
+    description: 'Drag, drop, and wire quantum gates on an infinite canvas. No equations required to start exploring.',
+  },
+  {
+    icon: 'bi-share',
+    title: 'Share & Remix',
+    description: 'Publish your circuits to the Marketplace and remix community designs to learn new tricks.',
+  },
+  {
+    icon: 'bi-lightning-charge',
+    title: 'Real-time Simulation',
+    description: 'Watch state vectors evolve as you step through your circuit, powered by a Rust/WASM simulator.',
+  },
+  {
+    icon: 'bi-people',
+    title: 'Built for Teams',
+    description: 'Save your work, track versions, and collaborate on quantum experiments with your party.',
+  },
+];
+
+export function LandingPage() {
+  return (
+    <div className="landing-page">
+      <QuantumField />
+      <div className="landing-hero">
+        <div className="landing-badge">
+          <i className="bi bi-stars" /> QubitLab is now in open beta
+        </div>
+        <h1 className="landing-title">
+          Build quantum circuits
+          <br />
+          <span className="gradient-text">like you’re playing a game.</span>
+        </h1>
+        <p className="landing-subtitle">
+          A playful, collaborative space to design, simulate, and share quantum circuits —
+          whether you’re a curious beginner or a qubit wizard.
+        </p>
+        <div className="landing-actions">
+          <Link to="/login" className="landing-btn landing-btn-primary">
+            <i className="bi bi-rocket-takeoff" /> Start building
+          </Link>
+          <Link to="/blog" className="landing-btn landing-btn-secondary">
+            <i className="bi bi-journal-text" /> Read the blog
+          </Link>
+        </div>
+        <div className="landing-stats">
+          {stats.map((s) => (
+            <div key={s.label} className="landing-stat">
+              <span className="landing-stat-value">{s.value}</span>
+              <span className="landing-stat-label">{s.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="landing-features">
+        <h2 className="landing-section-title">Everything you need to play with qubits</h2>
+        <div className="landing-feature-grid">
+          {features.map((f) => (
+            <div key={f.title} className="landing-feature-card">
+              <div className="landing-feature-icon">
+                <i className={`bi ${f.icon}`} />
+              </div>
+              <h3>{f.title}</h3>
+              <p>{f.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="landing-cta">
+        <div className="landing-cta-glow" />
+        <h2>Ready to roll the quantum dice?</h2>
+        <p>Create a free account and start designing your first circuit in seconds.</p>
+        <Link to="/login" className="landing-btn landing-btn-primary">
+          <i className="bi bi-person-plus" /> Create free account
+        </Link>
+      </div>
+
+      <footer className="landing-footer">
+        <div className="landing-footer-links">
+          <Link to="/blog">Blog</Link>
+          <Link to="/patch-notes">Patch notes</Link>
+          <Link to="/login">Sign in</Link>
+        </div>
+        <span className="landing-footer-copy">© {new Date().getFullYear()} QubitLab</span>
+      </footer>
+    </div>
+  );
+}

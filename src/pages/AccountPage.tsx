@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import '../components/AuthPage.css';
 
 export function AccountPage() {
-  const { user, updateUsername, updatePassword, uploadAvatar } = useAuth();
+  const { user, updateUsername, updatePassword, updateProfile, uploadAvatar } = useAuth();
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarMsg, setAvatarMsg] = useState<{ text: string; ok: boolean } | null>(null);
@@ -12,6 +12,12 @@ export function AccountPage() {
 
   const [username, setUsername] = useState(user?.username ?? '');
   const [usernameMsg, setUsernameMsg] = useState<{ text: string; ok: boolean } | null>(null);
+
+  const [firstName, setFirstName] = useState(user?.firstName ?? '');
+  const [lastName, setLastName] = useState(user?.lastName ?? '');
+  const [bio, setBio] = useState(user?.bio ?? '');
+  const [profileMsg, setProfileMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -48,6 +54,19 @@ export function AccountPage() {
     setUsernameMsg(null);
     const err = await updateUsername(username.trim());
     setUsernameMsg(err ? { text: err, ok: false } : { text: 'Username updated.', ok: true });
+  };
+
+  const handleProfileSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setProfileMsg(null);
+    setSavingProfile(true);
+    const err = await updateProfile({
+      firstName: firstName.trim() || null,
+      lastName: lastName.trim() || null,
+      bio: bio.trim() || null,
+    });
+    setSavingProfile(false);
+    setProfileMsg(err ? { text: err, ok: false } : { text: 'Profile updated.', ok: true });
   };
 
   const handlePasswordSubmit = async (e: FormEvent) => {
@@ -126,6 +145,58 @@ export function AccountPage() {
           </form>
           {usernameMsg && (
             <div className={`auth-message ${usernameMsg.ok ? 'success' : 'error'}`}>{usernameMsg.text}</div>
+          )}
+        </div>
+
+        <div className="auth-card">
+          <h1>Public profile</h1>
+          <p className="auth-subtitle">First and last name are optional. Shown on your public page.</p>
+          <form onSubmit={handleProfileSubmit}>
+            <label className="auth-label" htmlFor="account-first-name">
+              First name
+            </label>
+            <input
+              id="account-first-name"
+              className="auth-input"
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              maxLength={64}
+              placeholder="Ada"
+            />
+
+            <label className="auth-label" htmlFor="account-last-name">
+              Last name
+            </label>
+            <input
+              id="account-last-name"
+              className="auth-input"
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              maxLength={64}
+              placeholder="Lovelace"
+            />
+
+            <label className="auth-label" htmlFor="account-bio">
+              About me
+            </label>
+            <textarea
+              id="account-bio"
+              className="auth-input"
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              maxLength={5000}
+              rows={4}
+              placeholder="A little about yourself…"
+            />
+
+            <button className="auth-submit" type="submit" disabled={savingProfile}>
+              {savingProfile ? 'Saving…' : 'Save profile'}
+            </button>
+          </form>
+          {profileMsg && (
+            <div className={`auth-message ${profileMsg.ok ? 'success' : 'error'}`}>{profileMsg.text}</div>
           )}
         </div>
 

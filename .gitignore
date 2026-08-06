@@ -70,6 +70,12 @@ web_modules/
 .env.*
 !.env.example
 
+# Wrangler local secrets
+.dev.vars
+
+# Wrangler generated cache and local state
+.wrangler/
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
@@ -155,3 +161,6 @@ docker-compose.*.yml
 # Rust / WASM
 simulator/target/
 src/wasm/pkg/
+
+# Generated changelog copy served as a static asset
+public/CHANGELOG.md

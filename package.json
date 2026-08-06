@@ -1,26 +1,43 @@
 {
-  "name": "quantum-dnd",
+  "name": "qubitlab",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "build:wasm": "wasm-pack build simulator --target web --out-dir ../src/wasm/pkg --release",
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "predev": "npm run sync:changelog",
+    "build": "npm run build:wasm && tsc -b && vite build",
+    "prebuild": "npm run sync:changelog",
+    "build:worker": "npm run build",
+    "sync:changelog": "tsx scripts/sync-changelog.ts",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:worker": "npm run build:worker && ./scripts/test-worker.sh",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui",
+    "predev:worker": "npm run build:worker",
+    "dev:worker": "wrangler dev --local",
+    "deploy": "npx wrangler deploy --env dev",
+    "deploy:production": "npx wrangler deploy --env production",
+    "db:seed:dev": "tsx scripts/seed-dev.ts",
+    "check:deployment": "tsx scripts/check-deployment.ts"
   },
   "dependencies": {
     "bootstrap-icons": "^1.13.1",
+    "hono": "^4.8.0",
     "konva": "^10.0.12",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-konva": "^19.2.1",
-    "react-router-dom": "^7.18.2"
+    "react-router-dom": "^7.18.2",
+    "recharts": "^3.10.1",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260804.0",
     "@eslint/js": "^9.39.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^24.10.1",
@@ -33,9 +50,12 @@
     "globals": "^16.5.0",
     "jsdom": "^29.1.1",
     "playwright": "^1.61.1",
+    "tsx": "^4.23.9",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "wasm-pack": "^0.15.0",
+    "wrangler": "^4.13.0"
   }
 }

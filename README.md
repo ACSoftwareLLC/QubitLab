@@ -1,6 +1,6 @@
-# Quantum-Dnd
+# QubitLab
 
-A quantum-circuit designer frontend (React + Vite) with an in-browser simulation engine (Rust compiled to WASM, see `simulator/`) and a Fastify authentication backend backed by PostgreSQL.
+A quantum-circuit designer frontend (React + Vite) with an in-browser simulation engine (Rust compiled to WASM, see `simulator/`) and a Cloudflare Worker backend (D1, R2, Turnstile).
 
 ## Simulation engine
 
@@ -15,35 +15,28 @@ target and [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/).
 rustup target add wasm32-unknown-unknown
 cargo install wasm-pack
 
-# Build the WASM bundle into src/wasm/pkg (once after cloning, and after
-# every change to simulator/)
-npm run build:wasm
+# Build the WASM bundle into src/wasm/pkg and the frontend
+npm run build
 
 # Run the engine's test suite
 cd simulator && cargo test
 ```
 
-## Authentication
+## Cloudflare backend
 
-The auth service lives in `auth-server/` and is orchestrated with Docker Compose.
+The entire application is deployed as a single Cloudflare Worker:
 
-### Quick start (Docker)
+- Static React app from `dist/` (SPA fallback enabled)
+- `/auth/*` API routes powered by Hono
+- D1 for relational data (users, sessions, circuits, blogs, analytics)
+- R2 for avatars and circuit thumbnails
+- Turnstile for bot protection on registration
 
-```bash
-# 1. Copy the example environment and set a strong secret
-cp .env.example .env
+### Wrangler configuration
 
-# 2. Start PostgreSQL and the Fastify auth API
-docker compose up -d
-
-# 3. Open the auth page
-open http://localhost:3000/auth
-```
-
-Services:
-
-- `postgres` — PostgreSQL 16, port `5432` (configurable via `.env`)
-- `auth-server` — Fastify API on port `3000`
+- `wrangler.jsonc` — Worker, D1, R2, environment overrides
+- `.dev.vars.example` — secrets needed for local development
+- `src/worker/` — Worker entry point and API routes
 
 ### Auth API endpoints
 
@@ -52,7 +45,10 @@ Services:
 - `POST /auth/logout` — sign out
 - `GET  /auth/me` — current user
 - `GET  /auth/health` — health check
-- `GET  /auth` — static auth page (served by the Fastify backend)
+- `GET  /auth/turnstile-sitekey` — configured Turnstile site key
+- `GET  /auth/marketplace` — list publicly shared circuits
+- `GET  /auth/marketplace/:id` — view a shared circuit
+- `GET  /auth/marketplace/:id/thumbnail` — shared circuit thumbnail
 
 ### Frontend auth gate
 
@@ -63,99 +59,90 @@ Components:
 - `src/context/AuthContext.tsx` — `useAuth` hook, session handling, login/register/logout
 - `src/components/AuthPage.tsx` — login / register UI
 - `src/App.tsx` — gates the circuit editor behind authentication
+- `src/pages/MarketplacePage.tsx` — browse and open publicly shared circuits
+- `src/pages/CircuitsPage.tsx` — manage saved circuits and toggle sharing on the marketplace
+
+> **Legacy stack removed**: the old Docker/Fastify `auth-server` and `docker-compose.yml` setup have been deleted. All backend functionality now lives in `src/worker/` and is deployed as a single Cloudflare Worker.
 
 ### Local development
 
-Terminal 1 — auth server & database:
-
-```bash
-docker compose up -d
-# or
-cd auth-server && npm install && npm run dev
-```
-
-Terminal 2 — Vite frontend:
+Terminal 1 — run the Worker and the built static app (uses local D1/R2):
 
 ```bash
 npm install
-npm run build:wasm   # first time only (and after simulator/ changes)
+npm run dev:worker
+```
+
+Terminal 2 — run the Vite dev server with HMR (proxies `/auth` to the Worker):
+
+```bash
 npm run dev
 ```
 
 Then open http://localhost:5173.
 
----
+### Deploy
 
-# React + TypeScript + Vite
+Build the WASM bundle and React app, then deploy:
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+```bash
+npm run build:worker
 
-Currently, two official plugins are available:
+# Deploy to the dev environment
+npm run deploy
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Deploy to production
+npm run deploy:production
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Dev deployments are triggered automatically on pushes to `develop` via `.github/workflows/deploy-dev.yml`. Production deployments are triggered on pushes to `main` via `.github/workflows/deploy-production.yml`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Database seeding
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+After applying migrations to a dev environment, seed it with sample data and dev accounts:
+
+```bash
+# Seed the local dev database
+npm run db:seed:dev -- --local
+
+# Seed the remote dev database
+npm run db:seed:dev -- --env dev
+
+# Dry-run the seed SQL without touching the database
+npm run db:seed:dev -- --dry-run
+```
+
+Seeded dev accounts:
+
+- `devadmin` / `devpassword` — admin user (blog editor).
+- `devuser` / `devpassword` — regular user.
+
+### Deployment checks
+
+Before deploying to a remote environment, verify that the configured D1 database and R2 buckets exist:
+
+```bash
+npm run check:deployment -- --env dev
+```
+
+### Test
+
+```bash
+npm run test              # unit tests (Vitest)
+npm run test:worker       # build + worker integration tests
+npm run test:e2e        # Playwright tests against a running Worker
+npm run test:e2e:ui     # Playwright tests in UI mode
+```
+
+For e2e tests, start the Worker first with `npm run dev:worker` (or use `QUBITLAB_BASE_URL` to point to a deployed instance). Set `QUBITLAB_DEV_USERNAME` and `QUBITLAB_DEV_PASSWORD` to override the seeded dev account used by the authenticated tests.
+
+### Secrets
+
+For local development, copy `.dev.vars.example` to `.dev.vars` and fill in the secrets.
+
+For remote environments, set secrets with `wrangler secret put`:
+
+```bash
+wrangler secret put SESSION_SECRET --env dev
+wrangler secret put TURNSTILE_SECRET_KEY --env dev
 ```

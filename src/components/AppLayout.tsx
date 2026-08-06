@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useEditorActions } from '../context/EditorActionsContext';
 import { SaveCircuitModal } from './SaveCircuitModal';
+import { AdminBadge } from './AdminBadge';
 import './AuthPage.css';
 
 export function AppLayout() {
@@ -14,21 +15,46 @@ export function AppLayout() {
     <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--auth-bg)' }}>
       <header className="app-header">
         <div className="app-header-left">
-          <h2 className="app-title">Quantum DnD</h2>
+          <Link to="/" className="app-title" style={{ textDecoration: 'none', color: 'inherit' }}>
+            QubitLab
+          </Link>
           <nav className="app-nav">
-            <NavLink to="/editor" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
-              Editor
+            <NavLink to="/" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`} end>
+              Home
             </NavLink>
-            <NavLink to="/circuits" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
-              My Circuits
+            {user && (
+              <NavLink to="/editor" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
+                Editor
+              </NavLink>
+            )}
+            {user && (
+              <NavLink to="/circuits" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
+                My Circuits
+              </NavLink>
+            )}
+            <NavLink to="/marketplace" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
+              Marketplace
             </NavLink>
-            <NavLink to="/account" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
-              Account
+            <NavLink to="/blog" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
+              Blog
             </NavLink>
+            <NavLink to="/patch-notes" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
+              Patch notes
+            </NavLink>
+            {user && (
+              <NavLink to="/account" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
+                Account
+              </NavLink>
+            )}
+            {user?.isAdmin && (
+              <NavLink to="/admin/analytics" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
+                Analytics
+              </NavLink>
+            )}
           </nav>
         </div>
         <div className="app-header-right">
-          {actions && (
+          {actions && user && (
             <button className="app-save-button" onClick={() => setSaveOpen(true)}>
               Save circuit
             </button>
@@ -43,11 +69,18 @@ export function AppLayout() {
                 </span>
               )}
               <span className="app-username">@{user.username}</span>
+              {user.isAdmin && <AdminBadge />}
             </NavLink>
           )}
-          <button className="app-logout-button" onClick={() => logout()}>
-            Logout
-          </button>
+          {user ? (
+            <button className="app-logout-button" onClick={() => logout()}>
+              Logout
+            </button>
+          ) : (
+            <NavLink to="/login" className="app-save-button">
+              Sign in
+            </NavLink>
+          )}
         </div>
       </header>
 

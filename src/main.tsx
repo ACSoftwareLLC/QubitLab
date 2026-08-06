@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import 'bootstrap-icons/font/bootstrap-icons.css'
 import { BrowserRouter } from 'react-router-dom'
 import './index.css'
+import './pages/HomePages.css'
 import App from './App.tsx'
 import { AuthProvider } from './context/AuthContext.tsx'
 

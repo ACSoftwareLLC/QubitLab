@@ -1,0 +1,84 @@
+{
+	"name": "qubitlab",
+	"compatibility_date": "2026-08-06",
+	"main": "src/worker/index.ts",
+	"triggers": {
+		"crons": ["0 */6 * * *"]
+	},
+	"assets": {
+		"directory": "./dist",
+		"not_found_handling": "single-page-application"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "qubitlab-dev",
+			"database_id": "36d2d85a-4516-4491-bd64-805d53577e23"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "AVATARS",
+			"bucket_name": "qubitlab-avatars-dev"
+		},
+		{
+			"binding": "THUMBNAILS",
+			"bucket_name": "qubitlab-thumbnails-dev"
+		}
+	],
+	"vars": {
+		"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv",
+		"ADMINS": "alex,devadmin"
+	},
+	"env": {
+		"dev": {
+			"name": "qubitlab-dev",
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "qubitlab-dev",
+					"database_id": "36d2d85a-4516-4491-bd64-805d53577e23"
+				}
+			],
+			"r2_buckets": [
+				{
+					"binding": "AVATARS",
+					"bucket_name": "qubitlab-avatars-dev"
+				},
+				{
+					"binding": "THUMBNAILS",
+					"bucket_name": "qubitlab-thumbnails-dev"
+				}
+			],
+			"vars": {
+				"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv",
+				"ADMINS": "alex,devadmin"
+			}
+		},
+		"production": {
+			"name": "qubitlab",
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "qubitlab",
+					"database_id": "834ec542-b730-4946-9489-5786ea7c737e"
+				}
+			],
+			"r2_buckets": [
+				{
+					"binding": "AVATARS",
+					"bucket_name": "qubitlab-avatars"
+				},
+				{
+					"binding": "THUMBNAILS",
+					"bucket_name": "qubitlab-thumbnails"
+				}
+			],
+		"vars": {
+			"TURNSTILE_SITE_KEY": "3x00000000000000000000FF",
+			"ADMINS": "alex",
+			"DISABLE_RATE_LIMIT": "true"
+		}
+		}
+	}
+}

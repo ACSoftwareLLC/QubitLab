@@ -7,8 +7,14 @@ export type SavedCircuit = {
   circuit: Circuit;
   createdAt: string;
   updatedAt: string;
+  shared: boolean;
   thumbnailUrl: string | null;
+  userId?: string;
+  pfpUrl?: string | null;
+  isAdmin?: boolean;
 };
+
+export type MarketplaceCircuit = SavedCircuit;
 
 async function request<T>(method: string, path: string, body?: Record<string, unknown>): Promise<T> {
   const res = await fetch(path, {
@@ -53,4 +59,21 @@ export async function updateCircuit(
 
 export async function deleteCircuit(id: string): Promise<void> {
   await request('DELETE', `/auth/circuits/${id}`);
+}
+
+export async function shareCircuit(id: string, shared: boolean): Promise<SavedCircuit> {
+  const data = await request<{ circuit: SavedCircuit }>('PATCH', `/auth/circuits/${id}`, {
+    shared,
+  });
+  return data.circuit;
+}
+
+export async function listMarketplace(): Promise<SavedCircuit[]> {
+  const data = await request<{ circuits: SavedCircuit[] }>('GET', '/auth/marketplace');
+  return data.circuits;
+}
+
+export async function getMarketplaceCircuit(id: string): Promise<SavedCircuit> {
+  const data = await request<{ circuit: SavedCircuit }>('GET', `/auth/marketplace/${id}`);
+  return data.circuit;
 }

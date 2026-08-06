@@ -1,4 +1,4 @@
-# Quantum-Dnd Simulation API
+# QubitLab Simulation API
 
 Contract between the React frontend and the simulation engine. The engine is a
 Rust crate (`simulator/`) compiled to WASM and executed **in the browser** —

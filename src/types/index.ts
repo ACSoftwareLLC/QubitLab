@@ -48,6 +48,8 @@ export type DraggingGateLine = {
 
 export type GateConfig = {
   name: string;
+  fullName: string;
+  description: string;
   color: string;
   symbol: string;
   category: GateCategory;
