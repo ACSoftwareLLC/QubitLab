@@ -17,6 +17,7 @@ import { BlogEditorPage } from './pages/BlogEditorPage';
 import { PatchNotesPage } from './pages/PatchNotesPage';
 import { UserProfilePage } from './pages/UserProfilePage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
+import { UserManagementPage } from './pages/UserManagementPage';
 
 function HomeOrLanding() {
   const { user } = useAuth();
@@ -60,6 +61,7 @@ function App() {
           <Route path="/blog/new" element={<BlogEditorPage />} />
           <Route path="/blog/:slug/edit" element={<BlogEditorPage />} />
           <Route path="/admin/analytics" element={<AnalyticsPage />} />
+          <Route path="/admin/users" element={<UserManagementPage />} />
         </Route>
 
         {/* Standalone auth screen. */}

@@ -7,7 +7,7 @@ import {
   analyticsTrackBodySchema,
 } from '../schemas.js';
 import { queryAll } from '../db.js';
-import { requireAdmin } from '../auth.js';
+import { requireAdmin, getRecentAdminActionCount } from '../auth.js';
 import { recordAnalyticsTrackEvent } from '../analytics.js';
 
 const analytics = new Hono<HonoEnv>();
@@ -55,6 +55,7 @@ analytics.get('/summary', async (c) => {
     totalCircuitsRows,
     totalSharedRows,
     sharedThisWeekRows,
+    adminActionsRows,
   ] = await Promise.all([
     queryAll<{ count: number }>(
       c,
@@ -118,6 +119,7 @@ analytics.get('/summary', async (c) => {
       `SELECT COUNT(*) as count FROM circuits WHERE shared = 1 AND shared_at >= ?`,
       [weekSince]
     ),
+    getRecentAdminActionCount(c, days),
   ]);
 
   return c.json({
@@ -138,6 +140,7 @@ analytics.get('/summary', async (c) => {
     totalCircuits: Number(totalCircuitsRows[0]?.count ?? 0),
     totalShared: Number(totalSharedRows[0]?.count ?? 0),
     sharedThisWeek: Number(sharedThisWeekRows[0]?.count ?? 0),
+    adminActions: Number(adminActionsRows ?? 0),
   });
 });
 

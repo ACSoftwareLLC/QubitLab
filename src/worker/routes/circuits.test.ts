@@ -283,6 +283,41 @@ describe('circuit routes', () => {
     });
   });
 
+  it('rejects sharing when user is banned', async () => {
+    const env = makeEnv({
+      'FROM circuits WHERE id': () => [
+        {
+          id: 'c1',
+          user_id: 'user-1',
+          name: 'Bell',
+          circuit: JSON.stringify(validCircuit),
+          thumbnail_key: null,
+          shared: 0,
+          shared_at: null,
+          created_at: '2026-07-01T00:00:00Z',
+          updated_at: '2026-07-01T00:00:00Z',
+        },
+      ],
+      'FROM users WHERE id': () => [
+        { ...SESSION_USER, banned_until: '2099-01-01T00:00:00Z', banned_reason: 'Test ban' },
+      ],
+    });
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/circuits/c1', {
+        method: 'PATCH',
+        headers: { Cookie: AUTH_COOKIE, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shared: true }),
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain('banned');
+  });
+
   it('enforces create circuit rate limit', async () => {
     const env = makeEnv(
       {

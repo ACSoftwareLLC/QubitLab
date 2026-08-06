@@ -51,6 +51,11 @@ export function AppLayout() {
                 Analytics
               </NavLink>
             )}
+            {user?.isAdmin && (
+              <NavLink to="/admin/users" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
+                Users
+              </NavLink>
+            )}
           </nav>
         </div>
         <div className="app-header-right">

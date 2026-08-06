@@ -1,0 +1,536 @@
+.uma-page {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--auth-bg);
+  color: var(--auth-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 2rem 1rem;
+}
+
+.uma-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.uma-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.uma-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.uma-subtitle {
+  margin: 0;
+  color: var(--auth-muted);
+}
+
+.uma-search-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.uma-search-icon {
+  position: absolute;
+  left: 1rem;
+  color: var(--auth-muted);
+  font-size: 1rem;
+}
+
+.uma-search-input {
+  width: 100%;
+  background: var(--auth-panel);
+  border: 1px solid #475569;
+  border-radius: 0.75rem;
+  padding: 0.875rem 2.75rem;
+  color: var(--auth-text);
+  font-size: 1rem;
+  outline: none;
+}
+
+.uma-search-input:focus {
+  border-color: var(--auth-accent);
+}
+
+.uma-search-clear {
+  position: absolute;
+  right: 1rem;
+  background: transparent;
+  border: none;
+  color: var(--auth-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.uma-search-clear:hover {
+  color: var(--auth-text);
+}
+
+.uma-error-banner {
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--auth-danger);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.uma-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1100px) {
+  .uma-layout {
+    grid-template-columns: 1.4fr 0.6fr;
+  }
+}
+
+.uma-main {
+  min-width: 0;
+}
+
+.uma-table-wrap {
+  overflow-x: auto;
+  border-radius: 1rem;
+  border: 1px solid #334155;
+  background: var(--auth-panel);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+}
+
+.uma-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.uma-table th,
+.uma-table td {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #334155;
+  white-space: nowrap;
+}
+
+.uma-table th {
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--auth-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.uma-table tbody tr {
+  cursor: pointer;
+}
+
+.uma-table tbody tr:hover,
+.uma-table tbody tr.selected {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.uma-user-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.uma-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.uma-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--auth-accent);
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.uma-username {
+  font-weight: 600;
+}
+
+.uma-email {
+  color: var(--auth-muted);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.uma-status {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.uma-status.active {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+}
+
+.uma-status.banned {
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--auth-danger);
+}
+
+.uma-row-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.uma-icon-button {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  border: 1px solid #475569;
+  background: transparent;
+  color: var(--auth-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.uma-icon-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.uma-icon-button.danger {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+.uma-icon-button.danger:hover {
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.uma-icon-button.success {
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.4);
+}
+
+.uma-icon-button.success:hover {
+  background: rgba(52, 211, 153, 0.12);
+}
+
+.uma-sidebar {
+  background: var(--auth-panel);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 300px;
+}
+
+.uma-sidebar-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.uma-sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #334155;
+}
+
+.uma-sidebar-email {
+  color: var(--auth-muted);
+  font-size: 0.875rem;
+}
+
+.uma-action-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+  max-height: 600px;
+}
+
+.uma-action {
+  border-left: 3px solid var(--auth-accent);
+  padding-left: 0.75rem;
+}
+
+.uma-action-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.uma-action-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--auth-accent);
+}
+
+.uma-action-badge.delete_user,
+.uma-action-badge.ban_user,
+.uma-action-badge.blacklist_email {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
+
+.uma-action-badge.unban_user,
+.uma-action-badge.remove_blacklist_email {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+}
+
+.uma-action-time {
+  color: var(--auth-muted);
+  font-size: 0.75rem;
+}
+
+.uma-action-meta {
+  color: var(--auth-muted);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+.uma-action-reason {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  word-break: break-word;
+}
+
+.uma-empty-state {
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--auth-muted);
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.uma-empty-state.small {
+  min-height: 120px;
+}
+
+.uma-spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--auth-accent);
+  border-radius: 50%;
+  animation: uma-spin 0.8s linear infinite;
+}
+
+@keyframes uma-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Modal */
+.uma-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1000;
+}
+
+.uma-modal {
+  background: var(--auth-panel);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.uma-modal-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.uma-modal-subtitle {
+  margin: 0 0 1rem;
+  color: var(--auth-muted);
+  font-size: 0.875rem;
+}
+
+.uma-modal-warning {
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  margin: 0 0 1rem;
+}
+
+.uma-label {
+  display: block;
+  margin: 1rem 0 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.uma-input,
+.uma-textarea {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid #475569;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  color: var(--auth-text);
+  font-size: 0.9375rem;
+  outline: none;
+}
+
+.uma-input:focus,
+.uma-textarea:focus {
+  border-color: var(--auth-accent);
+}
+
+.uma-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.uma-duration-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.uma-duration-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem;
+  border: 1px solid #475569;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.uma-duration-option input {
+  display: none;
+}
+
+.uma-duration-option:hover {
+  border-color: var(--auth-accent);
+}
+
+.uma-duration-option.selected {
+  background: var(--auth-accent);
+  border-color: var(--auth-accent);
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.uma-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0 0.25rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.uma-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: var(--auth-muted);
+}
+
+.uma-error {
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--auth-danger);
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  margin-top: 1rem;
+}
+
+.uma-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.uma-button {
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.uma-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.uma-button.primary {
+  background: var(--auth-accent);
+  color: #0f172a;
+}
+
+.uma-button.secondary {
+  background: transparent;
+  border-color: #475569;
+  color: var(--auth-text);
+}
+
+.uma-button.danger {
+  background: #ef4444;
+  color: #fff;
+}
