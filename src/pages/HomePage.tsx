@@ -10,7 +10,7 @@ import { QuantumField } from '../components/QuantumField';
 const quickLinks = [
   { to: '/editor', icon: 'bi-pencil-square', label: 'Open editor', color: '#38bdf8' },
   { to: '/circuits', icon: 'bi-folder', label: 'My circuits', color: '#a78bfa' },
-  { to: '/marketplace', icon: 'bi-shop', label: 'Marketplace', color: '#34d399' },
+  { to: '/community', icon: 'bi-people', label: 'Community', color: '#34d399' },
   { to: '/account', icon: 'bi-person-gear', label: 'Account', color: '#fbbf24' },
 ];
 

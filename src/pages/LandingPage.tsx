@@ -16,7 +16,7 @@ const features = [
   {
     icon: 'bi-share',
     title: 'Share & Remix',
-    description: 'Publish your circuits to the Marketplace and remix community designs to learn new tricks.',
+    description: 'Publish your circuits to the Community and remix shared designs to learn new tricks.',
   },
   {
     icon: 'bi-lightning-charge',

@@ -4,8 +4,8 @@ import {
   createCircuit,
   deleteCircuit,
   shareCircuit,
-  listMarketplace,
-  getMarketplaceCircuit,
+  listCommunity,
+  getCommunityCircuit,
 } from './circuits';
 import type { Circuit } from './types';
 
@@ -92,9 +92,9 @@ describe('circuits api', () => {
     expect(JSON.parse(init.body)).toEqual({ shared: true });
   });
 
-  it('lists marketplace circuits', async () => {
+  it('lists community circuits', async () => {
     const fetchMock = stubFetch(true, { circuits: [] });
-    const result = await listMarketplace();
+    const result = await listCommunity();
 
     expect(result).toEqual([]);
     expect(fetchMock).toHaveBeenCalledWith(
@@ -103,10 +103,10 @@ describe('circuits api', () => {
     );
   });
 
-  it('fetches a marketplace circuit by id', async () => {
+  it('fetches a community circuit by id', async () => {
     const saved = { id: 'abc', name: 'Bell', circuit: sampleCircuit, shared: true };
     const fetchMock = stubFetch(true, { circuit: saved });
-    const result = await getMarketplaceCircuit('abc');
+    const result = await getCommunityCircuit('abc');
 
     expect(result).toEqual(saved);
     expect(fetchMock).toHaveBeenCalledWith(

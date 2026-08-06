@@ -7,7 +7,7 @@ import { RequireAuth } from './components/RequireAuth';
 import { AuthPage } from './components/AuthPage';
 import { EditorPage } from './pages/EditorPage';
 import { CircuitsPage } from './pages/CircuitsPage';
-import { MarketplacePage } from './pages/MarketplacePage';
+import { CommunityPage } from './pages/CommunityPage';
 import { AccountPage } from './pages/AccountPage';
 import { LandingPage } from './pages/LandingPage';
 import { HomePage } from './pages/HomePage';
@@ -42,7 +42,8 @@ function App() {
         {/* Public pages share the app shell so guests can discover the product. */}
         <Route element={<AppLayout />}>
           <Route path="/" element={<HomeOrLanding />} />
-          <Route path="/marketplace" element={<MarketplacePage />} />
+          <Route path="/community" element={<CommunityPage />} />
+          <Route path="/marketplace" element={<Navigate to="/community" replace />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
           <Route path="/patch-notes" element={<PatchNotesPage />} />
