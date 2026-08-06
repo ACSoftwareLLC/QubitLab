@@ -1,46 +1,8 @@
+import { useEffect, useState } from 'react';
 import { QuantumField } from '../components/QuantumField';
+import { parseChangelog, type Release, type PatchNoteType } from '../utils/changelog';
 
-const releases = [
-  {
-    version: '0.9.0',
-    date: '2026-08-05',
-    notes: [
-      { type: 'feature', text: 'New landing page for guests and home dashboard for logged-in users.' },
-      { type: 'feature', text: 'Added Blog and Patch Notes pages with live animated backgrounds.' },
-      { type: 'feature', text: 'Navigation now highlights Home, Blog, and Patch Notes for easier discovery.' },
-      { type: 'fix', text: 'Improved auth session checks on page reload.' },
-    ],
-  },
-  {
-    version: '0.8.0',
-    date: '2026-07-12',
-    notes: [
-      { type: 'feature', text: 'Marketplace: browse and import public circuits shared by the community.' },
-      { type: 'feature', text: 'Circuit thumbnails are now auto-generated when saving.' },
-      { type: 'balance', text: 'Reduced initial gate-line spacing for denser circuit layouts.' },
-      { type: 'fix', text: 'Fixed gate drag preview sticking to the cursor on rapid drops.' },
-    ],
-  },
-  {
-    version: '0.7.0',
-    date: '2026-06-20',
-    notes: [
-      { type: 'feature', text: 'WASM simulator now runs multi-step circuits without blocking the UI.' },
-      { type: 'feature', text: 'Account page: change username, password, and upload an avatar.' },
-      { type: 'fix', text: 'Resolved stage zoom drift when switching between tabs.' },
-    ],
-  },
-  {
-    version: '0.6.0',
-    date: '2026-05-08',
-    notes: [
-      { type: 'feature', text: 'Initial public beta release with visual editor and save/load.' },
-      { type: 'balance', text: 'Default gate palette tuned for beginner-friendly circuits.' },
-    ],
-  },
-];
-
-const badgeClass = (type: string) => {
+const badgeClass = (type: PatchNoteType) => {
   switch (type) {
     case 'feature':
       return 'patch-badge feature';
@@ -53,7 +15,7 @@ const badgeClass = (type: string) => {
   }
 };
 
-const badgeLabel = (type: string) => {
+const badgeLabel = (type: PatchNoteType) => {
   switch (type) {
     case 'feature':
       return 'New';
@@ -67,6 +29,26 @@ const badgeLabel = (type: string) => {
 };
 
 export function PatchNotesPage() {
+  const [releases, setReleases] = useState<Release[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/CHANGELOG.md')
+      .then((res) => {
+        if (!res.ok) throw new Error('Could not load patch notes.');
+        return res.text();
+      })
+      .then((text) => {
+        setReleases(parseChangelog(text));
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+        setLoading(false);
+      });
+  }, []);
+
   return (
     <div className="content-page">
       <QuantumField />
@@ -78,34 +60,39 @@ export function PatchNotesPage() {
           <p className="content-subtitle">A changelog of features, fixes, and balance tweaks.</p>
         </div>
 
-        <div className="patch-timeline">
-          {releases.map((release, index) => (
-            <div
-              key={release.version}
-              className="patch-release"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <div className="patch-release-marker">
-                <span className="patch-dot" />
-                <span className="patch-line" />
-              </div>
-              <div className="patch-release-body">
-                <div className="patch-release-header">
-                  <h2 className="patch-version">v{release.version}</h2>
-                  <span className="patch-date">{new Date(release.date).toLocaleDateString()}</span>
+        {loading && <p>Loading patch notes…</p>}
+        {error && <p>Error: {error}</p>}
+
+        {!loading && !error && (
+          <div className="patch-timeline">
+            {releases.map((release, index) => (
+              <div
+                key={release.version}
+                className="patch-release"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className="patch-release-marker">
+                  <span className="patch-dot" />
+                  <span className="patch-line" />
                 </div>
-                <ul className="patch-notes">
-                  {release.notes.map((note, i) => (
-                    <li key={i} className="patch-note">
-                      <span className={badgeClass(note.type)}>{badgeLabel(note.type)}</span>
-                      <span className="patch-note-text">{note.text}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="patch-release-body">
+                  <div className="patch-release-header">
+                    <h2 className="patch-version">v{release.version}</h2>
+                    {release.title && <span className="patch-date">{release.title}</span>}
+                  </div>
+                  <ul className="patch-notes">
+                    {release.notes.map((note, i) => (
+                      <li key={i} className="patch-note">
+                        <span className={badgeClass(note.type)}>{badgeLabel(note.type)}</span>
+                        <span className="patch-note-text">{note.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

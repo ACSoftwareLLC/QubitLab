@@ -6,8 +6,11 @@
   "scripts": {
     "build:wasm": "wasm-pack build simulator --target web --out-dir ../src/wasm/pkg --release",
     "dev": "vite",
+    "predev": "npm run sync:changelog",
     "build": "npm run build:wasm && tsc -b && vite build",
+    "prebuild": "npm run sync:changelog",
     "build:worker": "npm run build",
+    "sync:changelog": "tsx scripts/sync-changelog.ts",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",

@@ -161,3 +161,6 @@ docker-compose.*.yml
 # Rust / WASM
 simulator/target/
 src/wasm/pkg/
+
+# Generated changelog copy served as a static asset
+public/CHANGELOG.md
