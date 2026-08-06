@@ -5,6 +5,7 @@ import { AppLayout } from './components/AppLayout';
 import { RequireAuth } from './components/RequireAuth';
 import { EditorPage } from './pages/EditorPage';
 import { CircuitsPage } from './pages/CircuitsPage';
+import { MarketplacePage } from './pages/MarketplacePage';
 import { AccountPage } from './pages/AccountPage';
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
         >
           <Route path="/editor" element={<EditorPage />} />
           <Route path="/circuits" element={<CircuitsPage />} />
+          <Route path="/marketplace" element={<MarketplacePage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="*" element={<Navigate to="/editor" replace />} />
         </Route>

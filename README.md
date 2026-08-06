@@ -53,6 +53,9 @@ Services:
 - `GET  /auth/me` — current user
 - `GET  /auth/health` — health check
 - `GET  /auth` — static auth page (served by the Fastify backend)
+- `GET  /auth/marketplace` — list publicly shared circuits
+- `GET  /auth/marketplace/:id` — view a shared circuit
+- `GET  /auth/marketplace/:id/thumbnail` — shared circuit thumbnail
 
 ### Frontend auth gate
 
@@ -63,6 +66,8 @@ Components:
 - `src/context/AuthContext.tsx` — `useAuth` hook, session handling, login/register/logout
 - `src/components/AuthPage.tsx` — login / register UI
 - `src/App.tsx` — gates the circuit editor behind authentication
+- `src/pages/MarketplacePage.tsx` — browse and open publicly shared circuits
+- `src/pages/CircuitsPage.tsx` — manage saved circuits and toggle sharing on the marketplace
 
 ### Local development
 

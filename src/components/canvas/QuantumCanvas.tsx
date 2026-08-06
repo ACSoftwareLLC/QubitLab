@@ -169,7 +169,8 @@ export function QuantumCanvas({
           <i className="bi bi-box-arrow-in-left" />
           <span className="canvas-empty-hint-title">Drag gates from the toolbox onto the canvas</span>
           <span className="canvas-empty-hint-sub">
-            Drop a gate on a segment, connect the dots below it to bit lines, then press Start.
+            Drop a gate on a segment, drag lines from the dots below it to bit lines,
+            then press Start. Filled dots are targets; open dots are controls.
           </span>
         </div>
       )}

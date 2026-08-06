@@ -31,10 +31,18 @@ export const updateCircuitSchema = z
     name: z.string().min(1).max(80).optional(),
     circuit: circuitSchema.optional(),
     thumbnail: thumbnailSchema.optional(),
+    shared: z.boolean().optional(),
   })
-  .refine((v) => v.name !== undefined || v.circuit !== undefined || v.thumbnail !== undefined, {
-    message: 'At least one field must be provided',
-  });
+  .refine(
+    (v) =>
+      v.name !== undefined ||
+      v.circuit !== undefined ||
+      v.thumbnail !== undefined ||
+      v.shared !== undefined,
+    {
+      message: 'At least one field must be provided',
+    }
+  );
 
 export type CreateCircuitBody = z.infer<typeof createCircuitSchema>;
 export type UpdateCircuitBody = z.infer<typeof updateCircuitSchema>;

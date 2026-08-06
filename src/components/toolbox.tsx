@@ -87,7 +87,7 @@ export function Toolbox({
                     draggable
                     onDragStart={(e) => onDragStart(e, gateType)}
                     onDragEnd={onDragEnd}
-                    title={`${gateConfigs[gateType].name} gate`}
+                    title={gateConfigs[gateType].description}
                   >
                     <span
                       className="toolbox-item-chip"
@@ -95,13 +95,28 @@ export function Toolbox({
                     >
                       {gateConfigs[gateType].symbol}
                     </span>
-                    <span className="toolbox-item-name">{gateConfigs[gateType].name}</span>
+                    <span className="toolbox-item-name">{gateConfigs[gateType].fullName}</span>
                   </div>
                 ))}
               </div>
             </div>
           );
         })}
+
+        <div className="toolbox-legend">
+          <div className="toolbox-legend-title">Multi-bit gates</div>
+          <div className="toolbox-legend-row">
+            <span className="toolbox-legend-dot target" />
+            <span>Target — filled dot</span>
+          </div>
+          <div className="toolbox-legend-row">
+            <span className="toolbox-legend-dot control" />
+            <span>Control — open dot</span>
+          </div>
+          <p className="toolbox-legend-hint">
+            Drag a line from a dot to a bit line. Double-click a connected dot to swap its role.
+          </p>
+        </div>
       </div>
 
       {/* Selected gate angle editor */}

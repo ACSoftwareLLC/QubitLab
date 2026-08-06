@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { listCircuits, createCircuit, deleteCircuit } from './circuits';
+import {
+  listCircuits,
+  createCircuit,
+  deleteCircuit,
+  shareCircuit,
+  listMarketplace,
+  getMarketplaceCircuit,
+} from './circuits';
 import type { Circuit } from './types';
 
 afterEach(() => {
@@ -68,6 +75,43 @@ describe('circuits api', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       '/auth/circuits/abc',
       expect.objectContaining({ method: 'DELETE', credentials: 'include' })
+    );
+  });
+
+  it('shares a circuit', async () => {
+    const saved = { id: 'abc', name: 'Bell', circuit: sampleCircuit, shared: true };
+    const fetchMock = stubFetch(true, { circuit: saved });
+    const result = await shareCircuit('abc', true);
+
+    expect(result).toEqual(saved);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/auth/circuits/abc',
+      expect.objectContaining({ method: 'PATCH', credentials: 'include' })
+    );
+    const [, init] = fetchMock.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({ shared: true });
+  });
+
+  it('lists marketplace circuits', async () => {
+    const fetchMock = stubFetch(true, { circuits: [] });
+    const result = await listMarketplace();
+
+    expect(result).toEqual([]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/auth/marketplace',
+      expect.objectContaining({ method: 'GET', credentials: 'include' })
+    );
+  });
+
+  it('fetches a marketplace circuit by id', async () => {
+    const saved = { id: 'abc', name: 'Bell', circuit: sampleCircuit, shared: true };
+    const fetchMock = stubFetch(true, { circuit: saved });
+    const result = await getMarketplaceCircuit('abc');
+
+    expect(result).toEqual(saved);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/auth/marketplace/abc',
+      expect.objectContaining({ method: 'GET', credentials: 'include' })
     );
   });
 });

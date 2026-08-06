@@ -40,7 +40,15 @@ describe('Toolbox', () => {
       expect(screen.getByText(label)).toBeTruthy();
     }
     for (const config of Object.values(GATE_CONFIGS)) {
-      expect(screen.getByTitle(`${config.name} gate`)).toBeTruthy();
+      expect(screen.getByTitle(config.description)).toBeTruthy();
+    }
+  });
+
+  it('displays the full gate name in the toolbox', () => {
+    render(<Toolbox {...defaultProps()} />);
+
+    for (const config of Object.values(GATE_CONFIGS)) {
+      expect(screen.getByText(config.fullName)).toBeTruthy();
     }
   });
 
@@ -48,7 +56,7 @@ describe('Toolbox', () => {
     const onDragStart = vi.fn();
     render(<Toolbox {...defaultProps()} onDragStart={onDragStart} />);
 
-    const item = screen.getByTitle('H gate');
+    const item = screen.getByTitle(GATE_CONFIGS.H.description);
     expect(item.getAttribute('draggable')).toBe('true');
 
     fireEvent.dragStart(item, {
@@ -63,10 +71,10 @@ describe('Toolbox', () => {
     render(<Toolbox {...defaultProps()} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Collapse toolbox' }));
-    expect(screen.queryByTitle('H gate')).toBeNull();
+    expect(screen.queryByTitle(GATE_CONFIGS.H.description)).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Show toolbox' }));
-    expect(screen.getByTitle('H gate')).toBeTruthy();
+    expect(screen.getByTitle(GATE_CONFIGS.H.description)).toBeTruthy();
   });
 
   it('shows the current bit count and clamps the slider to MAX_BITS', () => {

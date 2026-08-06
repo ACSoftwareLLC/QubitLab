@@ -1,4 +1,4 @@
-import { Group, Line, Circle } from 'react-konva';
+import { Group, Line, Circle, Text } from 'react-konva';
 import { GATE_HEIGHT } from '../../constants/canvas';
 import { getClosestBitLine } from '../../utils/geometry';
 import type { CanvasGate, GateLine } from '../../types';
@@ -33,10 +33,10 @@ export function GateLineConnection({ line, gates, numBits, onUpdateBarY, onToggl
       <Circle
         x={originAbsX}
         y={line.barY}
-        radius={7}
-        fill={isControl ? '#0b1220' : '#e2e8f0'}
-        stroke='#cbd5e1'
-        strokeWidth={2}
+        radius={8}
+        fill={isControl ? 'transparent' : '#e2e8f0'}
+        stroke='#e2e8f0'
+        strokeWidth={2.5}
         draggable={true}
         dragBoundFunc={pos => ({ x: originAbsX, y: pos.y })}
         onDblClick={() => onToggleRole(line.id)}
@@ -51,6 +51,20 @@ export function GateLineConnection({ line, gates, numBits, onUpdateBarY, onToggl
           const nearestY = getClosestBitLine(y, numBits);
           onUpdateBarY(line.id, nearestY);
         }}
+      />
+      <Text
+        x={originAbsX - 8}
+        y={line.barY - 8}
+        width={16}
+        height={16}
+        text={isControl ? 'C' : 'T'}
+        fontSize={8}
+        fontStyle='bold'
+        fill={isControl ? '#e2e8f0' : '#0b1220'}
+        align='center'
+        verticalAlign='middle'
+        listening={false}
+        draggable={false}
       />
     </Group>
   );

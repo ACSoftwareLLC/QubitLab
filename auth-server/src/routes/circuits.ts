@@ -13,6 +13,7 @@ type CircuitRow = {
   name: string;
   circuit: unknown;
   thumbnail_key: string | null;
+  shared: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -25,6 +26,7 @@ function circuitResponse(row: CircuitRow, username: string) {
     circuit: row.circuit,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    shared: row.shared,
     thumbnailUrl: row.thumbnail_key ? `/auth/circuits/${row.id}/thumbnail` : null,
   };
 }
@@ -127,12 +129,17 @@ const circuitRoutes: FastifyPluginAsync = async (app) => {
       rows: [updated],
     } = await pool.query(
       `UPDATE circuits
-       SET name = $1, circuit = $2, thumbnail_key = $3, updated_at = NOW()
-       WHERE id = $4 RETURNING *`,
+       SET name = $1,
+           circuit = $2,
+           thumbnail_key = $3,
+           shared = COALESCE($4, shared),
+           updated_at = NOW()
+       WHERE id = $5 RETURNING *`,
       [
         body.name ?? row.name,
         body.circuit ? JSON.stringify(body.circuit) : row.circuit,
         thumbnailKey,
+        body.shared ?? null,
         id,
       ]
     );

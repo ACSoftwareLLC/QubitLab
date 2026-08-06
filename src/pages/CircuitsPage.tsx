@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { listCircuits, deleteCircuit, type SavedCircuit } from '../api/circuits';
+import { listCircuits, deleteCircuit, shareCircuit, type SavedCircuit } from '../api/circuits';
 import { CircuitThumbnail } from '../components/CircuitThumbnail';
 import '../components/AuthPage.css';
 
@@ -28,6 +28,18 @@ export function CircuitsPage() {
 
   const handleOpen = (circuit: SavedCircuit) => {
     navigate('/editor', { state: { circuit: circuit.circuit } });
+  };
+
+  const handleShareToggle = async (e: React.MouseEvent, circuit: SavedCircuit) => {
+    e.stopPropagation();
+    try {
+      const updated = await shareCircuit(circuit.id, !circuit.shared);
+      setCircuits((prev) =>
+        prev?.map((c) => (c.id === circuit.id ? { ...c, shared: updated.shared } : c)) ?? prev
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update sharing');
+    }
   };
 
   return (
@@ -68,6 +80,13 @@ export function CircuitsPage() {
                   Modified {new Date(circuit.updatedAt).toLocaleString()}
                 </span>
               </div>
+              <button
+                className={`circuit-share ${circuit.shared ? 'shared' : ''}`}
+                onClick={(e) => handleShareToggle(e, circuit)}
+                aria-label={circuit.shared ? `Unshare ${circuit.name}` : `Share ${circuit.name}`}
+              >
+                {circuit.shared ? 'Shared' : 'Share'}
+              </button>
               <button
                 className="circuit-delete"
                 onClick={(e) => handleDelete(e, circuit)}
