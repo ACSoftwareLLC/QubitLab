@@ -3,7 +3,7 @@ import type { HonoEnv, HonoContext } from '../types.js';
 import { jsonError, formatZodError } from '../errors.js';
 import { createCircuitSchema, updateCircuitSchema } from '../schemas.js';
 import { queryFirst, queryAll, runQuery } from '../db.js';
-import { requireAuth } from '../auth.js';
+import { requireAuth, requireNotBanned } from '../auth.js';
 import { rateLimitUser, checkUserActionLimit, recordUserAction } from '../rate-limit.js';
 import { r2Upload, r2Delete, r2Get } from '../r2.js';
 import { parsePngDataUrl } from '../buffer.js';
@@ -148,6 +148,9 @@ circuits.patch('/:id', rateLimitUser('circuit_save', 20, 60 * 1000), async (c) =
   }
 
   if (result.data.shared === true && row.shared === 0) {
+    const banned = await requireNotBanned(c);
+    if (banned) return banned;
+
     const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
     const overLimit = await checkUserActionLimit(c, 'circuit_share', 20, WEEK_MS);
     if (overLimit) {

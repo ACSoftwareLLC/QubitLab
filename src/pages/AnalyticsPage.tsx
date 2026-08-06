@@ -340,6 +340,13 @@ export function AnalyticsPage() {
               color="#fbbf24"
               exact
             />
+            <SummaryCard
+              label="Admin actions"
+              value={summary.adminActions}
+              icon="bi-shield-exclamation"
+              color="#f87171"
+              exact
+            />
           </div>
         )}
 

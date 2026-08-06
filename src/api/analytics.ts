@@ -14,6 +14,7 @@ export interface AnalyticsSummary {
   totalCircuits: number;
   totalShared: number;
   sharedThisWeek: number;
+  adminActions: number;
 }
 
 export interface AnalyticsTimeseries {

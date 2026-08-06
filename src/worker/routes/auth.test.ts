@@ -230,6 +230,52 @@ describe('auth routes', () => {
     expect(res.headers.get('Set-Cookie')).toContain('sessionId=');
   });
 
+  it('rejects login for banned user', async () => {
+    const env = makeEnv({
+      'FROM users WHERE username': () => [DEFAULT_USER],
+      'FROM users WHERE id': () => [
+        { ...DEFAULT_USER, banned_until: '2099-01-01T00:00:00Z', banned_reason: 'Test ban' },
+      ],
+    });
+    vi.mocked(verifyPassword).mockImplementation(async (_, hash) => hash === 'hash');
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'alice', password: 'password123' }),
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain('banned');
+  });
+
+  it('rejects registration with blacklisted email', async () => {
+    const env = makeEnv({
+      'email FROM email_blacklist': () => [{ email: 'bad@example.com' }],
+    });
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: 'baduser',
+          email: 'bad@example.com',
+          password: 'password123',
+        }),
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(403);
+  });
+
   it('rejects login for unknown user', async () => {
     const env = makeEnv({
       'FROM users WHERE username': () => [],

@@ -8,7 +8,7 @@ import { hashPassword, verifyPassword } from '../password.js';
 import { randomUUID } from '../crypto.js';
 import { queryFirst, runQuery, uniqueConstraintError } from '../db.js';
 import { setSessionCookie, clearSessionCookie, sessionExpiration } from '../cookie.js';
-import { requireAuth } from '../auth.js';
+import { requireAuth, getBanStatus } from '../auth.js';
 import { rateLimit } from '../rate-limit.js';
 
 const auth = new Hono<HonoEnv>();
@@ -56,6 +56,15 @@ auth.post('/register', rateLimit('register', 5, 15 * 60 * 1000), async (c) => {
     if (!valid) {
       return jsonError(c, 'Turnstile verification failed', 400);
     }
+  }
+
+  const blacklisted = await queryFirst<{ email: string }>(
+    c,
+    `SELECT email FROM email_blacklist WHERE email = ?`,
+    [email]
+  );
+  if (blacklisted) {
+    return jsonError(c, 'This email address is not allowed to register', 403);
   }
 
   const hash = await hashPassword(password);
@@ -137,6 +146,15 @@ auth.post('/login', rateLimit('login', 10, 15 * 60 * 1000), async (c) => {
 
   if (!user || !(await verifyPassword(password, user.password_hash))) {
     return jsonError(c, 'Invalid credentials', 401);
+  }
+
+  const banStatus = await getBanStatus(c, user.id);
+  if (banStatus.banned) {
+    const permanent = banStatus.bannedUntil && banStatus.bannedUntil.startsWith('9999');
+    const message = permanent
+      ? `Account permanently banned${banStatus.reason ? `: ${banStatus.reason}` : ''}`
+      : `Account banned until ${new Date(banStatus.bannedUntil!).toLocaleString()}${banStatus.reason ? `: ${banStatus.reason}` : ''}`;
+    return jsonError(c, message, 403);
   }
 
   const sessionId = randomUUID();
