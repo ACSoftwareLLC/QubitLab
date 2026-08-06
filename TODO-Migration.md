@@ -160,44 +160,44 @@ Goal: port `/auth/analytics/*`.
 
 Goal: deploy the existing React app from the Worker.
 
-- [ ] Update Vite build to produce the Worker static asset directory.
-- [ ] Keep the `/auth` proxy in `vite.config.ts` only for local development.
-- [ ] Remove the production dependency on `auth-server/public/auth.html`.
-- [ ] Ensure the WASM bundle is included in the static assets.
-- [ ] Add SPA fallback so direct URLs like `/marketplace` or `/blog/foo` load correctly.
-- [ ] Verify that relative `/auth/*` calls in the frontend still work.
-- [ ] Verify Turnstile widget loads and uses the correct site key per environment.
+- [x] Update Vite build to produce the Worker static asset directory.
+- [x] Keep the `/auth` proxy in `vite.config.ts` only for local development.
+- [x] Remove the production dependency on `auth-server/public/auth.html`.
+- [x] Ensure the WASM bundle is included in the static assets.
+- [x] Add SPA fallback so direct URLs like `/marketplace` or `/blog/foo` load correctly.
+- [x] Verify that relative `/auth/*` calls in the frontend still work.
+- [x] Verify Turnstile widget loads and uses the correct site key per environment.
 
 ## Phase 10 — Dev environment replication
 
 Goal: create local and remote dev environments that mirror production.
 
-- [ ] Create dedicated Cloudflare resources:
+- [x] Create dedicated Cloudflare resources:
   - D1 database: `qubitlab-dev`.
   - R2 buckets: `qubitlab-avatars-dev`, `qubitlab-thumbnails-dev`.
   - Turnstile widget: dev keys restricted to the dev domain.
-- [ ] Configure `wrangler.jsonc` environments for `dev` and `production`.
-- [ ] Set environment-specific secrets:
+- [x] Configure `wrangler.jsonc` environments for `dev` and `production`.
+- [x] Set environment-specific secrets:
   - `SESSION_SECRET`
   - `TURNSTILE_SECRET_KEY`
   - `TURNSTILE_SITE_KEY`
   - `ADMINS`
-- [ ] Create a seed script (`scripts/seed-dev.ts`) that populates dev D1 with:
+- [x] Create a seed script (`scripts/seed-dev.ts`) that populates dev D1 with:
   - A development admin user.
   - Sample circuits.
   - Sample marketplace entries.
   - Sample blog posts.
-- [ ] Add `npm run db:seed:dev` script.
-- [ ] Set up branch-based deployment:
+- [x] Add `npm run db:seed:dev` script.
+- [x] Set up branch-based deployment:
   - `main` → production.
   - `develop` → dev environment.
-- [ ] Document how to run local dev:
+- [x] Document how to run local dev:
   ```bash
   npm run build:wasm
   npm run build
   wrangler dev --local
   ```
-- [ ] Document how to deploy to remote dev:
+- [x] Document how to deploy to remote dev:
   ```bash
   wrangler deploy --env dev
   wrangler d1 migrations apply DB --env dev

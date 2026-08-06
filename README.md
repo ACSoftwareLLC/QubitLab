@@ -1,6 +1,6 @@
 # QubitLab
 
-A quantum-circuit designer frontend (React + Vite) with an in-browser simulation engine (Rust compiled to WASM, see `simulator/`) and a Fastify authentication backend backed by PostgreSQL.
+A quantum-circuit designer frontend (React + Vite) with an in-browser simulation engine (Rust compiled to WASM, see `simulator/`) and a Cloudflare Worker backend (D1, R2, Turnstile).
 
 ## Simulation engine
 
@@ -23,27 +23,21 @@ npm run build:wasm
 cd simulator && cargo test
 ```
 
-## Authentication
+## Cloudflare backend
 
-The auth service lives in `auth-server/` and is orchestrated with Docker Compose.
+The entire application is deployed as a single Cloudflare Worker:
 
-### Quick start (Docker)
+- Static React app from `dist/` (SPA fallback enabled)
+- `/auth/*` API routes powered by Hono
+- D1 for relational data (users, sessions, circuits, blogs, analytics)
+- R2 for avatars and circuit thumbnails
+- Turnstile for bot protection on registration
 
-```bash
-# 1. Copy the example environment and set a strong secret
-cp .env.example .env
+### Wrangler configuration
 
-# 2. Start PostgreSQL and the Fastify auth API
-docker compose up -d
-
-# 3. Open the auth page
-open http://localhost:3000/auth
-```
-
-Services:
-
-- `postgres` — PostgreSQL 16, port `5432` (configurable via `.env`)
-- `auth-server` — Fastify API on port `3000`
+- `wrangler.jsonc` — Worker, D1, R2, environment overrides
+- `.dev.vars.example` — secrets needed for local development
+- `src/worker/` — Worker entry point and API routes
 
 ### Auth API endpoints
 
@@ -52,7 +46,7 @@ Services:
 - `POST /auth/logout` — sign out
 - `GET  /auth/me` — current user
 - `GET  /auth/health` — health check
-- `GET  /auth` — static auth page (served by the Fastify backend)
+- `GET  /auth/turnstile-sitekey` — configured Turnstile site key
 - `GET  /auth/marketplace` — list publicly shared circuits
 - `GET  /auth/marketplace/:id` — view a shared circuit
 - `GET  /auth/marketplace/:id/thumbnail` — shared circuit thumbnail
@@ -71,23 +65,67 @@ Components:
 
 ### Local development
 
-Terminal 1 — auth server & database:
-
-```bash
-docker compose up -d
-# or
-cd auth-server && npm install && npm run dev
-```
-
-Terminal 2 — Vite frontend:
+Terminal 1 — run the Worker and the built static app (uses local D1/R2):
 
 ```bash
 npm install
-npm run build:wasm   # first time only (and after simulator/ changes)
+npm run dev:worker
+```
+
+Terminal 2 — run the Vite dev server with HMR (proxies `/auth` to the Worker):
+
+```bash
 npm run dev
 ```
 
 Then open http://localhost:5173.
+
+### Deploy
+
+Build the WASM bundle and React app first, then deploy:
+
+```bash
+npm run build:worker
+
+# Deploy to the dev environment
+npm run deploy
+
+# Deploy to production
+npm run deploy:production
+```
+
+Dev deployments are triggered automatically on pushes to `develop` via `.github/workflows/deploy-dev.yml`. Production deployments are triggered on pushes to `main` via `.github/workflows/deploy-production.yml`.
+
+### Database seeding
+
+After applying migrations to a dev environment, seed it with sample data and dev accounts:
+
+```bash
+# Seed the local dev database
+npm run db:seed:dev -- --local
+
+# Seed the remote dev database
+npm run db:seed:dev -- --env dev
+
+# Dry-run the seed SQL without touching the database
+npm run db:seed:dev -- --dry-run
+```
+
+Seeded dev accounts:
+
+- `devadmin` / `devpassword` — admin user (blog editor).
+- `devuser` / `devpassword` — regular user.
+
+### Secrets
+
+For local development, copy `.dev.vars.example` to `.dev.vars` and fill in the secrets.
+
+For remote environments, set secrets with `wrangler secret put`:
+
+```bash
+wrangler secret put SESSION_SECRET --env dev
+wrangler secret put TURNSTILE_SECRET_KEY --env dev
+```
 
 ---
 
