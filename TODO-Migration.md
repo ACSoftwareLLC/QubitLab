@@ -89,19 +89,19 @@ Goal: replace Fastify and Node-only dependencies with a Hono/Worker runtime.
 
 Goal: port `/auth/*` account and session routes.
 
-- [ ] `POST /auth/register` — validate username/password, verify Turnstile, create PBKDF2 hash, create user and session, set cookie.
-- [ ] `POST /auth/login` — validate credentials, create session, set cookie.
-- [ ] `POST /auth/logout` — delete session, clear cookie.
-- [ ] `GET /auth/me` — return current user from session cookie.
-- [ ] `GET /auth/health` — health check.
-- [ ] `GET /auth/turnstile-sitekey` — return configured site key.
-- [ ] `PATCH /auth/account/username` — update username with unique constraint check.
-- [ ] `PATCH /auth/account/password` — verify current password, rehash new password, invalidate other sessions.
-- [ ] `PATCH /auth/account/profile` — update first/last name and bio.
-- [ ] `POST /auth/account/avatar` — validate image upload, store in R2, update user `pfp_key`, remove old avatar.
-- [ ] `GET /auth/users/:id/avatar` — stream avatar from R2 with correct `Content-Type`.
-- [ ] Add rate limiting for registration and login.
-- [ ] Add origin validation for state-changing requests.
+- [x] `POST /auth/register` — validate username/password, verify Turnstile, create PBKDF2 hash, create user and session, set cookie.
+- [x] `POST /auth/login` — validate credentials, create session, set cookie.
+- [x] `POST /auth/logout` — delete session, clear cookie.
+- [x] `GET /auth/me` — return current user from session cookie.
+- [x] `GET /auth/health` — health check.
+- [x] `GET /auth/turnstile-sitekey` — return configured site key.
+- [x] `PATCH /auth/account/username` — update username with unique constraint check.
+- [x] `PATCH /auth/account/password` — verify current password, rehash new password, invalidate other sessions.
+- [x] `PATCH /auth/account/profile` — update first/last name and bio.
+- [x] `POST /auth/account/avatar` — validate image upload, store in R2, update user `pfp_key`, remove old avatar.
+- [x] `GET /auth/users/:id/avatar` — stream avatar from R2 with correct `Content-Type`.
+- [x] Add rate limiting for registration and login.
+- [x] Add origin validation for state-changing requests.
 
 ## Phase 5 — Circuit routes
 

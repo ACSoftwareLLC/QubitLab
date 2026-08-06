@@ -1,32 +1,22 @@
 import { Hono } from 'hono';
 import type { HonoEnv } from './types.js';
 import { loadSessionMiddleware } from './session.js';
-import { jsonError } from './errors.js';
-import { publicUser } from './types.js';
+import { validateOrigin } from './origin.js';
+import authRoutes from './routes/auth.js';
+import accountRoutes from './routes/account.js';
+import mediaRoutes from './routes/media.js';
 
 const app = new Hono<HonoEnv>();
 
 const auth = new Hono<HonoEnv>();
 
+// Attach the current user to every /auth/* request and validate origin on state-changing requests.
 auth.use(loadSessionMiddleware);
+auth.use(validateOrigin);
 
-auth.get('/health', (c) => c.json({ status: 'ok' }));
-
-auth.get('/turnstile-sitekey', (c) => {
-  const siteKey = c.env.TURNSTILE_SITE_KEY;
-  if (!siteKey) {
-    return jsonError(c, 'Turnstile site key not configured', 500);
-  }
-  return c.json({ siteKey });
-});
-
-auth.get('/me', (c) => {
-  const user = c.get('user');
-  if (!user) {
-    return jsonError(c, 'Unauthorized', 401);
-  }
-  return c.json({ user: publicUser(user, c.env.ADMINS) });
-});
+auth.route('/', authRoutes);
+auth.route('/account', accountRoutes);
+auth.route('/', mediaRoutes);
 
 app.route('/auth', auth);
 

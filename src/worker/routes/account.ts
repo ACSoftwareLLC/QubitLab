@@ -1,0 +1,174 @@
+import { Hono } from 'hono';
+import type { HonoEnv } from '../types.js';
+import { jsonError, formatZodError } from '../errors.js';
+import { publicUser } from '../types.js';
+import {
+  updateUsernameSchema,
+  updatePasswordSchema,
+  updateProfileSchema,
+} from '../schemas.js';
+import { queryFirst, runQuery, uniqueConstraintError } from '../db.js';
+import { verifyPassword, hashPassword } from '../password.js';
+import { requireAuth } from '../auth.js';
+import { r2Upload, r2Delete } from '../r2.js';
+import { randomUUID } from '../crypto.js';
+import { getSessionId } from '../session.js';
+
+const account = new Hono<HonoEnv>();
+
+const AVATAR_MIME_TYPES: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+};
+
+account.use(requireAuth);
+
+account.patch('/username', async (c) => {
+  const body = await c.req.json();
+  const result = updateUsernameSchema.safeParse(body);
+  if (!result.success) {
+    return jsonError(c, formatZodError(result), 400);
+  }
+
+  const user = c.get('user')!;
+  const { username } = result.data;
+
+  try {
+    const updated = await queryFirst<
+      {
+        id: string;
+        username: string;
+        pfp_key: string | null;
+        first_name: string | null;
+        last_name: string | null;
+        bio: string | null;
+        created_at: string;
+      }
+    >(
+      c,
+      `UPDATE users SET username = ? WHERE id = ?
+       RETURNING id, username, pfp_key, first_name, last_name, bio, created_at`,
+      [username, user.id]
+    );
+    return c.json({ user: publicUser(updated!, c.env.ADMINS) });
+  } catch (err) {
+    if (uniqueConstraintError(err)) {
+      return jsonError(c, 'Username already taken', 409);
+    }
+    throw err;
+  }
+});
+
+account.patch('/password', async (c) => {
+  const body = await c.req.json();
+  const result = updatePasswordSchema.safeParse(body);
+  if (!result.success) {
+    return jsonError(c, formatZodError(result), 400);
+  }
+
+  const user = c.get('user')!;
+  const { currentPassword, newPassword } = result.data;
+
+  const row = await queryFirst<{ password_hash: string }>(
+    c,
+    `SELECT password_hash FROM users WHERE id = ?`,
+    [user.id]
+  );
+
+  if (!row || !(await verifyPassword(currentPassword, row.password_hash))) {
+    return jsonError(c, 'Current password is incorrect', 403);
+  }
+
+  const hash = await hashPassword(newPassword);
+  await runQuery(c, `UPDATE users SET password_hash = ? WHERE id = ?`, [hash, user.id]);
+
+  const currentSessionId = getSessionId(c);
+  await runQuery(
+    c,
+    `DELETE FROM sessions WHERE user_id = ? AND id <> ?`,
+    [user.id, currentSessionId ?? '']
+  );
+
+  return c.json({ success: true });
+});
+
+account.patch('/profile', async (c) => {
+  const body = await c.req.json();
+  const result = updateProfileSchema.safeParse(body);
+  if (!result.success) {
+    return jsonError(c, formatZodError(result), 400);
+  }
+
+  const user = c.get('user')!;
+  const { firstName, lastName, bio } = result.data;
+
+  const updated = await queryFirst<
+    {
+      id: string;
+      username: string;
+      pfp_key: string | null;
+      first_name: string | null;
+      last_name: string | null;
+      bio: string | null;
+      created_at: string;
+    }
+  >(
+    c,
+    `UPDATE users
+     SET first_name = ?, last_name = ?, bio = ?
+     WHERE id = ?
+     RETURNING id, username, pfp_key, first_name, last_name, bio, created_at`,
+    [firstName ?? null, lastName ?? null, bio ?? null, user.id]
+  );
+
+  return c.json({ user: publicUser(updated!, c.env.ADMINS) });
+});
+
+account.post('/avatar', async (c) => {
+  const user = c.get('user')!;
+  const body = await c.req.parseBody({ all: false });
+  const file = body.file;
+
+  if (!(file instanceof File)) {
+    return jsonError(c, 'No file uploaded', 400);
+  }
+
+  const ext = AVATAR_MIME_TYPES[file.type];
+  if (!ext) {
+    return jsonError(c, 'Avatar must be a PNG, JPEG, or WebP image', 400);
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    return jsonError(c, 'Avatar exceeds the 5MB size limit', 413);
+  }
+
+  const key = `${user.id}/${randomUUID()}.${ext}`;
+  const arrayBuffer = await file.arrayBuffer();
+  await r2Upload(c, 'AVATARS', key, arrayBuffer, file.type);
+
+  const updated = await queryFirst<
+    {
+      id: string;
+      username: string;
+      pfp_key: string | null;
+      first_name: string | null;
+      last_name: string | null;
+      bio: string | null;
+      created_at: string;
+    }
+  >(
+    c,
+    `UPDATE users SET pfp_key = ? WHERE id = ?
+     RETURNING id, username, pfp_key, first_name, last_name, bio, created_at`,
+    [key, user.id]
+  );
+
+  if (user.pfp_key) {
+    c.executionCtx.waitUntil(r2Delete(c, 'AVATARS', user.pfp_key).catch(() => {}));
+  }
+
+  return c.json({ user: publicUser(updated!, c.env.ADMINS) });
+});
+
+export default account;

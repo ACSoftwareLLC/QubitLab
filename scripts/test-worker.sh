@@ -16,6 +16,9 @@ cleanup() {
   echo "Shutting down wrangler dev (PID: $WRANGLER_PID)..."
   kill "$WRANGLER_PID" 2>/dev/null || true
   wait "$WRANGLER_PID" 2>/dev/null || true
+  # Also terminate any lingering wrangler/workerd processes for this port.
+  pkill -f "wrangler dev --local --port $PORT" 2>/dev/null || true
+  pkill -f "workerd serve.*port $PORT" 2>/dev/null || true
   rm -f "$LOG_FILE"
 }
 trap cleanup EXIT

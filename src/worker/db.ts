@@ -29,12 +29,13 @@ export async function runQuery(
 }
 
 export function uniqueConstraintError(err: unknown): boolean {
-  // D1 surfaces unique-constraint violations with a 2069 error code.
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'cause' in err &&
-    typeof (err as { cause?: { error?: number } }).cause?.error === 'number' &&
-    (err as { cause: { error: number } }).cause.error === 2069
-  );
+  if (typeof err !== 'object' || err === null) return false;
+
+  const cause = (err as { cause?: { error?: number; message?: string } }).cause;
+  if (cause?.error === 2069 || cause?.error === 2067) {
+    return true;
+  }
+
+  const message = String((err as { message?: string }).message ?? cause?.message ?? '');
+  return message.includes('UNIQUE constraint failed');
 }
