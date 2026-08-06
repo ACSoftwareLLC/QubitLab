@@ -136,6 +136,23 @@
   font-size: 1.25rem;
 }
 
+.auth-username-status {
+  margin: -0.75rem 0 1rem;
+  font-size: 0.875rem;
+}
+
+.auth-username-checking {
+  color: var(--auth-muted);
+}
+
+.auth-username-available {
+  color: var(--auth-success);
+}
+
+.auth-username-taken {
+  color: var(--auth-danger);
+}
+
 /* ---------- App header ---------- */
 
 .app-header {

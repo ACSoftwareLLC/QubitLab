@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { listCircuits, type SavedCircuit } from '../api/circuits';
 import { listBlogs } from '../api/blogs';
+import { fetchStats, type SiteStats } from '../api/stats';
 import type { BlogPost } from '../types/blog';
 import { CircuitThumbnail } from '../components/CircuitThumbnail';
 import { QuantumField } from '../components/QuantumField';
@@ -18,6 +19,7 @@ export function HomePage() {
   const { user } = useAuth();
   const [circuits, setCircuits] = useState<SavedCircuit[] | null>(null);
   const [blogPosts, setBlogPosts] = useState<BlogPost[] | null>(null);
+  const [stats, setStats] = useState<SiteStats | null>(null);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -33,6 +35,9 @@ export function HomePage() {
     listBlogs()
       .then((all) => setBlogPosts(all.slice(0, 2)))
       .catch(() => setBlogPosts([]));
+    fetchStats()
+      .then(setStats)
+      .catch(() => setStats({ users: 0, circuits: 0, shared: 0, sharedThisWeek: 0 }));
   }, []);
 
   return (
@@ -131,6 +136,26 @@ export function HomePage() {
             <Link to="/blog" className="home-card-link">
               Read more <i className="bi bi-arrow-right" />
             </Link>
+          </section>
+
+          <section className="home-card home-card-wide">
+            <h2 className="home-card-title">
+              <i className="bi bi-bar-chart" /> QubitLab stats
+            </h2>
+            <div className="home-stats">
+              <div className="home-stat">
+                <span className="home-stat-value">{stats?.circuits.toLocaleString() ?? '—'}</span>
+                <span className="home-stat-label">Circuits designed</span>
+              </div>
+              <div className="home-stat">
+                <span className="home-stat-value">{stats?.shared.toLocaleString() ?? '—'}</span>
+                <span className="home-stat-label">Community shares</span>
+              </div>
+              <div className="home-stat">
+                <span className="home-stat-value">{stats?.users.toLocaleString() ?? '—'}</span>
+                <span className="home-stat-label">Registered users</span>
+              </div>
+            </div>
           </section>
 
           <section className="home-card home-card-wide">

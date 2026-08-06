@@ -241,4 +241,39 @@ describe('circuit routes', () => {
     expect(res.status).toBe(400);
     expect(env.THUMBNAILS.put).not.toHaveBeenCalled();
   });
+
+  it('enforces weekly share limit', async () => {
+    const env = makeEnv({
+      'FROM circuits WHERE id': () => [
+        {
+          id: 'c1',
+          user_id: 'user-1',
+          name: 'Bell',
+          circuit: JSON.stringify(validCircuit),
+          thumbnail_key: null,
+          shared: 0,
+          shared_at: null,
+          created_at: '2026-07-01T00:00:00Z',
+          updated_at: '2026-07-01T00:00:00Z',
+        },
+      ],
+      'COUNT(*) as count FROM rate_limit_events': () => [{ count: 20 }],
+      'UPDATE circuits': () => ({ success: true }),
+    });
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/circuits/c1', {
+        method: 'PATCH',
+        headers: { Cookie: AUTH_COOKIE, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shared: true }),
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(429);
+    expect((await res.json()) as { error: string }).toEqual({
+      error: 'Weekly share limit reached (20)',
+    });
+  });
 });
