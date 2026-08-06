@@ -10,9 +10,9 @@
 
 ## Repository changes before work starts
 
-- [ ] Decide final project name for Cloudflare resources.
+- [x] Decide final project name for Cloudflare resources.
 - [x] Remove or archive `auth-server/Dockerfile` and `docker-compose.yml` from the deployment pipeline.
-- [ ] Confirm Rust + `wasm-pack` are available in CI (the generated `src/wasm/pkg` is gitignored and must be rebuilt on every deploy).
+- [x] Confirm Rust + `wasm-pack` are available in CI (the generated `src/wasm/pkg` is gitignored and must be rebuilt on every deploy).
 
 ## Phase 1 — Cloudflare project foundation
 
