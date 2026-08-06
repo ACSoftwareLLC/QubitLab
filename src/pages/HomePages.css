@@ -632,6 +632,22 @@
   color: var(--muted);
 }
 
+.blog-card-unpublished {
+  opacity: 0.6;
+  border-style: dashed;
+}
+
+.blog-status-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.2);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
 .blog-card-tags {
   display: flex;
   gap: 0.35rem;
@@ -992,6 +1008,10 @@
 /* Blog article */
 .blog-article {
   animation: fade-in-up 0.6s ease both;
+}
+
+.blog-article-unpublished {
+  opacity: 0.75;
 }
 
 .blog-article-meta {

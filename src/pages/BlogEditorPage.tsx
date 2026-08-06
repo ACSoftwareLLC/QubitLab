@@ -12,6 +12,14 @@ function slugify(input: string): string {
     .slice(0, 128);
 }
 
+function toDatetimeLocal(date: Date): string {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  );
+}
+
 export function BlogEditorPage() {
   const { slug } = useParams<{ slug?: string }>();
   const navigate = useNavigate();
@@ -20,9 +28,9 @@ export function BlogEditorPage() {
 
   const [title, setTitle] = useState('');
   const [customSlug, setCustomSlug] = useState('');
-  const [author, setAuthor] = useState(user?.username ?? '');
   const [content, setContent] = useState('');
   const [published, setPublished] = useState(true);
+  const [publishAt, setPublishAt] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,19 +40,23 @@ export function BlogEditorPage() {
       .then((post) => {
         setTitle(post.title);
         setCustomSlug(post.slug);
-        setAuthor(post.author);
         setContent(post.content);
-        setPublished(post.published);
+        if (post.publish_at && post.published && new Date(post.publish_at) > new Date()) {
+          setPublished(false);
+          setPublishAt(toDatetimeLocal(new Date(post.publish_at)));
+        } else {
+          setPublished(post.published);
+          setPublishAt('');
+        }
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load post'));
   }, [slug]);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const submit = async (publishNow: boolean) => {
     setError(null);
 
-    if (!title.trim() || !content.trim() || !author.trim()) {
-      setError('Title, author, and content are required.');
+    if (!title.trim() || !content.trim()) {
+      setError('Title and content are required.');
       return;
     }
 
@@ -54,6 +66,8 @@ export function BlogEditorPage() {
       return;
     }
 
+    const publishAtIso = publishNow && publishAt.trim() ? new Date(publishAt).toISOString() : null;
+
     setSaving(true);
     try {
       if (isEdit && slug) {
@@ -61,16 +75,16 @@ export function BlogEditorPage() {
           slug: postSlug,
           title: title.trim(),
           content,
-          author: author.trim(),
-          published,
+          published: publishNow,
+          publishAt: publishAtIso,
         });
       } else {
         await createBlog({
           slug: postSlug,
           title: title.trim(),
           content,
-          author: author.trim(),
-          published,
+          published: publishNow,
+          publishAt: publishAtIso,
         });
       }
       navigate('/blog');
@@ -79,6 +93,15 @@ export function BlogEditorPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    submit(true);
+  };
+
+  const handleSaveDraft = () => {
+    submit(false);
   };
 
   if (!user?.isAdmin) {
@@ -135,10 +158,9 @@ export function BlogEditorPage() {
             id="blog-author"
             className="auth-input"
             type="text"
-            value={author}
-            onChange={(e) => setAuthor(e.target.value)}
-            placeholder="Author name"
-            required
+            value={user.displayName}
+            readOnly
+            disabled
           />
 
           <label className="auth-label">Content</label>
@@ -148,10 +170,29 @@ export function BlogEditorPage() {
             <input
               type="checkbox"
               checked={published}
-              onChange={(e) => setPublished(e.target.checked)}
+              onChange={(e) => {
+                setPublished(e.target.checked);
+                if (e.target.checked) setPublishAt('');
+              }}
             />
             Publish immediately
           </label>
+
+          {!published && (
+            <>
+              <label className="auth-label" htmlFor="blog-publish-at">
+                Publish at
+              </label>
+              <input
+                id="blog-publish-at"
+                className="auth-input"
+                type="datetime-local"
+                value={publishAt}
+                onChange={(e) => setPublishAt(e.target.value)}
+              />
+              <p className="blog-optional">Leave empty to save as a draft.</p>
+            </>
+          )}
 
           <div className="modal-actions">
             <button
@@ -161,6 +202,14 @@ export function BlogEditorPage() {
               disabled={saving}
             >
               Cancel
+            </button>
+            <button
+              type="button"
+              className="modal-cancel"
+              onClick={handleSaveDraft}
+              disabled={saving}
+            >
+              Save as draft
             </button>
             <button type="submit" className="auth-submit modal-submit" disabled={saving}>
               {saving ? 'Saving…' : isEdit ? 'Update post' : 'Publish post'}

@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useEditorActions } from '../context/EditorActionsContext';
 import { SaveCircuitModal } from './SaveCircuitModal';
+import { AdminBadge } from './AdminBadge';
 import './AuthPage.css';
 
 export function AppLayout() {
@@ -63,6 +64,7 @@ export function AppLayout() {
                 </span>
               )}
               <span className="app-username">@{user.username}</span>
+              {user.isAdmin && <AdminBadge />}
             </NavLink>
           )}
           {user ? (

@@ -1,5 +1,11 @@
 import type { BlogPost } from '../types/blog.ts';
 
+type BlogPostInput = Omit<BlogPost, 'id' | 'created_at' | 'updated_at' | 'authorProfile' | 'author' | 'publish_at'> & {
+  publishAt?: string | null;
+};
+
+type BlogPostUpdate = Partial<BlogPostInput>;
+
 const apiFetch = async (
   method: string,
   path: string,
@@ -37,7 +43,7 @@ export async function getBlog(slug: string): Promise<BlogPost> {
 }
 
 export async function createBlog(
-  post: Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>
+  post: BlogPostInput
 ): Promise<BlogPost> {
   const { ok, status, data } = await apiFetch('POST', '/auth/blogs', post as Record<string, unknown>);
   if (status === 401) {
@@ -57,7 +63,7 @@ export async function createBlog(
 
 export async function updateBlog(
   slug: string,
-  post: Partial<Omit<BlogPost, 'id' | 'created_at' | 'updated_at'>>
+  post: BlogPostUpdate
 ): Promise<BlogPost> {
   const { ok, status, data } = await apiFetch(
     'PATCH',

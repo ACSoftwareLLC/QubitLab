@@ -4,6 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import { listBlogs, deleteBlog } from '../api/blogs';
 import type { BlogPost } from '../types/blog';
 import { QuantumField } from '../components/QuantumField';
+import { AuthorChip } from '../components/AuthorChip';
+
+function isPublicPost(post: BlogPost): boolean {
+  return post.published && (!post.publish_at || new Date(post.publish_at) <= new Date());
+}
 
 export function BlogPage() {
   const { user } = useAuth();
@@ -61,17 +66,34 @@ export function BlogPage() {
         )}
 
         <div className="blog-list">
-          {posts?.map((post, index) => (
-            <article
-              key={post.id}
-              className="blog-card"
-              style={{ animationDelay: `${index * 80}ms` }}
-            >
-              <div className="blog-card-meta">
-                <span className="blog-card-date">{new Date(post.created_at).toLocaleDateString()}</span>
-                <span className="blog-card-author">by {post.author}</span>
-              </div>
-              <h2 className="blog-card-title">{post.title}</h2>
+          {posts?.map((post, index) => {
+            const visible = isPublicPost(post);
+            const scheduled = post.published && post.publish_at && !visible;
+            return (
+              <article
+                key={post.id}
+                className={`blog-card ${user?.isAdmin && !visible ? 'blog-card-unpublished' : ''}`}
+                style={{ animationDelay: `${index * 80}ms` }}
+              >
+                <div className="blog-card-meta">
+                  <span className="blog-card-date">{new Date(post.created_at).toLocaleDateString()}</span>
+                  {post.authorProfile ? (
+                    <AuthorChip
+                      username={post.authorProfile.username}
+                      displayName={post.authorProfile.displayName}
+                      pfpUrl={post.authorProfile.pfpUrl}
+                      isAdmin={post.authorProfile.isAdmin}
+                    />
+                  ) : (
+                    <span className="blog-card-author">by {post.author}</span>
+                  )}
+                  {user?.isAdmin && !visible && (
+                    <span className="blog-status-badge">
+                      {scheduled ? 'Scheduled' : 'Draft'}
+                    </span>
+                  )}
+                </div>
+                <h2 className="blog-card-title">{post.title}</h2>
               <div
                 className="blog-card-excerpt"
                 dangerouslySetInnerHTML={{ __html: post.content.slice(0, 300) + (post.content.length > 300 ? '…' : '') }}
@@ -96,7 +118,8 @@ export function BlogPage() {
                 )}
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

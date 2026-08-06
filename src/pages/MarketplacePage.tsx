@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listMarketplace, type SavedCircuit } from '../api/circuits';
 import { CircuitThumbnail } from '../components/CircuitThumbnail';
+import { AuthorChip } from '../components/AuthorChip';
 import '../components/AuthPage.css';
 
 export function MarketplacePage() {
@@ -52,7 +53,12 @@ export function MarketplacePage() {
               </div>
               <div className="circuit-meta">
                 <span className="circuit-name">{circuit.name}</span>
-                <span className="circuit-detail">@{circuit.username}</span>
+                <AuthorChip
+                  username={circuit.username}
+                  pfpUrl={circuit.pfpUrl}
+                  isAdmin={circuit.isAdmin}
+                  className="circuit-author"
+                />
                 <span className="circuit-detail">
                   Shared {new Date(circuit.updatedAt).toLocaleString()}
                 </span>

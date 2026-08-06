@@ -10,8 +10,18 @@ import {
 export interface User {
   id: string;
   username: string;
+  firstName: string | null;
+  lastName: string | null;
+  bio: string | null;
+  displayName: string;
   pfpUrl: string | null;
   isAdmin: boolean;
+}
+
+interface ProfileBody extends Record<string, string | null | undefined> {
+  firstName?: string | null;
+  lastName?: string | null;
+  bio?: string | null;
 }
 
 interface AuthContextValue {
@@ -24,6 +34,7 @@ interface AuthContextValue {
   clearError: () => void;
   updateUsername: (username: string) => Promise<string | null>;
   updatePassword: (currentPassword: string, newPassword: string) => Promise<string | null>;
+  updateProfile: (body: ProfileBody) => Promise<string | null>;
   uploadAvatar: (file: File) => Promise<string | null>;
 }
 
@@ -126,6 +137,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data.error || 'Failed to update password';
   }, []);
 
+  const updateProfile = useCallback(async (body: ProfileBody) => {
+    const { ok, status, data } = await authFetch('PATCH', '/auth/account/profile', body);
+    if (status === 401) {
+      setUser(null);
+      return 'Session expired';
+    }
+    if (ok && data.user) {
+      setUser(data.user);
+      return null;
+    }
+    return data.error || 'Failed to update profile';
+  }, []);
+
   const uploadAvatar = useCallback(async (file: File) => {
     const form = new FormData();
     form.append('file', file);
@@ -153,6 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearError,
         updateUsername,
         updatePassword,
+        updateProfile,
         uploadAvatar,
       }}
     >
@@ -161,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) {

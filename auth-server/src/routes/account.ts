@@ -5,7 +5,11 @@ import { pool } from '../db.js';
 import { config } from '../config.js';
 import { minioClient } from '../minio.js';
 import { requireAuth } from '../hooks/requireAuth.js';
-import { updateUsernameSchema, updatePasswordSchema } from '../schemas/account.js';
+import {
+  updateUsernameSchema,
+  updatePasswordSchema,
+  updateProfileSchema,
+} from '../schemas/account.js';
 import { publicUser } from '../utils/user.js';
 
 const AVATAR_MIME_TYPES: Record<string, string> = {
@@ -23,7 +27,7 @@ const accountRoutes: FastifyPluginAsync = async (app) => {
       const {
         rows: [updated],
       } = await pool.query(
-        'UPDATE users SET username = $1 WHERE id = $2 RETURNING id, username, pfp_key',
+        'UPDATE users SET username = $1 WHERE id = $2 RETURNING id, username, pfp_key, first_name, last_name, bio, created_at',
         [username, user.id]
       );
       return { user: publicUser(updated) };
@@ -61,6 +65,23 @@ const accountRoutes: FastifyPluginAsync = async (app) => {
     return { success: true };
   });
 
+  app.patch('/profile', { preHandler: requireAuth }, async (req) => {
+    const user = req.user!;
+    const body = updateProfileSchema.parse(req.body);
+
+    const {
+      rows: [updated],
+    } = await pool.query(
+      `UPDATE users
+       SET first_name = $1, last_name = $2, bio = $3
+       WHERE id = $4
+       RETURNING id, username, pfp_key, first_name, last_name, bio, created_at`,
+      [body.firstName ?? null, body.lastName ?? null, body.bio ?? null, user.id]
+    );
+
+    return { user: publicUser(updated) };
+  });
+
   app.post('/avatar', { preHandler: requireAuth }, async (req, reply) => {
     const user = req.user!;
     const file = await req.file();
@@ -89,7 +110,7 @@ const accountRoutes: FastifyPluginAsync = async (app) => {
     const {
       rows: [updated],
     } = await pool.query(
-      'UPDATE users SET pfp_key = $1 WHERE id = $2 RETURNING id, username, pfp_key',
+      'UPDATE users SET pfp_key = $1 WHERE id = $2 RETURNING id, username, pfp_key, first_name, last_name, bio, created_at',
       [key, user.id]
     );
 

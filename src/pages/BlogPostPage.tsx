@@ -4,6 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import { getBlog } from '../api/blogs';
 import type { BlogPost } from '../types/blog';
 import { QuantumField } from '../components/QuantumField';
+import { AuthorChip } from '../components/AuthorChip';
+
+function isPublicPost(post: BlogPost): boolean {
+  return post.published && (!post.publish_at || new Date(post.publish_at) <= new Date());
+}
 
 export function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -30,11 +35,25 @@ export function BlogPostPage() {
 
         {!post && !error && <p className="page-muted">Loading…</p>}
 
-        {post && (
-          <article className="blog-article">
+          {post && (
+          <article className={`blog-article ${user?.isAdmin && !isPublicPost(post) ? 'blog-article-unpublished' : ''}`}>
             <div className="blog-article-meta">
               <span>{new Date(post.created_at).toLocaleDateString()}</span>
-              <span>by {post.author}</span>
+              {post.authorProfile ? (
+                <AuthorChip
+                  username={post.authorProfile.username}
+                  displayName={post.authorProfile.displayName}
+                  pfpUrl={post.authorProfile.pfpUrl}
+                  isAdmin={post.authorProfile.isAdmin}
+                />
+              ) : (
+                <span>by {post.author}</span>
+              )}
+              {user?.isAdmin && !isPublicPost(post) && (
+                <span className="blog-status-badge">
+                  {post.published && post.publish_at ? 'Scheduled' : 'Draft'}
+                </span>
+              )}
             </div>
             <h1 className="blog-article-title">{post.title}</h1>
             {user?.isAdmin && (

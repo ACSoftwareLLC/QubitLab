@@ -33,7 +33,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       const {
         rows: [user],
       } = await pool.query(
-        'INSERT INTO users(username, password_hash) VALUES($1, $2) RETURNING id, username, pfp_key, created_at',
+        'INSERT INTO users(username, password_hash) VALUES($1, $2) RETURNING id, username, pfp_key, first_name, last_name, bio, created_at',
         [username, hash]
       );
 
@@ -60,7 +60,7 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     const {
       rows: [user],
     } = await pool.query(
-      'SELECT id, username, password_hash, pfp_key FROM users WHERE username = $1',
+      'SELECT id, username, password_hash, pfp_key, first_name, last_name, bio FROM users WHERE username = $1',
       [username]
     );
 

@@ -9,6 +9,9 @@ export type SavedCircuit = {
   updatedAt: string;
   shared: boolean;
   thumbnailUrl: string | null;
+  userId?: string;
+  pfpUrl?: string | null;
+  isAdmin?: boolean;
 };
 
 export type MarketplaceCircuit = SavedCircuit;

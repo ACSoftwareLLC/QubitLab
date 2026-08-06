@@ -1,11 +1,20 @@
 import { FastifyRequest } from 'fastify';
 
+export interface SessionUser {
+  id: string;
+  username: string;
+  pfp_key: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  bio: string | null;
+}
+
 declare module 'fastify' {
   interface FastifyRequest {
-    user: { id: string; username: string; pfp_key: string | null } | null;
+    user: SessionUser | null;
   }
 }
 
 export interface AuthenticatedRequest extends FastifyRequest {
-  user: { id: string; username: string; pfp_key: string | null };
+  user: SessionUser;
 }

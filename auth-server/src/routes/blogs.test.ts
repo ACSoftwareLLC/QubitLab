@@ -37,8 +37,14 @@ const blogRow = {
   content: '<p>First post.</p>',
   author: '@alex',
   published: true,
+  publish_at: '2026-08-05T00:00:00Z',
   created_at: '2026-08-05T00:00:00Z',
   updated_at: '2026-08-05T00:00:00Z',
+  user_id: 'user-1',
+  author_username: '@alex',
+  author_pfp_key: null,
+  author_first_name: null,
+  author_last_name: null,
 };
 
 function mockQueries(handlers: Record<string, (params?: unknown[]) => { rows?: unknown[]; rowCount?: number }>) {
@@ -57,6 +63,14 @@ const ADMIN_USER = { id: 'user-1', username: '@alex', pfp_key: null };
 const NON_ADMIN_USER = { id: 'user-2', username: 'bob', pfp_key: null };
 const ADMIN_COOKIE = 'sessionId=admin-session';
 const USER_COOKIE = 'sessionId=user-session';
+
+const scheduledRow = {
+  ...blogRow,
+  id: 'blog-2',
+  slug: 'future-post',
+  title: 'Future post',
+  publish_at: '2030-01-01T00:00:00Z',
+};
 
 describe('blog routes', () => {
   beforeEach(() => {
@@ -83,9 +97,51 @@ describe('blog routes', () => {
     await app.close();
   });
 
+  it('hides scheduled posts from public readers', async () => {
+    queryMock.mockImplementation((sql: string) => {
+      if (sql.includes('b.publish_at <= NOW()')) {
+        return Promise.resolve({ rows: [blogRow], rowCount: 1 });
+      }
+      return Promise.resolve({ rows: [], rowCount: 0 });
+    });
+
+    const app = await buildApp();
+    const res = await app.inject({ method: 'GET', url: '/auth/blogs' });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.posts).toHaveLength(1);
+    expect(body.posts[0].slug).toBe('hello-world');
+    await app.close();
+  });
+
+  it('shows scheduled posts to admins', async () => {
+    queryMock.mockImplementation((sql: string) => {
+      if (sql.includes('FROM sessions')) {
+        return Promise.resolve({ rows: [ADMIN_USER], rowCount: 1 });
+      }
+      if (sql.includes('FROM blogs b')) {
+        return Promise.resolve({ rows: [blogRow, scheduledRow], rowCount: 2 });
+      }
+      return Promise.resolve({ rows: [], rowCount: 0 });
+    });
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'GET',
+      url: '/auth/blogs',
+      headers: { cookie: ADMIN_COOKIE },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.posts).toHaveLength(2);
+    await app.close();
+  });
+
   it('returns a single published blog post by slug', async () => {
     mockQueries({
-      'WHERE slug = $1': () => ({ rows: [blogRow] }),
+      'b.slug = $1': () => ({ rows: [blogRow] }),
     });
 
     const app = await buildApp();
@@ -98,7 +154,7 @@ describe('blog routes', () => {
 
   it('returns 404 for missing posts', async () => {
     mockQueries({
-      'WHERE slug = $1': () => ({ rows: [] }),
+      'b.slug = $1': () => ({ rows: [] }),
     });
 
     const app = await buildApp();
@@ -108,10 +164,49 @@ describe('blog routes', () => {
     await app.close();
   });
 
+  it('returns 404 for scheduled posts when not admin', async () => {
+    queryMock.mockImplementation((sql: string) => {
+      if (sql.includes('b.publish_at <= NOW()')) {
+        return Promise.resolve({ rows: [], rowCount: 0 });
+      }
+      return Promise.resolve({ rows: [scheduledRow], rowCount: 1 });
+    });
+
+    const app = await buildApp();
+    const res = await app.inject({ method: 'GET', url: '/auth/blogs/future-post' });
+
+    expect(res.statusCode).toBe(404);
+    await app.close();
+  });
+
+  it('allows admins to view scheduled posts by slug', async () => {
+    queryMock.mockImplementation((sql: string) => {
+      if (sql.includes('FROM sessions')) {
+        return Promise.resolve({ rows: [ADMIN_USER], rowCount: 1 });
+      }
+      if (sql.includes('b.slug = $1')) {
+        return Promise.resolve({ rows: [scheduledRow], rowCount: 1 });
+      }
+      return Promise.resolve({ rows: [], rowCount: 0 });
+    });
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: 'GET',
+      url: '/auth/blogs/future-post',
+      headers: { cookie: ADMIN_COOKIE },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().post.slug).toBe('future-post');
+    await app.close();
+  });
+
   it('allows admins to create a blog post', async () => {
     mockQueries({
       'FROM sessions': () => ({ rows: [ADMIN_USER] }),
-      'INSERT INTO blogs': () => ({ rows: [blogRow] }),
+      'INSERT INTO blogs': () => ({ rows: [{ id: blogRow.id }] }),
+      'b.id = $1': () => ({ rows: [blogRow] }),
     });
 
     const app = await buildApp();
@@ -123,7 +218,6 @@ describe('blog routes', () => {
         slug: 'hello-world',
         title: 'Hello World',
         content: '<p>First post.</p>',
-        author: '@alex',
       },
     });
 
@@ -146,7 +240,6 @@ describe('blog routes', () => {
         slug: 'hello-world',
         title: 'Hello World',
         content: '<p>First post.</p>',
-        author: 'bob',
       },
     });
 
@@ -167,7 +260,6 @@ describe('blog routes', () => {
         slug: 'hello-world',
         title: 'Hello World',
         content: '<p>First post.</p>',
-        author: 'anon',
       },
     });
 
@@ -178,7 +270,8 @@ describe('blog routes', () => {
   it('allows admins to update a blog post', async () => {
     mockQueries({
       'FROM sessions': () => ({ rows: [ADMIN_USER] }),
-      'UPDATE blogs SET': () => ({ rows: [{ ...blogRow, title: 'Updated' }] }),
+      'UPDATE blogs SET': () => ({ rows: [{ id: blogRow.id, title: 'Updated' }] }),
+      'b.id = $1': () => ({ rows: [{ ...blogRow, title: 'Updated' }] }),
     });
 
     const app = await buildApp();

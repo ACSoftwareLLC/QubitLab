@@ -2,12 +2,11 @@ import { FastifyPluginAsync } from 'fastify';
 import { pool } from '../db.js';
 import { config } from '../config.js';
 import { minioClient } from '../minio.js';
-import { requireAuth } from '../hooks/requireAuth.js';
 
 const mediaRoutes: FastifyPluginAsync = async (app) => {
-  // Avatars are visible to any logged-in user — circuit cards display other
-  // users' identities and future sharing will need it.
-  app.get('/users/:id/avatar', { preHandler: requireAuth }, async (req, reply) => {
+  // Avatars are public so they can be shown on public user profiles and shared
+  // circuit cards.
+  app.get('/users/:id/avatar', async (req, reply) => {
     const { id } = req.params as { id: string };
     const {
       rows: [row],
