@@ -15,9 +15,8 @@ target and [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/).
 rustup target add wasm32-unknown-unknown
 cargo install wasm-pack
 
-# Build the WASM bundle into src/wasm/pkg (once after cloning, and after
-# every change to simulator/)
-npm run build:wasm
+# Build the WASM bundle into src/wasm/pkg and the frontend
+npm run build
 
 # Run the engine's test suite
 cd simulator && cargo test
@@ -84,7 +83,7 @@ Then open http://localhost:5173.
 
 ### Deploy
 
-Build the WASM bundle and React app first, then deploy:
+Build the WASM bundle and React app, then deploy:
 
 ```bash
 npm run build:worker

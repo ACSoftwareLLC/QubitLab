@@ -193,8 +193,7 @@ Goal: create local and remote dev environments that mirror production.
   - `develop` → dev environment.
 - [x] Document how to run local dev:
   ```bash
-  npm run build:wasm
-  npm run build
+   npm run build
   wrangler dev --local
   ```
 - [x] Document how to deploy to remote dev:
@@ -248,10 +247,7 @@ Goal: verify parity with the existing backend and add production safeguards.
 ## Useful commands
 
 ```bash
-# Build the WASM simulator
-npm run build:wasm
-
-# Build the React app
+# Build the WASM simulator and React app
 npm run build
 
 # Run local Worker with local D1/R2
@@ -269,6 +265,5 @@ npm run db:seed:dev -- --env dev
 # Deploy to production
 wrangler deploy --env production
 ```
-
 
 

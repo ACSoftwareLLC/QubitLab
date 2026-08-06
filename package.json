@@ -6,8 +6,8 @@
   "scripts": {
     "build:wasm": "wasm-pack build simulator --target web --out-dir ../src/wasm/pkg --release",
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:worker": "npm run build:wasm && npm run build",
+    "build": "npm run build:wasm && tsc -b && vite build",
+    "build:worker": "npm run build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
@@ -52,6 +52,7 @@
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
     "vitest": "^4.1.10",
+    "wasm-pack": "^0.15.0",
     "wrangler": "^4.13.0"
   }
 }

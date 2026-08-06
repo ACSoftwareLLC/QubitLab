@@ -53,13 +53,10 @@ cp .dev.vars.example .dev.vars
 ### Build
 
 ```bash
-# Build WASM simulator
-npm run build:wasm
-
-# Build the full static app (frontend + WASM)
+# Build the full static app (WASM + frontend)
 npm run build
 
-# Build everything
+# Alias used by Worker test/development workflows
 npm run build:worker
 ```
 

@@ -32,9 +32,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build WASM simulator
-        run: npm run build:wasm
-
       - name: Build frontend
         run: npm run build
 
