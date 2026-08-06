@@ -46,7 +46,9 @@ The entire application is deployed as a single Cloudflare Worker:
 - `GET  /auth/me` — current user
 - `GET  /auth/health` — health check
 - `GET  /auth/turnstile-sitekey` — configured Turnstile site key
-- `GET  /auth/marketplace` — list publicly shared circuits
+- `GET  /auth/check-username?username=` — check if a username is available
+- `GET  /auth/stats` — public site statistics (users, circuits, shares)
+- `GET  /auth/marketplace` — list publicly shared circuits (Community page)
 - `GET  /auth/marketplace/:id` — view a shared circuit
 - `GET  /auth/marketplace/:id/thumbnail` — shared circuit thumbnail
 
@@ -59,10 +61,12 @@ Components:
 - `src/context/AuthContext.tsx` — `useAuth` hook, session handling, login/register/logout
 - `src/components/AuthPage.tsx` — login / register UI
 - `src/App.tsx` — gates the circuit editor behind authentication
-- `src/pages/MarketplacePage.tsx` — browse and open publicly shared circuits
-- `src/pages/CircuitsPage.tsx` — manage saved circuits and toggle sharing on the marketplace
+- `src/pages/CommunityPage.tsx` — browse and open publicly shared circuits
+- `src/pages/CircuitsPage.tsx` — manage saved circuits and toggle sharing on the community
 
 > **Legacy stack removed**: the old Docker/Fastify `auth-server` and `docker-compose.yml` setup have been deleted. All backend functionality now lives in `src/worker/` and is deployed as a single Cloudflare Worker.
+>
+> **Current limits**: circuit creation/saving is rate-limited per user; sharing is capped at 20 circuits per week; avatar changes are capped at 5 per hour; username changes are capped at 3 per hour. Set `DISABLE_RATE_LIMIT=true` to disable rate limiting.
 
 ### Local development
 

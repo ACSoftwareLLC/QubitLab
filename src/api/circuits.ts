@@ -14,7 +14,7 @@ export type SavedCircuit = {
   isAdmin?: boolean;
 };
 
-export type MarketplaceCircuit = SavedCircuit;
+export type CommunityCircuit = SavedCircuit;
 
 async function request<T>(method: string, path: string, body?: Record<string, unknown>): Promise<T> {
   const res = await fetch(path, {
@@ -68,12 +68,12 @@ export async function shareCircuit(id: string, shared: boolean): Promise<SavedCi
   return data.circuit;
 }
 
-export async function listMarketplace(): Promise<SavedCircuit[]> {
+export async function listCommunity(): Promise<SavedCircuit[]> {
   const data = await request<{ circuits: SavedCircuit[] }>('GET', '/auth/marketplace');
   return data.circuits;
 }
 
-export async function getMarketplaceCircuit(id: string): Promise<SavedCircuit> {
+export async function getCommunityCircuit(id: string): Promise<SavedCircuit> {
   const data = await request<{ circuit: SavedCircuit }>('GET', `/auth/marketplace/${id}`);
   return data.circuit;
 }

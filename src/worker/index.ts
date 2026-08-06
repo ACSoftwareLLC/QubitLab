@@ -10,7 +10,9 @@ import circuitRoutes from './routes/circuits.js';
 import marketplaceRoutes from './routes/marketplace.js';
 import blogRoutes from './routes/blogs.js';
 import userRoutes from './routes/users.js';
+import adminRoutes from './routes/admin.js';
 import analyticsRoutes from './routes/analytics.js';
+import statsRoutes from './routes/stats.js';
 
 const app = new Hono<HonoEnv>();
 
@@ -32,7 +34,9 @@ auth.route('/circuits', circuitRoutes);
 auth.route('/marketplace', marketplaceRoutes);
 auth.route('/blogs', blogRoutes);
 auth.route('/users', userRoutes);
+auth.route('/admin', adminRoutes);
 auth.route('/analytics', analyticsRoutes);
+auth.route('/stats', statsRoutes);
 
 app.route('/auth', auth);
 

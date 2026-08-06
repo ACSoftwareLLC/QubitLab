@@ -39,13 +39,17 @@ export function AuthPage() {
   const { login, register, error, clearError } = useAuth()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [turnstileSiteKey, setTurnstileSiteKey] = useState<string | null>(null)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const [turnstileError, setTurnstileError] = useState(false)
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
+  const [checkingUsername, setCheckingUsername] = useState(false)
   const turnstileRef = useRef<HTMLDivElement | null>(null)
   const widgetIdRef = useRef<string | null>(null)
+  const usernameDebounceRef = useRef<number | null>(null)
 
   useEffect(() => {
     fetchTurnstileSiteKey().then(setTurnstileSiteKey)
@@ -96,13 +100,47 @@ export function AuthPage() {
     };
   }, [mode, turnstileSiteKey]);
 
+  useEffect(() => {
+    if (mode !== 'register' || username.length < 3) {
+      setUsernameAvailable(null)
+      return
+    }
+
+    if (usernameDebounceRef.current) {
+      window.clearTimeout(usernameDebounceRef.current)
+    }
+
+    setCheckingUsername(true)
+    usernameDebounceRef.current = window.setTimeout(async () => {
+      try {
+        const res = await fetch(`/auth/check-username?username=${encodeURIComponent(username)}`, {
+          credentials: 'include',
+        })
+        const data = (await res.json()) as { available: boolean }
+        setUsernameAvailable(data.available)
+      } catch {
+        setUsernameAvailable(null)
+      } finally {
+        setCheckingUsername(false)
+      }
+    }, 400)
+
+    return () => {
+      if (usernameDebounceRef.current) {
+        window.clearTimeout(usernameDebounceRef.current)
+      }
+    }
+  }, [username, mode])
+
   const switchMode = (next: 'login' | 'register') => {
     setMode(next)
     clearError()
+    setEmail('')
     setPassword('')
     setConfirm('')
     setTurnstileToken(null)
     setTurnstileError(false)
+    setUsernameAvailable(null)
   }
 
   const handleSubmit = async (e: FormEvent) => {
@@ -113,6 +151,10 @@ export function AuthPage() {
       return
     }
 
+    if (mode === 'register' && usernameAvailable === false) {
+      return
+    }
+
     if (mode === 'register' && turnstileSiteKey && !turnstileToken) {
       return
     }
@@ -120,13 +162,15 @@ export function AuthPage() {
     const ok =
       mode === 'login'
         ? await login(username, password)
-        : await register(username, password, turnstileToken || undefined)
+        : await register(username, email, password, turnstileToken || undefined)
 
     if (ok) {
       setUsername('')
+      setEmail('')
       setPassword('')
       setConfirm('')
       setTurnstileToken(null)
+      setUsernameAvailable(null)
       if (widgetIdRef.current && window.turnstile) {
         window.turnstile.reset(widgetIdRef.current);
       }
@@ -172,6 +216,34 @@ export function AuthPage() {
             maxLength={32}
             autoComplete="username"
           />
+          {mode === 'register' && username.length >= 3 && (
+            <div className="auth-username-status">
+              {checkingUsername ? (
+                <span className="auth-username-checking">Checking…</span>
+              ) : usernameAvailable === true ? (
+                <span className="auth-username-available">Username available</span>
+              ) : usernameAvailable === false ? (
+                <span className="auth-username-taken">Username already taken</span>
+              ) : null}
+            </div>
+          )}
+
+          {mode === 'register' && (
+            <>
+              <label className="auth-label" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                className="auth-input"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+              />
+            </>
+          )}
 
           <label className="auth-label" htmlFor="password">
             Password

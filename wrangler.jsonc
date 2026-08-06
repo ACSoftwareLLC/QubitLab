@@ -12,18 +12,18 @@
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "qubitlab-dev",
-			"database_id": "36d2d85a-4516-4491-bd64-805d53577e23"
+			"database_name": "qubitlab",
+			"database_id": "834ec542-b730-4946-9489-5786ea7c737e"
 		}
 	],
 	"r2_buckets": [
 		{
 			"binding": "AVATARS",
-			"bucket_name": "qubitlab-avatars-dev"
+			"bucket_name": "qubitlab-avatars"
 		},
 		{
 			"binding": "THUMBNAILS",
-			"bucket_name": "qubitlab-thumbnails-dev"
+			"bucket_name": "qubitlab-thumbnails"
 		}
 	],
 	"vars": {
@@ -76,8 +76,7 @@
 			],
 		"vars": {
 			"TURNSTILE_SITE_KEY": "3x00000000000000000000FF",
-			"ADMINS": "alex",
-			"DISABLE_RATE_LIMIT": "true"
+			"ADMINS": "alex"
 		}
 		}
 	}

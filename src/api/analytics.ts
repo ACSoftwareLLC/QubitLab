@@ -10,6 +10,11 @@ export interface AnalyticsSummary {
   sharedCircuits: number;
   blogPostsPublished: number;
   topPage: { path: string; views: number } | null;
+  totalUsers: number;
+  totalCircuits: number;
+  totalShared: number;
+  sharedThisWeek: number;
+  adminActions: number;
 }
 
 export interface AnalyticsTimeseries {
@@ -17,6 +22,8 @@ export interface AnalyticsTimeseries {
   since: string;
   pageViews: { date: string; pageViews: number; uniqueVisitors: number }[];
   newUsers: { date: string; newUsers: number }[];
+  circuitsCreated: { date: string; circuits: number }[];
+  sharedCircuits: { date: string; shared: number }[];
 }
 
 export interface AnalyticsBreakdown {

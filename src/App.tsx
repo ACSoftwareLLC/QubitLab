@@ -7,7 +7,7 @@ import { RequireAuth } from './components/RequireAuth';
 import { AuthPage } from './components/AuthPage';
 import { EditorPage } from './pages/EditorPage';
 import { CircuitsPage } from './pages/CircuitsPage';
-import { MarketplacePage } from './pages/MarketplacePage';
+import { CommunityPage } from './pages/CommunityPage';
 import { AccountPage } from './pages/AccountPage';
 import { LandingPage } from './pages/LandingPage';
 import { HomePage } from './pages/HomePage';
@@ -17,6 +17,7 @@ import { BlogEditorPage } from './pages/BlogEditorPage';
 import { PatchNotesPage } from './pages/PatchNotesPage';
 import { UserProfilePage } from './pages/UserProfilePage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
+import { UserManagementPage } from './pages/UserManagementPage';
 
 function HomeOrLanding() {
   const { user } = useAuth();
@@ -42,7 +43,8 @@ function App() {
         {/* Public pages share the app shell so guests can discover the product. */}
         <Route element={<AppLayout />}>
           <Route path="/" element={<HomeOrLanding />} />
-          <Route path="/marketplace" element={<MarketplacePage />} />
+          <Route path="/community" element={<CommunityPage />} />
+          <Route path="/marketplace" element={<Navigate to="/community" replace />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
           <Route path="/patch-notes" element={<PatchNotesPage />} />
@@ -59,6 +61,7 @@ function App() {
           <Route path="/blog/new" element={<BlogEditorPage />} />
           <Route path="/blog/:slug/edit" element={<BlogEditorPage />} />
           <Route path="/admin/analytics" element={<AnalyticsPage />} />
+          <Route path="/admin/users" element={<UserManagementPage />} />
         </Route>
 
         {/* Standalone auth screen. */}
