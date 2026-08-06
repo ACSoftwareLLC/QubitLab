@@ -121,11 +121,11 @@ Goal: port `/auth/circuits/*`.
 
 Goal: port public `/auth/marketplace/*`.
 
-- [ ] `GET /auth/marketplace` — list shared circuits with user profile data.
-- [ ] `GET /auth/marketplace/:id` — get a shared circuit.
-- [ ] `GET /auth/marketplace/:id/thumbnail` — return shared circuit thumbnail from R2.
-- [ ] Ensure public routes do not require authentication.
-- [ ] Reuse the same private R2 buckets; serve media through Worker routes.
+- [x] `GET /auth/marketplace` — list shared circuits with user profile data.
+- [x] `GET /auth/marketplace/:id` — get a shared circuit.
+- [x] `GET /auth/marketplace/:id/thumbnail` — return shared circuit thumbnail from R2.
+- [x] Ensure public routes do not require authentication.
+- [x] Reuse the same private R2 buckets; serve media through Worker routes.
 
 ## Phase 7 — Blog and user profile routes
 
