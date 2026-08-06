@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "build:wasm": "wasm-pack build simulator --target web --out-dir ../src/wasm/pkg --release",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",

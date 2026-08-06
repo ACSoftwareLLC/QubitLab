@@ -10,9 +10,9 @@ export type SimStatus = 'idle' | 'ready' | 'running' | 'done' | 'invalid' | 'off
 export type Simulation = ReturnType<typeof useSimulation>;
 
 /**
- * Execution state for the canvas circuit, backed by the simulation API
- * (docs/api.md). WebSocket session preferred; falls back to per-step REST
- * calls when the socket can't connect.
+ * Execution state for the canvas circuit, backed by the local WASM simulator
+ * (docs/api.md). A stateful stepping session is preferred; falls back to
+ * per-step one-shot simulation when the session can't be created.
  */
 export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBits: number) {
   const { circuit, unconnectedGateIds } = useMemo(
@@ -82,9 +82,9 @@ export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBit
         return;
       }
     } catch {
-      // fall through to REST mode
+      // fall through to stateless mode
     }
-    // REST fallback: no persistent session, step via /api/simulate.
+    // Stateless fallback: no persistent session, step via one-shot simulate.
     sessionRef.current = null;
     setNumSteps(segments.length);
     setStatus('ready');
@@ -109,7 +109,7 @@ export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBit
       return;
     }
 
-    // REST fallback
+    // Stateless fallback
     const current = snapshot?.segment ?? -1;
     const next = segments.find(s => s > current);
     if (next == null) {

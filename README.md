@@ -1,6 +1,27 @@
 # Quantum-Dnd
 
-A quantum-circuit designer frontend (React + Vite) with a FastAPI simulation backend backed by Qiskit and a Fastify authentication backend backed by PostgreSQL.
+A quantum-circuit designer frontend (React + Vite) with an in-browser simulation engine (Rust compiled to WASM, see `simulator/`) and a Fastify authentication backend backed by PostgreSQL.
+
+## Simulation engine
+
+The quantum statevector simulator is a Rust crate in `simulator/`, compiled to
+WASM and executed in the browser — no simulation backend is required. The
+data contract is documented in `docs/api.md`.
+
+Prerequisites: [Rust](https://rustup.rs/) with the `wasm32-unknown-unknown`
+target and [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/).
+
+```bash
+rustup target add wasm32-unknown-unknown
+cargo install wasm-pack
+
+# Build the WASM bundle into src/wasm/pkg (once after cloning, and after
+# every change to simulator/)
+npm run build:wasm
+
+# Run the engine's test suite
+cd simulator && cargo test
+```
 
 ## Authentication
 
@@ -57,6 +78,7 @@ Terminal 2 — Vite frontend:
 
 ```bash
 npm install
+npm run build:wasm   # first time only (and after simulator/ changes)
 npm run dev
 ```
 

@@ -31,9 +31,9 @@ describe('StatePanel', () => {
     expect(container.textContent).toContain('Press Start to execute the circuit');
   });
 
-  it('warns when the simulation server is offline', () => {
+  it('warns when the simulation engine fails to load', () => {
     const { container } = render(<StatePanel {...defaultProps()} status="offline" />);
-    expect(container.textContent).toContain('Simulation server offline');
+    expect(container.textContent).toContain('Simulation engine failed to load');
   });
 
   it('lists validation errors for invalid circuits', () => {
