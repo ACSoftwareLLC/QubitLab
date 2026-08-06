@@ -78,9 +78,13 @@ npm run dev
 ### Test
 
 ```bash
-npm run test              # unit tests
+npm run test              # unit tests (Vitest)
 npm run test:worker       # build + worker integration tests
+npm run test:e2e        # Playwright tests against a running Worker
+npm run test:e2e:ui     # Playwright tests in UI mode
 ```
+
+For e2e tests, start the Worker first with `npm run dev:worker` (or use `QUBITLAB_BASE_URL` to point to a deployed instance). Set `QUBITLAB_DEV_USERNAME` and `QUBITLAB_DEV_PASSWORD` to override the seeded dev account used by the authenticated tests.
 
 ### Database
 
@@ -117,6 +121,30 @@ After running the dev seed script, the following accounts are available:
 
 - `devadmin` / `devpassword` — admin user (blog editor).
 - `devuser` / `devpassword` — regular user.
+
+### Deployment checks
+
+Before deploying to a remote environment, run:
+
+```bash
+npm run check:deployment -- --env dev
+```
+
+This validates that the configured D1 database and R2 buckets exist for the target environment.
+
+### Cron trigger
+
+`wrangler.jsonc` configures a cron trigger that runs every 6 hours. The Worker deletes expired sessions via `src/worker/session.ts` during the scheduled event.
+
+## Security settings
+
+- **Sessions**: `sessionId` cookies use `HttpOnly`, `Secure`, `SameSite=Strict`, and a 7-day `Max-Age`.
+- **Origin validation**: state-changing requests (`POST`, `PATCH`, `DELETE`, etc.) require the `Origin` header to match the request `Host` (skipped for `GET`, `HEAD`, `OPTIONS`, and missing origins).
+- **Rate limiting**: auth routes (`/auth/register`, `/auth/login`) are rate-limited by client IP. Set `DISABLE_RATE_LIMIT=true` to disable (e.g., for production load testing).
+- **CORS**: none — the app is same-origin, so frontend requests to `/auth/*` do not require CORS headers.
+- **CSP**: enforced by the static asset handler via `wrangler.jsonc` (configure as needed for inline scripts/WASM).
+- **Turnstile domains**: restrict the Turnstile widget to `localhost` and the deployed hostnames for each environment.
+- **Error logging**: unhandled Worker errors are logged with request method, path, timestamp, and optional `CF-Ray` request ID.
 
 ## Coding conventions
 

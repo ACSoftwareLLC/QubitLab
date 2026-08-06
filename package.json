@@ -13,11 +13,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:worker": "npm run build:worker && ./scripts/test-worker.sh",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui",
     "predev:worker": "npm run build:worker",
     "dev:worker": "wrangler dev --local",
     "deploy": "npx wrangler deploy --env dev",
     "deploy:production": "npx wrangler deploy --env production",
-    "db:seed:dev": "tsx scripts/seed-dev.ts"
+    "db:seed:dev": "tsx scripts/seed-dev.ts",
+    "check:deployment": "tsx scripts/check-deployment.ts"
   },
   "dependencies": {
     "bootstrap-icons": "^1.13.1",

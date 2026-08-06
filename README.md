@@ -116,6 +116,25 @@ Seeded dev accounts:
 - `devadmin` / `devpassword` — admin user (blog editor).
 - `devuser` / `devpassword` — regular user.
 
+### Deployment checks
+
+Before deploying to a remote environment, verify that the configured D1 database and R2 buckets exist:
+
+```bash
+npm run check:deployment -- --env dev
+```
+
+### Test
+
+```bash
+npm run test              # unit tests (Vitest)
+npm run test:worker       # build + worker integration tests
+npm run test:e2e        # Playwright tests against a running Worker
+npm run test:e2e:ui     # Playwright tests in UI mode
+```
+
+For e2e tests, start the Worker first with `npm run dev:worker` (or use `QUBITLAB_BASE_URL` to point to a deployed instance). Set `QUBITLAB_DEV_USERNAME` and `QUBITLAB_DEV_PASSWORD` to override the seeded dev account used by the authenticated tests.
+
 ### Secrets
 
 For local development, copy `.dev.vars.example` to `.dev.vars` and fill in the secrets.

@@ -208,11 +208,11 @@ Goal: create local and remote dev environments that mirror production.
 
 Goal: verify parity with the existing backend and add production safeguards.
 
-- [ ] Add Worker route tests using Miniflare/wrangler.
-- [ ] Add D1 repository tests.
-- [ ] Add R2 upload/download tests.
-- [ ] Add Playwright end-to-end tests running against `wrangler dev`.
-- [ ] Add tests for:
+- [x] Add Worker route tests using Miniflare/wrangler.
+- [x] Add D1 repository tests.
+- [x] Add R2 upload/download tests.
+- [x] Add Playwright end-to-end tests running against `wrangler dev`.
+- [x] Add tests for:
   - Guest marketplace browsing.
   - Registration and login.
   - Session persistence across reloads.
@@ -222,12 +222,12 @@ Goal: verify parity with the existing backend and add production safeguards.
   - Blog admin create/update/publish.
   - Turnstile behavior in dev mode.
   - Password change invalidating other sessions.
-- [ ] Add rate limiting for auth routes.
-- [ ] Add origin validation on state-changing endpoints.
-- [ ] Add Worker error logging.
-- [ ] Add a Cron Trigger to delete expired sessions.
-- [ ] Add deployment checks for D1 migrations and R2 bucket existence.
-- [ ] Document security settings: cookie flags, CORS, CSP, Turnstile domains.
+- [x] Add rate limiting for auth routes.
+- [x] Add origin validation on state-changing endpoints.
+- [x] Add Worker error logging.
+- [x] Add a Cron Trigger to delete expired sessions.
+- [x] Add deployment checks for D1 migrations and R2 bucket existence.
+- [x] Document security settings: cookie flags, CORS, CSP, Turnstile domains.
 
 ## Phase 12 — Cleanup
 

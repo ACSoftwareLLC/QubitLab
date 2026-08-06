@@ -1,3 +1,4 @@
+import type { D1Database } from '@cloudflare/workers-types';
 import type { HonoContext, SessionUser } from './types.js';
 import { queryFirst } from './db.js';
 
@@ -47,4 +48,12 @@ export async function getSessionUser(c: HonoContext): Promise<SessionUser | null
 export async function loadSessionMiddleware(c: HonoContext, next: () => Promise<void>) {
   c.set('user', await getSessionUser(c));
   await next();
+}
+
+export async function deleteExpiredSessions(db: D1Database): Promise<number> {
+  const now = new Date().toISOString();
+  const result = await db.prepare('DELETE FROM sessions WHERE expires_at <= ?')
+    .bind(now)
+    .run();
+  return (result.meta as { changes?: number })?.changes ?? 0;
 }
