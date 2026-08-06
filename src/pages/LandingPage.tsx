@@ -36,7 +36,7 @@ export function LandingPage() {
       <QuantumField />
       <div className="landing-hero">
         <div className="landing-badge">
-          <i className="bi bi-stars" /> Quantum DnD is now in open beta
+          <i className="bi bi-stars" /> QubitLab is now in open beta
         </div>
         <h1 className="landing-title">
           Build quantum circuits
@@ -95,7 +95,7 @@ export function LandingPage() {
           <Link to="/patch-notes">Patch notes</Link>
           <Link to="/login">Sign in</Link>
         </div>
-        <span className="landing-footer-copy">© {new Date().getFullYear()} Quantum DnD</span>
+        <span className="landing-footer-copy">© {new Date().getFullYear()} QubitLab</span>
       </footer>
     </div>
   );

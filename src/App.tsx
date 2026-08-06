@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { EditorActionsProvider } from './context/EditorActionsContext';
+import { useAnalytics } from './hooks/useAnalytics';
 import { AppLayout } from './components/AppLayout';
 import { RequireAuth } from './components/RequireAuth';
 import { AuthPage } from './components/AuthPage';
@@ -15,6 +16,7 @@ import { BlogPostPage } from './pages/BlogPostPage';
 import { BlogEditorPage } from './pages/BlogEditorPage';
 import { PatchNotesPage } from './pages/PatchNotesPage';
 import { UserProfilePage } from './pages/UserProfilePage';
+import { AnalyticsPage } from './pages/AnalyticsPage';
 
 function HomeOrLanding() {
   const { user } = useAuth();
@@ -23,6 +25,7 @@ function HomeOrLanding() {
 
 function App() {
   const { loading } = useAuth();
+  useAnalytics();
 
   if (loading) {
     return (
@@ -45,8 +48,7 @@ function App() {
           <Route path="/patch-notes" element={<PatchNotesPage />} />
           <Route path="/user/:username" element={<UserProfilePage />} />
         </Route>
-
-        {/* Admin-only blog editor. */}
+        {/* Admin-only routes. */}
         <Route
           element={
             <RequireAuth>
@@ -56,6 +58,7 @@ function App() {
         >
           <Route path="/blog/new" element={<BlogEditorPage />} />
           <Route path="/blog/:slug/edit" element={<BlogEditorPage />} />
+          <Route path="/admin/analytics" element={<AnalyticsPage />} />
         </Route>
 
         {/* Standalone auth screen. */}

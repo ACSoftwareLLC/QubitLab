@@ -1,4 +1,4 @@
-# Quantum-Dnd
+# QubitLab
 
 A quantum-circuit designer frontend (React + Vite) with an in-browser simulation engine (Rust compiled to WASM, see `simulator/`) and a Fastify authentication backend backed by PostgreSQL.
 

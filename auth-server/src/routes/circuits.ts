@@ -6,6 +6,7 @@ import { minioClient } from '../minio.js';
 import { requireAuth } from '../hooks/requireAuth.js';
 import { createCircuitSchema, updateCircuitSchema } from '../schemas/circuits.js';
 import { parsePngDataUrl } from '../utils/dataUrl.js';
+import { recordAnalyticsEvent } from '../utils/analytics.js';
 
 type CircuitRow = {
   id: string;
@@ -46,6 +47,14 @@ function removeObjectQuietly(bucket: string, key: string, log: { warn: (obj: obj
   });
 }
 
+function getClientIp(req: { ip?: string; headers: Record<string, unknown> }): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string') {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.ip || '0.0.0.0';
+}
+
 async function findOwnedCircuit(id: string, userId: string): Promise<CircuitRow | null> {
   const {
     rows: [row],
@@ -76,6 +85,15 @@ const circuitRoutes: FastifyPluginAsync = async (app) => {
        VALUES($1, $2, $3, $4, $5) RETURNING *`,
       [circuitId, user.id, name, JSON.stringify(circuit), thumbnailKey]
     );
+
+    await recordAnalyticsEvent({
+      type: 'circuit_created',
+      path: '/circuits',
+      userId: user.id,
+      ip: getClientIp(req),
+      userAgent: String(req.headers['user-agent'] || ''),
+      metadata: { circuitId: row.id },
+    });
 
     reply.code(201);
     return { circuit: circuitResponse(row, user.username) };
@@ -143,6 +161,17 @@ const circuitRoutes: FastifyPluginAsync = async (app) => {
         id,
       ]
     );
+
+    if (body.shared === true && !row.shared) {
+      await recordAnalyticsEvent({
+        type: 'circuit_shared',
+        path: `/circuits/${id}`,
+        userId: user.id,
+        ip: getClientIp(req),
+        userAgent: String(req.headers['user-agent'] || ''),
+        metadata: { circuitId: id },
+      });
+    }
 
     return { circuit: circuitResponse(updated, user.username) };
   });

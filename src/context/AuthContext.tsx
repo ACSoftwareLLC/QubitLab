@@ -29,7 +29,7 @@ interface AuthContextValue {
   loading: boolean;
   error: string | null;
   login: (username: string, password: string) => Promise<boolean>;
-  register: (username: string, password: string) => Promise<boolean>;
+  register: (username: string, password: string, turnstileToken?: string) => Promise<boolean>;
   logout: () => Promise<void>;
   clearError: () => void;
   updateUsername: (username: string) => Promise<string | null>;
@@ -92,8 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   }, []);
 
-  const register = useCallback(async (username: string, password: string) => {
-    const { ok, data } = await authFetch('POST', '/auth/register', { username, password });
+  const register = useCallback(async (username: string, password: string, turnstileToken?: string) => {
+    const { ok, data } = await authFetch('POST', '/auth/register', { username, password, turnstileToken });
     if (ok && data.user) {
       setUser(data.user);
       setError(null);

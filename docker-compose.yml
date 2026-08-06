@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: quantum-dnd-postgres
+    container_name: qubitlab-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-quantum}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-in-production}
@@ -19,7 +19,7 @@ services:
 
   minio:
     image: minio/minio
-    container_name: quantum-dnd-minio
+    container_name: qubitlab-minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
@@ -35,11 +35,13 @@ services:
     build:
       context: ./auth-server
       dockerfile: Dockerfile
-    container_name: quantum-dnd-auth
+    container_name: qubitlab-auth
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-quantum}:${POSTGRES_PASSWORD:-change-me-in-production}@postgres:5432/${POSTGRES_DB:-quantum_auth}
       SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production-please-replace-this-secret}
       ADMINS: ${ADMINS:-}
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
       NODE_ENV: production
       COOKIE_SECURE: "false"
       PORT: 3000

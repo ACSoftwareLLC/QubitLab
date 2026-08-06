@@ -4,6 +4,7 @@ import { pool } from '../db.js';
 import { requireAdmin } from '../hooks/requireAdmin.js';
 import { config } from '../config.js';
 import { displayNameFor, pfpUrlFor } from '../utils/user.js';
+import { recordAnalyticsEvent } from '../utils/analytics.js';
 
 const createSchema = z.object({
   slug: z.string().min(1).max(128).regex(/^[a-z0-9-]+$/),
@@ -22,6 +23,14 @@ function isAdminRequest(req: FastifyRequest): boolean {
 const PUBLIC_VISIBILITY_FILTER = `
   b.published = TRUE AND (b.publish_at IS NULL OR b.publish_at <= NOW())
 `;
+
+function getClientIp(req: { ip?: string; headers: Record<string, unknown> }): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string') {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.ip || '0.0.0.0';
+}
 
 function slugify(input: string): string {
   return input
@@ -174,6 +183,17 @@ const blogRoutes: FastifyPluginAsync = async (app) => {
          WHERE b.id = $1`,
         [postId]
       );
+
+      if (published) {
+        await recordAnalyticsEvent({
+          type: 'blog_published',
+          path: `/blog/${normalizedSlug}`,
+          userId: user.id,
+          ip: getClientIp(req),
+          userAgent: String(req.headers['user-agent'] || ''),
+          metadata: { postId },
+        });
+      }
 
       reply.code(201);
       return { post: buildBlogPost(post as BlogRow) };

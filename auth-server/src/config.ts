@@ -16,6 +16,10 @@ export const config = {
   cookieSecure: process.env.COOKIE_SECURE === 'true',
   nodeEnv: process.env.NODE_ENV || 'development',
   admins: parseAdmins(process.env.ADMINS),
+  turnstile: {
+    siteKey: process.env.TURNSTILE_SITE_KEY || '',
+    secretKey: process.env.TURNSTILE_SECRET_KEY || '',
+  },
   minio: {
     endpoint: process.env.MINIO_ENDPOINT || 'localhost',
     port: Number(process.env.MINIO_PORT || 9000),

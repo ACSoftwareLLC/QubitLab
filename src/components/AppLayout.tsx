@@ -16,7 +16,7 @@ export function AppLayout() {
       <header className="app-header">
         <div className="app-header-left">
           <Link to="/" className="app-title" style={{ textDecoration: 'none', color: 'inherit' }}>
-            Quantum DnD
+            QubitLab
           </Link>
           <nav className="app-nav">
             <NavLink to="/" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`} end>
@@ -44,6 +44,11 @@ export function AppLayout() {
             {user && (
               <NavLink to="/account" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
                 Account
+              </NavLink>
+            )}
+            {user?.isAdmin && (
+              <NavLink to="/admin/analytics" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
+                Analytics
               </NavLink>
             )}
           </nav>

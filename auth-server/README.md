@@ -1,4 +1,4 @@
-# Quantum-Dnd auth-server
+# QubitLab auth-server
 
 Fastify-based authentication API backed by PostgreSQL.
 

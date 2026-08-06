@@ -5,6 +5,8 @@ import { pool } from '../db.js';
 import { config } from '../config.js';
 import { registerSchema, loginSchema } from '../schemas/auth.js';
 import { publicUser } from '../utils/user.js';
+import { recordAnalyticsEvent } from '../utils/analytics.js';
+import { verifyTurnstileToken } from '../utils/turnstile.js';
 
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -22,11 +24,36 @@ function clearSessionCookie(reply: FastifyReply) {
   reply.clearCookie('sessionId', { path: '/' });
 }
 
+function getClientIp(req: { ip?: string; headers: Record<string, unknown> }): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string') {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.ip || '0.0.0.0';
+}
+
 const authRoutes: FastifyPluginAsync = async (app) => {
   app.get('/health', async () => ({ status: 'ok' }));
 
+  app.get('/turnstile-sitekey', async () => ({
+    siteKey: config.turnstile.siteKey || null,
+  }));
+
   app.post('/register', async (req, reply) => {
-    const { username, password } = registerSchema.parse(req.body);
+    const { username, password, turnstileToken } = registerSchema.parse(req.body);
+
+    if (config.turnstile.secretKey) {
+      if (!turnstileToken) {
+        reply.code(400);
+        return { error: 'Turnstile verification required' };
+      }
+      const valid = await verifyTurnstileToken(turnstileToken);
+      if (!valid) {
+        reply.code(400);
+        return { error: 'Turnstile verification failed' };
+      }
+    }
+
     const hash = await bcrypt.hash(password, 10);
 
     try {
@@ -44,6 +71,16 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         [sessionId, user.id, expires]
       );
       setSessionCookie(reply, sessionId, expires);
+
+      await recordAnalyticsEvent({
+        type: 'user_registered',
+        path: '/register',
+        userId: user.id,
+        ip: getClientIp(req),
+        userAgent: String(req.headers['user-agent'] || ''),
+        referrer: String(req.headers['referer'] || ''),
+        language: String(req.headers['accept-language'] || '').split(',')[0],
+      });
 
       return { user: publicUser(user) };
     } catch (err: unknown) {

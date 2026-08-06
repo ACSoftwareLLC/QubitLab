@@ -1,0 +1,226 @@
+.analytics-page {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--auth-bg);
+  color: var(--auth-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 2rem 1rem;
+}
+
+.analytics-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.analytics-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.analytics-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.analytics-subtitle {
+  margin: 0;
+  color: var(--auth-muted);
+}
+
+.analytics-range {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.analytics-range-button {
+  background: transparent;
+  border: 1px solid #475569;
+  color: var(--auth-text);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.analytics-range-button:hover {
+  border-color: var(--auth-accent);
+  color: var(--auth-accent);
+}
+
+.analytics-range-button.active {
+  background: var(--auth-accent);
+  border-color: var(--auth-accent);
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.analytics-error {
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--auth-danger);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.analytics-card {
+  background: var(--auth-panel);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+}
+
+.analytics-card-title {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--auth-text);
+}
+
+.analytics-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.analytics-kpi {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-left: 4px solid;
+}
+
+.analytics-kpi-icon {
+  font-size: 1.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+}
+
+.analytics-kpi-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.analytics-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.analytics-kpi-label {
+  color: var(--auth-muted);
+  font-size: 0.875rem;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.5rem;
+}
+
+.analytics-card-wide {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 900px) {
+  .analytics-card-wide {
+    grid-column: span 2;
+  }
+}
+
+@media (min-width: 1300px) {
+  .analytics-card-wide {
+    grid-column: span 2;
+  }
+}
+
+.analytics-chart {
+  width: 100%;
+  min-height: 280px;
+}
+
+.analytics-pie {
+  min-height: 220px;
+}
+
+.analytics-empty {
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--auth-muted);
+  gap: 0.5rem;
+}
+
+.analytics-empty i {
+  font-size: 2rem;
+}
+
+.analytics-table-wrap {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid #334155;
+}
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.analytics-table th,
+.analytics-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #334155;
+  white-space: nowrap;
+}
+
+.analytics-table th {
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--auth-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.analytics-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.analytics-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.analytics-tag {
+  display: inline-block;
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--auth-accent);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.analytics-path,
+.analytics-referrer {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

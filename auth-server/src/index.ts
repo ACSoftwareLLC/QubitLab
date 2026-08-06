@@ -17,6 +17,7 @@ import marketplaceRoutes from './routes/marketplace.js';
 import blogRoutes from './routes/blogs.js';
 import mediaRoutes from './routes/media.js';
 import userRoutes from './routes/users.js';
+import analyticsRoutes from './routes/analytics.js';
 import './types/auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -63,6 +64,7 @@ export async function buildApp() {
   await app.register(blogRoutes, { prefix: '/auth' });
   await app.register(mediaRoutes, { prefix: '/auth' });
   await app.register(userRoutes, { prefix: '/auth' });
+  await app.register(analyticsRoutes, { prefix: '/auth/analytics' });
 
   await app.register(staticPlugin, {
     root: publicDir,
