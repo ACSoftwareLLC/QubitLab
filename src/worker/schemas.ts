@@ -74,3 +74,16 @@ export const updateCircuitSchema = z
 
 export type CreateCircuitBody = z.infer<typeof createCircuitSchema>;
 export type UpdateCircuitBody = z.infer<typeof updateCircuitSchema>;
+
+export const createBlogSchema = z.object({
+  slug: z.string().min(1).max(128).regex(/^[a-z0-9-]+$/),
+  title: z.string().min(1).max(200),
+  content: z.string().min(1).max(50000),
+  published: z.boolean().optional().default(true),
+  publishAt: z.string().datetime().optional().nullable(),
+});
+
+export const updateBlogSchema = createBlogSchema.partial();
+
+export type CreateBlogBody = z.infer<typeof createBlogSchema>;
+export type UpdateBlogBody = z.infer<typeof updateBlogSchema>;

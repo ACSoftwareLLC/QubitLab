@@ -131,14 +131,14 @@ Goal: port public `/auth/marketplace/*`.
 
 Goal: port `/auth/blogs/*` and `/auth/users/*`.
 
-- [ ] `GET /auth/blogs` — list published posts (admin sees all).
-- [ ] `GET /auth/blogs/:slug` — get published post (admin sees all).
-- [ ] `POST /auth/blogs` — admin-only create.
-- [ ] `PATCH /auth/blogs/:slug` — admin-only update.
-- [ ] `DELETE /auth/blogs/:slug` — admin-only delete.
-- [ ] Implement scheduled publishing filter (`publish_at <= now`).
-- [ ] `GET /auth/users/:username` — public user profile.
-- [ ] Convert Postgres date expressions to SQLite-compatible timestamp comparisons.
+- [x] `GET /auth/blogs` — list published posts (admin sees all).
+- [x] `GET /auth/blogs/:slug` — get published post (admin sees all).
+- [x] `POST /auth/blogs` — admin-only create.
+- [x] `PATCH /auth/blogs/:slug` — admin-only update.
+- [x] `DELETE /auth/blogs/:slug` — admin-only delete.
+- [x] Implement scheduled publishing filter (`publish_at <= now`).
+- [x] `GET /auth/users/:username` — public user profile.
+- [x] Convert Postgres date expressions to SQLite-compatible timestamp comparisons.
 
 ## Phase 8 — Analytics routes
 

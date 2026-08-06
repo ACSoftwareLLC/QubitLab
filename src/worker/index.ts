@@ -4,9 +4,10 @@ import { loadSessionMiddleware } from './session.js';
 import { validateOrigin } from './origin.js';
 import authRoutes from './routes/auth.js';
 import accountRoutes from './routes/account.js';
-import mediaRoutes from './routes/media.js';
 import circuitRoutes from './routes/circuits.js';
 import marketplaceRoutes from './routes/marketplace.js';
+import blogRoutes from './routes/blogs.js';
+import userRoutes from './routes/users.js';
 
 const app = new Hono<HonoEnv>();
 
@@ -20,7 +21,8 @@ auth.route('/', authRoutes);
 auth.route('/account', accountRoutes);
 auth.route('/circuits', circuitRoutes);
 auth.route('/marketplace', marketplaceRoutes);
-auth.route('/', mediaRoutes);
+auth.route('/blogs', blogRoutes);
+auth.route('/users', userRoutes);
 
 app.route('/auth', auth);
 

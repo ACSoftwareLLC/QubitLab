@@ -4,7 +4,7 @@ import { sha256Hex, randomUUID } from './crypto.js';
 import { getSessionId } from './session.js';
 import type { HonoContext } from './types.js';
 
-export type AnalyticsEventType = 'circuit_created' | 'circuit_shared';
+export type AnalyticsEventType = 'circuit_created' | 'circuit_shared' | 'blog_published';
 
 export type AnalyticsEventPayload = {
   type: AnalyticsEventType;
