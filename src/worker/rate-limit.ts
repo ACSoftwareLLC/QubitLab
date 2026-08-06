@@ -7,6 +7,10 @@ import type { HonoContext } from './types.js';
 
 const RATE_LIMITS = new Map<string, { count: number; resetAt: number }>();
 
+export function resetRateLimits(): void {
+  RATE_LIMITS.clear();
+}
+
 function rateLimitKey(ip: string, action: string): string {
   return `${ip}:${action}`;
 }
