@@ -213,7 +213,10 @@ describe('analytics routes', () => {
       'returning_sessions': () => [{ count: 12 }],
       'COUNT(*) as count FROM users WHERE created_at': () => [{ count: 5 }],
       'COUNT(*) as count FROM circuits WHERE created_at': () => [{ count: 8 }],
-      'COUNT(*) as count FROM circuits WHERE shared': () => [{ count: 2 }],
+      'COUNT(*) as count FROM circuits WHERE shared = 1 AND shared_at': () => [{ count: 1 }],
+      'COUNT(*) as count FROM circuits WHERE shared = 1': () => [{ count: 2 }],
+      'COUNT(*) as count FROM circuits': () => [{ count: 25 }],
+      'COUNT(*) as count FROM users': () => [{ count: 100 }],
       'COUNT(*) as count FROM blogs WHERE published': () => [{ count: 3 }],
       'GROUP BY path': () => [{ path: '/home', views: 20 }],
     });
@@ -238,6 +241,10 @@ describe('analytics routes', () => {
       sharedCircuits: number;
       blogPostsPublished: number;
       topPage: { path: string; views: number } | null;
+      totalUsers: number;
+      totalCircuits: number;
+      totalShared: number;
+      sharedThisWeek: number;
       since: string;
     };
     expect(body.days).toBe(30);
@@ -249,6 +256,10 @@ describe('analytics routes', () => {
     expect(body.sharedCircuits).toBe(2);
     expect(body.blogPostsPublished).toBe(3);
     expect(body.topPage).toEqual({ path: '/home', views: 20 });
+    expect(body.totalUsers).toBe(100);
+    expect(body.totalCircuits).toBe(25);
+    expect(body.totalShared).toBe(2);
+    expect(body.sharedThisWeek).toBe(1);
     assertSince(body);
   });
 
@@ -259,6 +270,11 @@ describe('analytics routes', () => {
         { date: '2026-08-02', page_views: 12, unique_visitors: 9 },
       ],
       'as new_users': () => [{ date: '2026-08-01', new_users: 2 }],
+      'as circuits': () => [
+        { date: '2026-08-01', circuits: 3 },
+        { date: '2026-08-02', circuits: 5 },
+      ],
+      'as shared': () => [{ date: '2026-08-02', shared: 1 }],
     });
 
     const res = await app.fetch(
@@ -273,12 +289,18 @@ describe('analytics routes', () => {
     const body = (await res.json()) as {
       pageViews: { date: string; pageViews: number; uniqueVisitors: number }[];
       newUsers: { date: string; newUsers: number }[];
+      circuitsCreated: { date: string; circuits: number }[];
+      sharedCircuits: { date: string; shared: number }[];
       since: string;
     };
     expect(body.pageViews).toHaveLength(2);
     expect(body.pageViews[0].pageViews).toBe(10);
     expect(body.pageViews[0].uniqueVisitors).toBe(8);
     expect(body.newUsers[0].newUsers).toBe(2);
+    expect(body.circuitsCreated).toHaveLength(2);
+    expect(body.circuitsCreated[0].circuits).toBe(3);
+    expect(body.sharedCircuits).toHaveLength(1);
+    expect(body.sharedCircuits[0].shared).toBe(1);
     assertSince(body);
   });
 

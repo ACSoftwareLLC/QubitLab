@@ -61,6 +61,31 @@ describe('account routes', () => {
     expect(body.user.username).toBe('newalice');
   });
 
+  it('enforces username change limit', async () => {
+    const env = makeEnv(
+      {
+        'COUNT(*) as count FROM rate_limit_events': () => [{ count: 3 }],
+      },
+      DEFAULT_USER,
+      { DISABLE_RATE_LIMIT: 'false' }
+    );
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/account/username', {
+        method: 'PATCH',
+        headers: { Cookie: ADMIN_COOKIE, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'newalice' }),
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(429);
+    expect((await res.json()) as { error: string }).toEqual({
+      error: 'Username change limit reached (3 per hour)',
+    });
+  });
+
   it('rejects duplicate username', async () => {
     const env = makeEnv({
       'UPDATE users SET username': () => {
@@ -176,6 +201,31 @@ describe('account routes', () => {
       mockExecutionCtx()
     );
     expect(res.status).toBe(401);
+  });
+
+  it('enforces avatar change limit', async () => {
+    const env = makeEnv(
+      {
+        'COUNT(*) as count FROM rate_limit_events': () => [{ count: 5 }],
+      },
+      DEFAULT_USER,
+      { DISABLE_RATE_LIMIT: 'false' }
+    );
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/account/avatar', {
+        method: 'POST',
+        headers: { Cookie: ADMIN_COOKIE },
+        body: new FormData(),
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(429);
+    expect((await res.json()) as { error: string }).toEqual({
+      error: 'Avatar change limit reached (5 per hour)',
+    });
   });
 });
 

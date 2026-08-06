@@ -39,6 +39,8 @@ analytics.get('/summary', async (c) => {
   const { days } = parsed.data;
   const since = sinceDate(days);
 
+  const weekSince = sinceDate(7);
+
   const [
     viewsRows,
     visitorsRows,
@@ -49,6 +51,10 @@ analytics.get('/summary', async (c) => {
     sharedCircuitsRows,
     blogsRows,
     topPageRows,
+    totalUsersRows,
+    totalCircuitsRows,
+    totalSharedRows,
+    sharedThisWeekRows,
   ] = await Promise.all([
     queryAll<{ count: number }>(
       c,
@@ -104,6 +110,14 @@ analytics.get('/summary', async (c) => {
        LIMIT 1`,
       ['page_view', since]
     ),
+    queryAll<{ count: number }>(c, `SELECT COUNT(*) as count FROM users`),
+    queryAll<{ count: number }>(c, `SELECT COUNT(*) as count FROM circuits`),
+    queryAll<{ count: number }>(c, `SELECT COUNT(*) as count FROM circuits WHERE shared = 1`),
+    queryAll<{ count: number }>(
+      c,
+      `SELECT COUNT(*) as count FROM circuits WHERE shared = 1 AND shared_at >= ?`,
+      [weekSince]
+    ),
   ]);
 
   return c.json({
@@ -120,6 +134,10 @@ analytics.get('/summary', async (c) => {
     topPage: topPageRows[0]
       ? { path: topPageRows[0].path, views: Number(topPageRows[0].views) }
       : null,
+    totalUsers: Number(totalUsersRows[0]?.count ?? 0),
+    totalCircuits: Number(totalCircuitsRows[0]?.count ?? 0),
+    totalShared: Number(totalSharedRows[0]?.count ?? 0),
+    sharedThisWeek: Number(sharedThisWeekRows[0]?.count ?? 0),
   });
 });
 
@@ -133,7 +151,7 @@ analytics.get('/timeseries', async (c) => {
   const { days } = parsed.data;
   const since = sinceDate(days);
 
-  const [pageViewsRows, newUsersRows] = await Promise.all([
+  const [pageViewsRows, newUsersRows, circuitsRows, sharedRows] = await Promise.all([
     queryAll<{ date: string; page_views: number; unique_visitors: number }>(
       c,
       `SELECT date(created_at) as date,
@@ -155,6 +173,26 @@ analytics.get('/timeseries', async (c) => {
        ORDER BY date ASC`,
       [since]
     ),
+    queryAll<{ date: string; circuits: number }>(
+      c,
+      `SELECT date(created_at) as date,
+              COUNT(*) as circuits
+       FROM circuits
+       WHERE created_at >= ?
+       GROUP BY date(created_at)
+       ORDER BY date ASC`,
+      [since]
+    ),
+    queryAll<{ date: string; shared: number }>(
+      c,
+      `SELECT date(shared_at) as date,
+              COUNT(*) as shared
+       FROM circuits
+       WHERE shared = 1 AND shared_at >= ?
+       GROUP BY date(shared_at)
+       ORDER BY date ASC`,
+      [since]
+    ),
   ]);
 
   return c.json({
@@ -168,6 +206,14 @@ analytics.get('/timeseries', async (c) => {
     newUsers: newUsersRows.map((r) => ({
       date: r.date,
       newUsers: Number(r.new_users),
+    })),
+    circuitsCreated: circuitsRows.map((r) => ({
+      date: r.date,
+      circuits: Number(r.circuits),
+    })),
+    sharedCircuits: sharedRows.map((r) => ({
+      date: r.date,
+      shared: Number(r.shared),
     })),
   });
 });

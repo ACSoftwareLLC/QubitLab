@@ -62,6 +62,24 @@ function mergeTimeseries(
   return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
 }
 
+function mergeCircuitSeries(
+  ts: AnalyticsTimeseries
+): { date: string; circuits: number; shared: number }[] {
+  const map = new Map<string, { date: string; circuits: number; shared: number }>();
+  for (const row of ts.circuitsCreated) {
+    map.set(row.date, { date: row.date, circuits: row.circuits, shared: 0 });
+  }
+  for (const row of ts.sharedCircuits) {
+    const existing = map.get(row.date);
+    if (existing) {
+      existing.shared = row.shared;
+    } else {
+      map.set(row.date, { date: row.date, circuits: 0, shared: row.shared });
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -82,19 +100,23 @@ function SummaryCard({
   value,
   icon,
   color,
+  exact,
 }: {
   label: string;
   value: number | string;
   icon: string;
   color: string;
+  exact?: boolean;
 }) {
+  const displayValue =
+    typeof value === 'number' ? (exact ? value.toLocaleString() : formatNumber(value)) : value;
   return (
     <div className="analytics-card analytics-kpi" style={{ borderLeftColor: color }}>
       <div className="analytics-kpi-icon" style={{ color }}>
         <i className={`bi ${icon}`} />
       </div>
       <div className="analytics-kpi-body">
-        <div className="analytics-kpi-value">{typeof value === 'number' ? formatNumber(value) : value}</div>
+        <div className="analytics-kpi-value">{displayValue}</div>
         <div className="analytics-kpi-label">{label}</div>
       </div>
     </div>
@@ -192,6 +214,11 @@ export function AnalyticsPage() {
     return mergeTimeseries(timeseries);
   }, [timeseries]);
 
+  const mergedCircuitSeries = useMemo(() => {
+    if (!timeseries) return [];
+    return mergeCircuitSeries(timeseries);
+  }, [timeseries]);
+
   useEffect(() => {
     let cancelled = false;
     fetchAnalyticsData(days)
@@ -285,6 +312,34 @@ export function AnalyticsPage() {
               icon="bi-lightning-charge"
               color="#94a3b8"
             />
+            <SummaryCard
+              label="Total users"
+              value={summary.totalUsers}
+              icon="bi-people-fill"
+              color="#38bdf8"
+              exact
+            />
+            <SummaryCard
+              label="Total circuits"
+              value={summary.totalCircuits}
+              icon="bi-cpu-fill"
+              color="#a78bfa"
+              exact
+            />
+            <SummaryCard
+              label="Total shared"
+              value={summary.totalShared}
+              icon="bi-share-fill"
+              color="#34d399"
+              exact
+            />
+            <SummaryCard
+              label="Shared this week"
+              value={summary.sharedThisWeek}
+              icon="bi-calendar-week"
+              color="#fbbf24"
+              exact
+            />
           </div>
         )}
 
@@ -333,6 +388,51 @@ export function AnalyticsPage() {
                       dataKey="newUsers"
                       name="New users"
                       stroke="#fbbf24"
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+
+          <div className="analytics-card analytics-card-wide">
+            <h3 className="analytics-card-title">Circuits &amp; shares over time</h3>
+            {mergedCircuitSeries.length === 0 ? (
+              <EmptyChart message="No circuit data for this period" />
+            ) : (
+              <div className="analytics-chart">
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={mergedCircuitSeries}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis dataKey="date" tickFormatter={formatDate} stroke="#94a3b8" />
+                    <YAxis stroke="#94a3b8" />
+                    <Tooltip
+                      labelFormatter={(label) => formatDate(label as string)}
+                      contentStyle={{
+                        background: '#1e293b',
+                        border: '1px solid #334155',
+                        borderRadius: '0.5rem',
+                        color: '#e2e8f0',
+                      }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="circuits"
+                      name="Circuits created"
+                      stroke="#38bdf8"
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="shared"
+                      name="Circuits shared"
+                      stroke="#34d399"
                       strokeWidth={2}
                       dot={false}
                       activeDot={{ r: 4 }}

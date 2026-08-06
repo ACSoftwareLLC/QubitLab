@@ -32,8 +32,8 @@ export function AppLayout() {
                 My Circuits
               </NavLink>
             )}
-            <NavLink to="/marketplace" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
-              Marketplace
+            <NavLink to="/community" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
+              Community
             </NavLink>
             <NavLink to="/blog" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
               Blog

@@ -23,6 +23,20 @@ auth.get('/turnstile-sitekey', (c) => {
   return c.json({ siteKey });
 });
 
+auth.get('/check-username', async (c) => {
+  const username = c.req.query('username')?.trim();
+  if (!username || username.length < 3 || username.length > 32 || !/^[a-zA-Z0-9_]+$/.test(username)) {
+    return c.json({ available: false });
+  }
+
+  const existing = await queryFirst<{ id: string }>(
+    c,
+    `SELECT id FROM users WHERE username = ?`,
+    [username]
+  );
+  return c.json({ available: existing === null });
+});
+
 auth.post('/register', rateLimit('register', 5, 15 * 60 * 1000), async (c) => {
   const body = await c.req.json();
   const result = registerSchema.safeParse(body);
@@ -30,7 +44,7 @@ auth.post('/register', rateLimit('register', 5, 15 * 60 * 1000), async (c) => {
     return jsonError(c, formatZodError(result), 400);
   }
 
-  const { username, password, turnstileToken } = result.data;
+  const { username, email, password, turnstileToken } = result.data;
 
   const siteKey = c.env.TURNSTILE_SITE_KEY?.trim();
   const secretKey = c.env.TURNSTILE_SECRET_KEY?.trim();
@@ -51,13 +65,15 @@ auth.post('/register', rateLimit('register', 5, 15 * 60 * 1000), async (c) => {
   try {
     await runQuery(
       c,
-      `INSERT INTO users (id, username, password_hash, created_at)
-       VALUES (?, ?, ?, ?)`,
-      [userId, username, hash, now]
+      `INSERT INTO users (id, username, email, password_hash, created_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [userId, username, email, hash, now]
     );
   } catch (err) {
     if (uniqueConstraintError(err)) {
-      return jsonError(c, 'Username already taken', 409);
+      const message = String((err as { message?: string }).message ?? '');
+      const field = message.toLowerCase().includes('email') ? 'Email' : 'Username';
+      return jsonError(c, `${field} already taken`, 409);
     }
     throw err;
   }

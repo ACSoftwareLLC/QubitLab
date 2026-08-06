@@ -1,11 +1,14 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { QuantumField } from '../components/QuantumField';
+import { fetchStats, type SiteStats } from '../api/stats';
 
-const stats = [
-  { label: 'Circuits designed', value: '12,400+' },
-  { label: 'Community gates', value: '89,200+' },
-  { label: 'Simulations run', value: '2.1M+' },
-];
+function formatStat(value: number | undefined): string {
+  if (value === undefined) return '—';
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return value.toLocaleString();
+}
 
 const features = [
   {
@@ -16,7 +19,7 @@ const features = [
   {
     icon: 'bi-share',
     title: 'Share & Remix',
-    description: 'Publish your circuits to the Marketplace and remix community designs to learn new tricks.',
+    description: 'Publish your circuits to the Community and remix shared designs to learn new tricks.',
   },
   {
     icon: 'bi-lightning-charge',
@@ -31,6 +34,14 @@ const features = [
 ];
 
 export function LandingPage() {
+  const [stats, setStats] = useState<SiteStats | null>(null);
+
+  useEffect(() => {
+    fetchStats()
+      .then(setStats)
+      .catch(() => setStats({ users: 0, circuits: 0, shared: 0, sharedThisWeek: 0 }));
+  }, []);
+
   return (
     <div className="landing-page">
       <QuantumField />
@@ -56,12 +67,18 @@ export function LandingPage() {
           </Link>
         </div>
         <div className="landing-stats">
-          {stats.map((s) => (
-            <div key={s.label} className="landing-stat">
-              <span className="landing-stat-value">{s.value}</span>
-              <span className="landing-stat-label">{s.label}</span>
-            </div>
-          ))}
+          <div className="landing-stat">
+            <span className="landing-stat-value">{formatStat(stats?.circuits)}</span>
+            <span className="landing-stat-label">Circuits designed</span>
+          </div>
+          <div className="landing-stat">
+            <span className="landing-stat-value">{formatStat(stats?.shared)}</span>
+            <span className="landing-stat-label">Community shares</span>
+          </div>
+          <div className="landing-stat">
+            <span className="landing-stat-value">{formatStat(stats?.users)}</span>
+            <span className="landing-stat-label">Registered users</span>
+          </div>
         </div>
       </div>
 

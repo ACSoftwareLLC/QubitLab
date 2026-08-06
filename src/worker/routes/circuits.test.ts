@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
 import app from '../index.js';
 import { bytesToBase64 } from '../buffer.js';
+import { resetRateLimits } from '../rate-limit.js';
 
 function mockD1(
   handlers: Record<string, (sql: string, params: unknown[]) => unknown>
@@ -89,7 +90,10 @@ const SESSION_USER = {
 const AUTH_COOKIE = 'sessionId=test-session';
 
 function makeEnv(
-  d1Handlers: Record<string, (sql: string, params: unknown[]) => unknown> = {}
+  d1Handlers: Record<string, (sql: string, params: unknown[]) => unknown> = {},
+  overrides: Partial<{
+    DISABLE_RATE_LIMIT: string;
+  }> = {}
 ) {
   return {
     DB: mockD1({
@@ -103,6 +107,7 @@ function makeEnv(
     TURNSTILE_SECRET_KEY: '',
     TURNSTILE_SITE_KEY: '',
     ADMINS: '',
+    DISABLE_RATE_LIMIT: overrides.DISABLE_RATE_LIMIT,
   };
 }
 
@@ -120,6 +125,7 @@ let uuidCounter = 0;
 describe('circuit routes', () => {
   beforeEach(() => {
     uuidCounter = 0;
+    resetRateLimits();
     vi.spyOn(crypto, 'randomUUID').mockImplementation(() => {
       uuidCounter += 1;
       return `uuid-${uuidCounter}`;
@@ -240,5 +246,84 @@ describe('circuit routes', () => {
 
     expect(res.status).toBe(400);
     expect(env.THUMBNAILS.put).not.toHaveBeenCalled();
+  });
+
+  it('enforces weekly share limit', async () => {
+    const env = makeEnv({
+      'FROM circuits WHERE id': () => [
+        {
+          id: 'c1',
+          user_id: 'user-1',
+          name: 'Bell',
+          circuit: JSON.stringify(validCircuit),
+          thumbnail_key: null,
+          shared: 0,
+          shared_at: null,
+          created_at: '2026-07-01T00:00:00Z',
+          updated_at: '2026-07-01T00:00:00Z',
+        },
+      ],
+      'COUNT(*) as count FROM rate_limit_events': () => [{ count: 20 }],
+      'UPDATE circuits': () => ({ success: true }),
+    });
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/circuits/c1', {
+        method: 'PATCH',
+        headers: { Cookie: AUTH_COOKIE, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shared: true }),
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(429);
+    expect((await res.json()) as { error: string }).toEqual({
+      error: 'Weekly share limit reached (20)',
+    });
+  });
+
+  it('enforces create circuit rate limit', async () => {
+    const env = makeEnv(
+      {
+        'INSERT INTO circuits': () => ({ success: true }),
+        'FROM circuits WHERE id': () => [
+          {
+            id: 'uuid-2',
+            user_id: 'user-1',
+            name: 'Bell state',
+            circuit: JSON.stringify(validCircuit),
+            thumbnail_key: null,
+            shared: 0,
+            shared_at: null,
+            created_at: '2026-07-01T00:00:00Z',
+            updated_at: '2026-07-01T00:00:00Z',
+          },
+        ],
+      },
+      { DISABLE_RATE_LIMIT: 'false' }
+    );
+
+    const responses: Response[] = [];
+    for (let i = 0; i < 11; i += 1) {
+      const res = await app.fetch(
+        new Request('http://localhost/auth/circuits', {
+          method: 'POST',
+          headers: { Cookie: AUTH_COOKIE, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: `Circuit ${i}`, circuit: validCircuit }),
+        }),
+        env as unknown as Record<string, unknown>,
+        mockExecutionCtx()
+      );
+      responses.push(res);
+    }
+
+    const successCount = responses.filter((r) => r.status === 201).length;
+    const limitedCount = responses.filter((r) => r.status === 429).length;
+    expect(successCount).toBe(10);
+    expect(limitedCount).toBe(1);
+    expect((await responses[10].json()) as { error: string }).toEqual({
+      error: 'Too many requests',
+    });
   });
 });

@@ -4,6 +4,7 @@ import { jsonError, formatZodError } from '../errors.js';
 import { createCircuitSchema, updateCircuitSchema } from '../schemas.js';
 import { queryFirst, queryAll, runQuery } from '../db.js';
 import { requireAuth } from '../auth.js';
+import { rateLimitUser, checkUserActionLimit, recordUserAction } from '../rate-limit.js';
 import { r2Upload, r2Delete, r2Get } from '../r2.js';
 import { parsePngDataUrl } from '../buffer.js';
 import { randomUUID } from '../crypto.js';
@@ -18,6 +19,7 @@ export type CircuitRow = {
   circuit: string;
   thumbnail_key: string | null;
   shared: number;
+  shared_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -54,7 +56,7 @@ async function findOwnedCircuit(
 ): Promise<CircuitRow | null> {
   return queryFirst<CircuitRow>(
     c,
-    `SELECT id, user_id, name, circuit, thumbnail_key, shared, created_at, updated_at
+    `SELECT id, user_id, name, circuit, thumbnail_key, shared, shared_at, created_at, updated_at
      FROM circuits WHERE id = ? AND user_id = ?`,
     [id, userId]
   );
@@ -62,7 +64,7 @@ async function findOwnedCircuit(
 
 circuits.use(requireAuth);
 
-circuits.post('/', async (c) => {
+circuits.post('/', rateLimitUser('circuit_create', 10, 60 * 1000), async (c) => {
   const body = await c.req.json();
   const result = createCircuitSchema.safeParse(body);
   if (!result.success) {
@@ -86,8 +88,8 @@ circuits.post('/', async (c) => {
 
   await runQuery(
     c,
-    `INSERT INTO circuits (id, user_id, name, circuit, thumbnail_key, shared, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 0, ?, ?)`,
+    `INSERT INTO circuits (id, user_id, name, circuit, thumbnail_key, shared, shared_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, 0, NULL, ?, ?)`,
     [circuitId, user.id, name, JSON.stringify(circuit), thumbnailKey, now, now]
   );
 
@@ -102,7 +104,7 @@ circuits.post('/', async (c) => {
 
   const row = await queryFirst<CircuitRow>(
     c,
-    `SELECT id, user_id, name, circuit, thumbnail_key, shared, created_at, updated_at
+    `SELECT id, user_id, name, circuit, thumbnail_key, shared, shared_at, created_at, updated_at
      FROM circuits WHERE id = ?`,
     [circuitId]
   );
@@ -114,7 +116,7 @@ circuits.get('/', async (c) => {
   const user = c.get('user')!;
   const rows = await queryAll<CircuitRow>(
     c,
-    `SELECT id, user_id, name, circuit, thumbnail_key, shared, created_at, updated_at
+    `SELECT id, user_id, name, circuit, thumbnail_key, shared, shared_at, created_at, updated_at
      FROM circuits WHERE user_id = ? ORDER BY updated_at DESC`,
     [user.id]
   );
@@ -131,7 +133,7 @@ circuits.get('/:id', async (c) => {
   return c.json({ circuit: circuitResponse(row, user.username) });
 });
 
-circuits.patch('/:id', async (c) => {
+circuits.patch('/:id', rateLimitUser('circuit_save', 20, 60 * 1000), async (c) => {
   const user = c.get('user')!;
   const id = c.req.param('id');
   const body = await c.req.json();
@@ -143,6 +145,14 @@ circuits.patch('/:id', async (c) => {
   const row = await findOwnedCircuit(c, id, user.id);
   if (!row) {
     return jsonError(c, 'Circuit not found', 404);
+  }
+
+  if (result.data.shared === true && row.shared === 0) {
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const overLimit = await checkUserActionLimit(c, 'circuit_share', 20, WEEK_MS);
+    if (overLimit) {
+      return jsonError(c, 'Weekly share limit reached (20)', 429);
+    }
   }
 
   let thumbnailKey = row.thumbnail_key;
@@ -161,15 +171,16 @@ circuits.patch('/:id', async (c) => {
   const name = result.data.name ?? row.name;
   const circuit = result.data.circuit ? JSON.stringify(result.data.circuit) : row.circuit;
   const shared = result.data.shared !== undefined ? (result.data.shared ? 1 : 0) : row.shared;
+  const sharedAt = result.data.shared === true && row.shared === 0 ? new Date().toISOString() : row.shared_at;
   const now = new Date().toISOString();
 
   const updated = await queryFirst<CircuitRow>(
     c,
     `UPDATE circuits
-     SET name = ?, circuit = ?, thumbnail_key = ?, shared = ?, updated_at = ?
+     SET name = ?, circuit = ?, thumbnail_key = ?, shared = ?, shared_at = ?, updated_at = ?
      WHERE id = ?
      RETURNING id, user_id, name, circuit, thumbnail_key, shared, created_at, updated_at`,
-    [name, circuit, thumbnailKey, shared, now, id]
+    [name, circuit, thumbnailKey, shared, sharedAt, now, id]
   );
 
   if (result.data.shared === true && row.shared === 0) {
@@ -181,6 +192,7 @@ circuits.patch('/:id', async (c) => {
         metadata: { circuitId: id },
       }).catch(() => {})
     );
+    c.executionCtx.waitUntil(recordUserAction(c, 'circuit_share').catch(() => {}));
   }
 
   return c.json({ circuit: circuitResponse(updated!, user.username) });

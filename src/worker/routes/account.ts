@@ -10,6 +10,7 @@ import {
 import { queryFirst, runQuery, uniqueConstraintError } from '../db.js';
 import { verifyPassword, hashPassword } from '../password.js';
 import { requireAuth } from '../auth.js';
+import { checkUserActionLimit, recordUserAction } from '../rate-limit.js';
 import { r2Upload, r2Delete } from '../r2.js';
 import { randomUUID } from '../crypto.js';
 import { getSessionId } from '../session.js';
@@ -34,6 +35,12 @@ account.patch('/username', async (c) => {
   const user = c.get('user')!;
   const { username } = result.data;
 
+  const HOUR_MS = 60 * 60 * 1000;
+  const overLimit = await checkUserActionLimit(c, 'username_change', 3, HOUR_MS);
+  if (overLimit) {
+    return jsonError(c, 'Username change limit reached (3 per hour)', 429);
+  }
+
   try {
     const updated = await queryFirst<
       {
@@ -51,6 +58,7 @@ account.patch('/username', async (c) => {
        RETURNING id, username, pfp_key, first_name, last_name, bio, created_at`,
       [username, user.id]
     );
+    await recordUserAction(c, 'username_change');
     return c.json({ user: publicUser(updated!, c.env.ADMINS) });
   } catch (err) {
     if (uniqueConstraintError(err)) {
@@ -127,6 +135,13 @@ account.patch('/profile', async (c) => {
 
 account.post('/avatar', async (c) => {
   const user = c.get('user')!;
+
+  const HOUR_MS = 60 * 60 * 1000;
+  const overLimit = await checkUserActionLimit(c, 'avatar_change', 5, HOUR_MS);
+  if (overLimit) {
+    return jsonError(c, 'Avatar change limit reached (5 per hour)', 429);
+  }
+
   const body = await c.req.parseBody({ all: false });
   const file = body.file;
 
@@ -168,6 +183,7 @@ account.post('/avatar', async (c) => {
     c.executionCtx.waitUntil(r2Delete(c, 'AVATARS', user.pfp_key).catch(() => {}));
   }
 
+  await recordUserAction(c, 'avatar_change');
   return c.json({ user: publicUser(updated!, c.env.ADMINS) });
 });
 

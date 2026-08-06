@@ -159,7 +159,7 @@ async function buildSql(): Promise<string> {
     {
       slug: 'welcome-to-qubitlab',
       title: 'Welcome to QubitLab',
-      content: 'QubitLab is a browser-based quantum circuit designer and statevector simulator. This dev environment is seeded with sample data so you can explore the editor, marketplace, and blog features.',
+      content: 'QubitLab is a browser-based quantum circuit designer and statevector simulator. This dev environment is seeded with sample data so you can explore the editor, community, and blog features.',
       published: 1,
       publishAt: null,
     },

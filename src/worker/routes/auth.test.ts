@@ -70,12 +70,58 @@ describe('auth routes', () => {
       new Request('http://localhost/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'ab', password: 'short' }),
+        body: JSON.stringify({ username: 'ab', password: 'short', email: 'not-an-email' }),
       }),
       makeEnv() as unknown as Record<string, unknown>,
       mockExecutionCtx()
     );
     expect(res.status).toBe(400);
+  });
+
+  it('rejects registration with invalid email', async () => {
+    const res = await app.fetch(
+      new Request('http://localhost/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: 'bob',
+          email: 'not-an-email',
+          password: 'password123',
+        }),
+      }),
+      makeEnv() as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects duplicate email during registration', async () => {
+    const env = makeEnv({
+      'INSERT INTO users': () => {
+        const err = new Error('UNIQUE constraint failed: users.email');
+        (err as { cause?: { error: number } }).cause = { error: 2067 };
+        throw err;
+      },
+    });
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: 'alice2',
+          email: 'alice@example.com',
+          password: 'password123',
+        }),
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(409);
+    expect((await res.json()) as { error: string }).toEqual({
+      error: 'Email already taken',
+    });
   });
 
   it('registers a new user and sets a session cookie', async () => {
@@ -95,6 +141,7 @@ describe('auth routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: 'bob',
+          email: 'bob@example.com',
           password: 'password123',
           turnstileToken: 'test-token',
         }),
@@ -128,6 +175,7 @@ describe('auth routes', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: 'alice',
+          email: 'alice@example.com',
           password: 'password123',
         }),
       }),
@@ -232,6 +280,32 @@ describe('auth routes', () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as { user: { username: string } };
     expect(body.user.username).toBe('alice');
+  });
+
+  it('checks username availability', async () => {
+    const env = makeEnv({
+      'FROM users WHERE username': () => [],
+    });
+    const res = await app.fetch(
+      new Request('http://localhost/auth/check-username?username=newuser'),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ available: true });
+  });
+
+  it('reports taken usernames', async () => {
+    const env = makeEnv({
+      'FROM users WHERE username': () => [{ id: 'user-1' }],
+    });
+    const res = await app.fetch(
+      new Request('http://localhost/auth/check-username?username=alice'),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ available: false });
   });
 
   it('returns 401 for /me without session', async () => {

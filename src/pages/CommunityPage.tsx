@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { listMarketplace, type SavedCircuit } from '../api/circuits';
+import { listCommunity, type SavedCircuit } from '../api/circuits';
 import { CircuitThumbnail } from '../components/CircuitThumbnail';
 import { AuthorChip } from '../components/AuthorChip';
 import '../components/AuthPage.css';
 
-export function MarketplacePage() {
+export function CommunityPage() {
   const navigate = useNavigate();
   const [circuits, setCircuits] = useState<SavedCircuit[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    listMarketplace()
+    listCommunity()
       .then(setCircuits)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load marketplace'));
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load community'));
   }, []);
 
   const handleOpen = (circuit: SavedCircuit) => {
@@ -23,7 +23,7 @@ export function MarketplacePage() {
   return (
     <div className="page-container">
       <div className="page-content">
-        <h1 className="page-title">Marketplace</h1>
+        <h1 className="page-title">Community</h1>
         <p className="auth-subtitle">Discover public circuits shared by the community.</p>
 
         {error && <div className="auth-message error">{error}</div>}

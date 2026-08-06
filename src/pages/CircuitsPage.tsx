@@ -53,7 +53,13 @@ export function CircuitsPage() {
         {circuits === null && !error && <p className="page-muted">Loading…</p>}
 
         {circuits !== null && circuits.length === 0 && (
-          <p className="page-muted">No saved circuits yet — design one in the editor and hit Save.</p>
+          <div className="empty-state">
+            <p>There is nothing here yet.</p>
+            <p className="page-muted">Go to the editor to get started.</p>
+            <button className="empty-state-button" onClick={() => navigate('/editor')}>
+              Editor
+            </button>
+          </div>
         )}
 
         <div className="circuit-grid">
