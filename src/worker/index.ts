@@ -1,29 +1,33 @@
-import { Hono } from 'hono'
+import { Hono } from 'hono';
+import type { HonoEnv } from './types.js';
+import { loadSessionMiddleware } from './session.js';
+import { jsonError } from './errors.js';
+import { publicUser } from './types.js';
 
-export type WorkerBindings = {
-  DB: D1Database
-  AVATARS: R2Bucket
-  THUMBNAILS: R2Bucket
-  SESSION_SECRET: string
-  TURNSTILE_SECRET_KEY: string
-  TURNSTILE_SITE_KEY: string
-  ADMINS: string
-}
+const app = new Hono<HonoEnv>();
 
-const app = new Hono<{ Bindings: WorkerBindings }>()
+const auth = new Hono<HonoEnv>();
 
-const auth = new Hono<{ Bindings: WorkerBindings }>()
+auth.use(loadSessionMiddleware);
 
-auth.get('/health', (c) => c.json({ status: 'ok' }))
+auth.get('/health', (c) => c.json({ status: 'ok' }));
 
 auth.get('/turnstile-sitekey', (c) => {
-  const siteKey = c.env.TURNSTILE_SITE_KEY
+  const siteKey = c.env.TURNSTILE_SITE_KEY;
   if (!siteKey) {
-    return c.json({ error: 'Turnstile site key not configured' }, 500)
+    return jsonError(c, 'Turnstile site key not configured', 500);
   }
-  return c.json({ siteKey })
-})
+  return c.json({ siteKey });
+});
 
-app.route('/auth', auth)
+auth.get('/me', (c) => {
+  const user = c.get('user');
+  if (!user) {
+    return jsonError(c, 'Unauthorized', 401);
+  }
+  return c.json({ user: publicUser(user, c.env.ADMINS) });
+});
 
-export default app
+app.route('/auth', auth);
+
+export default app;

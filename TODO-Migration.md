@@ -61,12 +61,12 @@ Goal: replace PostgreSQL with a fresh D1 schema.
 
 Goal: replace Fastify and Node-only dependencies with a Hono/Worker runtime.
 
-- [ ] Create a typed Hono context that carries:
+- [x] Create a typed Hono context that carries:
   - D1 database binding.
   - R2 bucket bindings.
   - Environment secrets (`SESSION_SECRET`, `TURNSTILE_SECRET_KEY`).
   - Parsed current user from session cookie.
-- [ ] Implement shared helpers:
+- [x] Implement shared helpers:
   - D1 query wrapper with result normalization.
   - Session lookup and cookie parser.
   - Zod error handling.
@@ -75,15 +75,15 @@ Goal: replace Fastify and Node-only dependencies with a Hono/Worker runtime.
   - Client IP extraction from `CF-Connecting-IP`.
   - R2 object upload/download/delete.
   - `Uint8Array`/`atob`/`btoa` utilities to replace `Buffer`.
-- [ ] Implement password helpers:
+- [x] Implement password helpers:
   - Hash new passwords with PBKDF2-HMAC-SHA-256.
   - Format: `pbkdf2-sha256$iterations$salt$hash`.
   - Verify password against stored hash.
-- [ ] Implement cookie helpers:
+- [x] Implement cookie helpers:
   - `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/`.
   - Set and clear `sessionId` cookie.
-- [ ] Implement admin authorization middleware.
-- [ ] Implement Turnstile token verification helper.
+- [x] Implement admin authorization middleware.
+- [x] Implement Turnstile token verification helper.
 
 ## Phase 4 — Authentication routes
 

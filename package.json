@@ -20,6 +20,7 @@
     "bootstrap-icons": "^1.13.1",
     "hono": "^4.8.0",
     "konva": "^10.0.12",
+    "zod": "^3.25.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-konva": "^19.2.1",
