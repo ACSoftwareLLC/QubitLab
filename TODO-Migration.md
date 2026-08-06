@@ -35,19 +35,19 @@ Goal: create a deployable Worker with local and remote development environments.
 
 Goal: replace PostgreSQL with a fresh D1 schema.
 
-- [ ] Create D1 migrations for:
+- [x] Create D1 migrations for:
   - `users`
   - `sessions`
   - `circuits`
   - `blogs`
   - `analytics_events`
-- [ ] Define column mappings:
+- [x] Define column mappings:
   - `UUID` → `TEXT` (generated with `crypto.randomUUID()`).
   - `JSONB` → `TEXT` (serialized JSON).
   - `TIMESTAMPTZ` → `TEXT` (ISO 8601 UTC).
   - `BOOLEAN` → `INTEGER` (`0`/`1`).
-- [ ] Create equivalent indexes from the original Postgres migrations.
-- [ ] Apply migrations locally:
+- [x] Create equivalent indexes from the original Postgres migrations.
+- [x] Apply migrations locally:
   ```bash
   wrangler d1 migrations apply DB --local
   ```
