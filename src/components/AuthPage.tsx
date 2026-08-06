@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.tsx'
 import './AuthPage.css'
 
 export function AuthPage() {
+  const navigate = useNavigate()
   const { login, register, error, clearError } = useAuth()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [username, setUsername] = useState('')
@@ -33,6 +35,7 @@ export function AuthPage() {
       setUsername('')
       setPassword('')
       setConfirm('')
+      navigate('/')
     }
   }
 

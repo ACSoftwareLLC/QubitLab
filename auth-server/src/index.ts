@@ -14,6 +14,7 @@ import authRoutes from './routes/auth.js';
 import accountRoutes from './routes/account.js';
 import circuitRoutes from './routes/circuits.js';
 import marketplaceRoutes from './routes/marketplace.js';
+import blogRoutes from './routes/blogs.js';
 import mediaRoutes from './routes/media.js';
 import './types/auth.js';
 
@@ -58,6 +59,7 @@ export async function buildApp() {
   await app.register(accountRoutes, { prefix: '/auth/account' });
   await app.register(circuitRoutes, { prefix: '/auth/circuits' });
   await app.register(marketplaceRoutes, { prefix: '/auth' });
+  await app.register(blogRoutes, { prefix: '/auth' });
   await app.register(mediaRoutes, { prefix: '/auth' });
 
   await app.register(staticPlugin, {

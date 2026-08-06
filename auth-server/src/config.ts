@@ -1,5 +1,13 @@
 import 'dotenv/config';
 
+function parseAdmins(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export const config = {
   port: Number(process.env.PORT || 3000),
   host: process.env.HOST || '0.0.0.0',
@@ -7,6 +15,7 @@ export const config = {
   sessionSecret: process.env.SESSION_SECRET || 'dev-secret-change-me',
   cookieSecure: process.env.COOKIE_SECURE === 'true',
   nodeEnv: process.env.NODE_ENV || 'development',
+  admins: parseAdmins(process.env.ADMINS),
   minio: {
     endpoint: process.env.MINIO_ENDPOINT || 'localhost',
     port: Number(process.env.MINIO_PORT || 9000),

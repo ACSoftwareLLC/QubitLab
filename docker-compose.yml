@@ -4,7 +4,7 @@ services:
     container_name: quantum-dnd-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-quantum}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-in-production}
       POSTGRES_DB: ${POSTGRES_DB:-quantum_auth}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -37,8 +37,9 @@ services:
       dockerfile: Dockerfile
     container_name: quantum-dnd-auth
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-quantum}:${POSTGRES_PASSWORD:-secret}@postgres:5432/${POSTGRES_DB:-quantum_auth}
+      DATABASE_URL: postgres://${POSTGRES_USER:-quantum}:${POSTGRES_PASSWORD:-change-me-in-production}@postgres:5432/${POSTGRES_DB:-quantum_auth}
       SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production-please-replace-this-secret}
+      ADMINS: ${ADMINS:-}
       NODE_ENV: production
       COOKIE_SECURE: "false"
       PORT: 3000

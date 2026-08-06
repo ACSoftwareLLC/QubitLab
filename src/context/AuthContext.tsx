@@ -11,6 +11,7 @@ export interface User {
   id: string;
   username: string;
   pfpUrl: string | null;
+  isAdmin: boolean;
 }
 
 interface AuthContextValue {
