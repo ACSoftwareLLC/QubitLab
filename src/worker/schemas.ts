@@ -87,3 +87,28 @@ export const updateBlogSchema = createBlogSchema.partial();
 
 export type CreateBlogBody = z.infer<typeof createBlogSchema>;
 export type UpdateBlogBody = z.infer<typeof updateBlogSchema>;
+
+export const analyticsDaysParamSchema = z.object({
+  days: z.coerce.number().int().min(1).max(365).default(30),
+});
+
+export const analyticsLimitParamSchema = z.object({
+  days: z.coerce.number().int().min(1).max(365).default(30),
+  limit: z.coerce.number().int().min(1).max(200).default(20),
+});
+
+export const analyticsTrackBodySchema = z.object({
+  type: z.enum(['page_view', 'event']),
+  path: z.string().max(2048),
+  sessionId: z.string().max(128),
+  referrer: z.string().max(2048).optional(),
+  timezone: z.string().max(128).optional(),
+  language: z.string().max(64).optional(),
+  country: z.string().max(128).optional(),
+  screen: z.string().max(64).optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export type AnalyticsDaysParam = z.infer<typeof analyticsDaysParamSchema>;
+export type AnalyticsLimitParam = z.infer<typeof analyticsLimitParamSchema>;
+export type AnalyticsTrackBody = z.infer<typeof analyticsTrackBodySchema>;

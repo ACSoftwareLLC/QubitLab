@@ -13,6 +13,14 @@ export type AnalyticsEventPayload = {
   metadata?: Record<string, unknown>;
 };
 
+export type ClientInfo = {
+  browser: string;
+  browserVersion: string | null;
+  os: string;
+  device: string | null;
+  deviceType: string;
+};
+
 const KNOWN_BROWSERS = [
   'Chrome',
   'Safari',
@@ -79,6 +87,17 @@ function parseDevice(userAgent: string): string | null {
   return device || null;
 }
 
+export function parseClientInfo(userAgent: string): ClientInfo {
+  const browser = parseBrowser(userAgent);
+  return {
+    browser: browser.name,
+    browserVersion: browser.version,
+    os: parseOs(userAgent),
+    device: parseDevice(userAgent),
+    deviceType: parseDeviceType(userAgent),
+  };
+}
+
 export function hashIp(ip: string): Promise<string> {
   return sha256Hex(ip);
 }
@@ -106,28 +125,28 @@ export function sanitizeReferrer(referrer: string | undefined): string | null {
   }
 }
 
-export async function recordAnalyticsEvent(
+async function insertAnalyticsEvent(
   c: HonoContext,
-  payload: AnalyticsEventPayload
+  params: {
+    type: string;
+    path: string;
+    userId: string | null;
+    sessionHash: string;
+    ipHash: string;
+    userAgent: string;
+    browser: string;
+    browserVersion: string | null;
+    os: string;
+    device: string | null;
+    deviceType: string;
+    country: string | null;
+    timezone: string | null;
+    language: string | null;
+    referrer: string | null;
+    metadata: string | null;
+  }
 ): Promise<void> {
-  const sessionId = getSessionId(c);
-  const ip = getClientIp(c);
-  const userAgent = c.req.header('User-Agent') || '';
-  const browser = parseBrowser(userAgent);
-  const os = parseOs(userAgent);
-  const deviceType = parseDeviceType(userAgent);
-  const device = parseDevice(userAgent);
-
-  const sessionHash = sessionId
-    ? await hashSession(sessionId, ip)
-    : await sha256Hex(`backend:${payload.userId}:${ip}`);
-  const ipHash = await hashIp(ip);
-  const path = sanitizePath(payload.path);
-  const referrer = sanitizeReferrer(c.req.header('Referer'));
   const now = new Date().toISOString();
-
-  const metadata = payload.metadata ? JSON.stringify(payload.metadata) : null;
-
   await runQuery(
     c,
     `INSERT INTO analytics_events
@@ -137,24 +156,109 @@ export async function recordAnalyticsEvent(
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       randomUUID(),
-      payload.type,
-      path,
-      payload.userId,
-      sessionHash,
-      ipHash,
-      userAgent,
-      browser.name,
-      browser.version,
-      os,
-      device,
-      deviceType,
-      c.req.header('CF-IPCountry') || null,
-      null,
-      c.req.header('Accept-Language') || null,
-      referrer,
-      metadata,
+      params.type,
+      params.path,
+      params.userId,
+      params.sessionHash,
+      params.ipHash,
+      params.userAgent,
+      params.browser,
+      params.browserVersion,
+      params.os,
+      params.device,
+      params.deviceType,
+      params.country,
+      params.timezone,
+      params.language,
+      params.referrer,
+      params.metadata,
       now,
     ]
   );
+}
+
+export async function recordAnalyticsEvent(
+  c: HonoContext,
+  payload: AnalyticsEventPayload
+): Promise<void> {
+  const sessionId = getSessionId(c);
+  const ip = getClientIp(c);
+  const userAgent = c.req.header('User-Agent') || '';
+  const clientInfo = parseClientInfo(userAgent);
+  const sessionHash = sessionId
+    ? await hashSession(sessionId, ip)
+    : await sha256Hex(`backend:${payload.userId}:${ip}`);
+  const ipHash = await hashIp(ip);
+  const path = sanitizePath(payload.path);
+  const referrer = sanitizeReferrer(c.req.header('Referer'));
+
+  const metadata = payload.metadata ? JSON.stringify(payload.metadata) : null;
+
+  await insertAnalyticsEvent(c, {
+    type: payload.type,
+    path,
+    userId: payload.userId,
+    sessionHash,
+    ipHash,
+    userAgent,
+    browser: clientInfo.browser,
+    browserVersion: clientInfo.browserVersion,
+    os: clientInfo.os,
+    device: clientInfo.device,
+    deviceType: clientInfo.deviceType,
+    country: c.req.header('CF-IPCountry') || null,
+    timezone: null,
+    language: c.req.header('Accept-Language') || null,
+    referrer,
+    metadata,
+  });
+}
+
+export async function recordAnalyticsTrackEvent(
+  c: HonoContext,
+  body: {
+    type: 'page_view' | 'event';
+    path: string;
+    sessionId: string;
+    referrer?: string;
+    timezone?: string;
+    language?: string;
+    country?: string;
+    screen?: string;
+    metadata?: Record<string, unknown>;
+  }
+): Promise<void> {
+  const ip = getClientIp(c);
+  const userAgent = c.req.header('User-Agent') || '';
+  const clientInfo = parseClientInfo(userAgent);
+  const sessionHash = await hashSession(body.sessionId, ip);
+  const ipHash = await hashIp(ip);
+  const path = sanitizePath(body.path);
+  const referrer = sanitizeReferrer(body.referrer);
+  const user = c.get('user');
+
+  const metadata: Record<string, unknown> = body.metadata ? { ...body.metadata } : {};
+  if (body.screen) {
+    metadata.screen = body.screen;
+  }
+
+  await insertAnalyticsEvent(c, {
+    type: body.type,
+    path,
+    userId: user?.id ?? null,
+    sessionHash,
+    ipHash,
+    userAgent,
+    browser: clientInfo.browser,
+    browserVersion: clientInfo.browserVersion,
+    os: clientInfo.os,
+    device: clientInfo.device,
+    deviceType: clientInfo.deviceType,
+    country: body.country || null,
+    timezone: body.timezone || null,
+    language: body.language || null,
+    referrer,
+    metadata: Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null,
+  });
 }
 

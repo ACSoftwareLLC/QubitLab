@@ -144,17 +144,17 @@ Goal: port `/auth/blogs/*` and `/auth/users/*`.
 
 Goal: port `/auth/analytics/*`.
 
-- [ ] `POST /auth/analytics/track` — record page view/event.
-- [ ] `GET /auth/analytics/summary` — admin-only summary.
-- [ ] `GET /auth/analytics/timeseries` — admin-only timeseries.
-- [ ] `GET /auth/analytics/geography` — admin-only geography breakdown.
-- [ ] `GET /auth/analytics/clients` — admin-only client breakdown.
-- [ ] `GET /auth/analytics/pages` — admin-only page breakdown.
-- [ ] `GET /auth/analytics/events` — admin-only event list.
-- [ ] Replace `crypto.createHash` with Web Crypto SHA-256.
-- [ ] Replace `UAParser` usage with a Worker-compatible parser or lightweight regex helper.
-- [ ] Convert `COUNT(DISTINCT ...)`, `DATE(...)`, and Postgres-specific functions to SQLite equivalents.
-- [ ] Use `executionCtx.waitUntil()` for non-critical analytics writes where appropriate.
+- [x] `POST /auth/analytics/track` — record page view/event.
+- [x] `GET /auth/analytics/summary` — admin-only summary.
+- [x] `GET /auth/analytics/timeseries` — admin-only timeseries.
+- [x] `GET /auth/analytics/geography` — admin-only geography breakdown.
+- [x] `GET /auth/analytics/clients` — admin-only client breakdown.
+- [x] `GET /auth/analytics/pages` — admin-only page breakdown.
+- [x] `GET /auth/analytics/events` — admin-only event list.
+- [x] Replace `crypto.createHash` with Web Crypto SHA-256.
+- [x] Replace `UAParser` usage with a Worker-compatible parser or lightweight regex helper.
+- [x] Convert `COUNT(DISTINCT ...)`, `DATE(...)`, and Postgres-specific functions to SQLite equivalents.
+- [x] Use `executionCtx.waitUntil()` for non-critical analytics writes where appropriate.
 
 ## Phase 9 — Frontend and static asset deployment
 
