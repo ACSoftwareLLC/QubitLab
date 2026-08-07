@@ -48,14 +48,39 @@ export async function getUserProfile(username: string): Promise<PublicUserProfil
   return data.user;
 }
 
-export async function searchAdminUsers(search: string, limit = 20): Promise<AdminUser[]> {
-  const params = new URLSearchParams({ search, limit: String(limit) });
+export interface AdminUserListResponse {
+  users: AdminUser[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ListAdminUsersOptions {
+  search?: string;
+  sort?: 'joined' | 'username';
+  order?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+}
+
+export async function listAdminUsers(options: ListAdminUsersOptions = {}): Promise<AdminUserListResponse> {
+  const params = new URLSearchParams();
+  if (options.search) params.set('search', options.search);
+  if (options.sort) params.set('sort', options.sort);
+  if (options.order) params.set('order', options.order);
+  if (options.page !== undefined) params.set('page', String(options.page));
+  if (options.limit !== undefined) params.set('limit', String(options.limit));
   const res = await fetch(`/auth/admin/users?${params.toString()}`, { credentials: 'include' });
-  const data = (await res.json().catch(() => ({}))) as { error?: string; users?: AdminUser[] };
+  const data = (await res.json().catch(() => ({}))) as { error?: string } & Partial<AdminUserListResponse>;
   if (!res.ok) {
-    throw new Error(data.error || 'Failed to search users');
+    throw new Error(data.error || 'Failed to load users');
   }
-  return data.users ?? [];
+  return {
+    users: data.users ?? [],
+    total: data.total ?? 0,
+    page: data.page ?? 1,
+    limit: data.limit ?? 20,
+  };
 }
 
 export async function getAdminActions(userId: string): Promise<AdminAction[]> {

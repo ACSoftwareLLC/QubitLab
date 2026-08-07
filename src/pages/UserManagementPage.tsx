@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
-  searchAdminUsers,
+  listAdminUsers,
   getAdminActions,
   deleteUser,
   banUser,
@@ -300,10 +300,89 @@ function UnbanModal({
   );
 }
 
+const PER_PAGE_OPTIONS = [10, 20, 50, 100];
+
+type SortMode = 'joined' | 'username';
+
+function getPaginationItems(current: number, total: number): (number | string)[] {
+  if (total <= 1) return [];
+  const items: (number | string)[] = [];
+  const delta = 1;
+  const left = Math.max(2, current - delta);
+  const right = Math.min(total - 1, current + delta);
+
+  items.push(1);
+  if (left > 2) items.push('...');
+  for (let i = left; i <= right; i += 1) {
+    items.push(i);
+  }
+  if (right < total - 1) items.push('...');
+  if (total > 1) items.push(total);
+  return items;
+}
+
+function Pagination({
+  page,
+  totalPages,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  onPageChange: (p: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+  const items = getPaginationItems(page, totalPages);
+  return (
+    <div className="uma-pagination">
+      <button
+        type="button"
+        className="uma-page-button"
+        onClick={() => onPageChange(page - 1)}
+        disabled={page <= 1}
+        aria-label="Previous page"
+      >
+        <i className="bi bi-chevron-left" />
+      </button>
+      {items.map((item, idx) =>
+        typeof item === 'number' ? (
+          <button
+            key={idx}
+            type="button"
+            className={`uma-page-button ${item === page ? 'active' : ''}`}
+            onClick={() => onPageChange(item)}
+            aria-label={`Page ${item}`}
+            aria-current={item === page ? 'page' : undefined}
+          >
+            {item}
+          </button>
+        ) : (
+          <span key={idx} className="uma-page-ellipsis">
+            {item}
+          </span>
+        )
+      )}
+      <button
+        type="button"
+        className="uma-page-button"
+        onClick={() => onPageChange(page + 1)}
+        disabled={page >= totalPages}
+        aria-label="Next page"
+      >
+        <i className="bi bi-chevron-right" />
+      </button>
+    </div>
+  );
+}
+
 export function UserManagementPage() {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [sort, setSort] = useState<SortMode>('joined');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<AdminUser | null>(null);
@@ -312,35 +391,54 @@ export function UserManagementPage() {
   const [modal, setModal] = useState<'delete' | 'ban' | 'unban' | null>(null);
   const searchTimer = useRef<number | null>(null);
 
-  const performSearch = useCallback(async (term: string) => {
+  const order: 'asc' | 'desc' = sort === 'joined' ? 'desc' : 'asc';
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  const fetchUsers = useCallback(async () => {
     setError(null);
-    if (!term.trim()) {
-      setUsers([]);
-      return;
-    }
     setLoading(true);
     try {
-      const results = await searchAdminUsers(term.trim(), 20);
-      setUsers(results);
+      const result = await listAdminUsers({
+        search: debouncedQuery.trim() || undefined,
+        sort,
+        order,
+        page,
+        limit,
+      });
+      if (result.total > 0 && result.page > Math.max(1, Math.ceil(result.total / result.limit))) {
+        setPage(Math.max(1, Math.ceil(result.total / result.limit)));
+      } else {
+        setUsers(result.users);
+        setTotal(result.total);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Search failed');
+      setError(err instanceof Error ? err.message : 'Failed to load users');
       setUsers([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [debouncedQuery, sort, order, page, limit]);
 
   useEffect(() => {
     if (searchTimer.current) {
       window.clearTimeout(searchTimer.current);
     }
     searchTimer.current = window.setTimeout(() => {
-      performSearch(query);
+      setDebouncedQuery(query);
     }, 250);
     return () => {
       if (searchTimer.current) window.clearTimeout(searchTimer.current);
     };
-  }, [query, performSearch]);
+  }, [query]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, sort, limit]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   useEffect(() => {
     if (!selected) {
@@ -368,12 +466,23 @@ export function UserManagementPage() {
   }, [selected]);
 
   const handleActionComplete = () => {
+    const completedModal = modal;
     setModal(null);
-    if (selected) {
-      performSearch(query);
+    if (completedModal === 'delete') {
+      setSelected(null);
+    }
+    fetchUsers();
+    if (selected && completedModal !== 'delete') {
       getAdminActions(selected.id).then(setActions).catch(() => {});
     }
   };
+
+  const handleSortToggle = () => {
+    setSort((prev) => (prev === 'joined' ? 'username' : 'joined'));
+  };
+
+  const showingStart = total === 0 ? 0 : (page - 1) * limit + 1;
+  const showingEnd = Math.min(page * limit, total);
 
   const selectedActions = useMemo(() => {
     return actions;
@@ -424,20 +533,64 @@ export function UserManagementPage() {
           </div>
         )}
 
+        <div className="uma-toolbar">
+          <div className="uma-toolbar-left">
+            <span className="uma-toolbar-label">Sort by</span>
+            <button
+              type="button"
+              className="uma-button secondary"
+              onClick={handleSortToggle}
+              aria-label={sort === 'joined' ? 'Switch to alphabetical order' : 'Switch to recent signups'}
+            >
+              {sort === 'joined' ? (
+                <>
+                  <i className="bi bi-clock-history" /> Recent signups
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-sort-alpha-down" /> Alphabetical
+                </>
+              )}
+            </button>
+          </div>
+          <div className="uma-toolbar-right">
+            <label className="uma-toolbar-label">
+              Show
+              <select
+                className="uma-select"
+                value={limit}
+                onChange={(e) => setLimit(Number(e.target.value))}
+                aria-label="Results per page"
+              >
+                {PER_PAGE_OPTIONS.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              per page
+            </label>
+            <span className="uma-total-text">
+              Showing {showingStart}–{showingEnd} of {total} user{total !== 1 ? 's' : ''}
+            </span>
+            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+          </div>
+        </div>
+
         <div className="uma-layout">
           <div className="uma-main">
             {loading && users.length === 0 && (
               <div className="uma-empty-state">
-                <span className="uma-spinner" aria-hidden="true" /> Searching…
+                <span className="uma-spinner" aria-hidden="true" /> Loading users…
               </div>
             )}
 
-            {!loading && query.trim() && users.length === 0 && (
-              <div className="uma-empty-state">No users found matching &quot;{query}&quot;.</div>
-            )}
-
-            {!query.trim() && users.length === 0 && (
-              <div className="uma-empty-state">Start typing a username or email to search.</div>
+            {!loading && users.length === 0 && (
+              <div className="uma-empty-state">
+                {debouncedQuery.trim()
+                  ? `No users found matching "${debouncedQuery}".`
+                  : 'No users found.'}
+              </div>
             )}
 
             {users.length > 0 && (
