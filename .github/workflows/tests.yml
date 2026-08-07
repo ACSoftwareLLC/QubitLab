@@ -1,15 +1,14 @@
-name: Deploy to dev
+name: CI
 
 on:
   push:
-    branches: [dev]
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
 
 jobs:
-  deploy:
+  build-and-test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    environment: dev
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,16 +35,11 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Deploy to dev
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --env dev
+      - name: Lint
+        run: npm run lint
 
-      - name: Apply D1 migrations
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: d1 migrations apply DB --env dev
+      - name: Unit tests
+        run: npm run test
+
+      - name: Worker integration tests
+        run: npm run test:worker

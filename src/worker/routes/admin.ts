@@ -23,30 +23,52 @@ const admin = new Hono<HonoEnv>();
 
 admin.use(requireAdmin);
 
-const searchQuerySchema = z.object({
-  search: z.string().min(1).max(128),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
+const listUsersSchema = z.object({
+  search: z.string().max(128).optional(),
+  sort: z.enum(['joined', 'username']).default('joined'),
+  order: z.enum(['asc', 'desc']).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+}).refine((data) => [10, 20, 50, 100].includes(data.limit), {
+  message: 'limit must be 10, 20, 50, or 100',
+  path: ['limit'],
 });
 
 admin.get('/users', async (c) => {
   const query = c.req.query();
-  const parsed = searchQuerySchema.safeParse(query);
+  const parsed = listUsersSchema.safeParse(query);
   if (!parsed.success) {
     return jsonError(c, formatZodError(parsed), 400);
   }
 
-  const { search, limit } = parsed.data;
-  const pattern = `%${search.replace(/[%_]/g, '\\$&')}%`;
+  const { search, sort, order: rawOrder, page, limit } = parsed.data;
+  const order = rawOrder ?? (sort === 'joined' ? 'desc' : 'asc');
+  const sortColumn = sort === 'joined' ? 'created_at' : 'username';
+  const offset = (page - 1) * limit;
+
+  const trimmedSearch = search?.trim();
+  const pattern = trimmedSearch ? `%${trimmedSearch.replace(/[%_]/g, '\\$&')}%` : null;
+  const whereClause = pattern
+    ? `WHERE username LIKE ? ESCAPE '\\' OR email LIKE ? ESCAPE '\\'`
+    : '';
+  const whereParams = pattern ? [pattern, pattern] : [];
+
+  const countRow = await queryFirst<{ count: number }>(
+    c,
+    `SELECT COUNT(*) AS count FROM users ${whereClause}`,
+    whereParams
+  );
+  const total = Number(countRow?.count ?? 0);
 
   const rows = await queryAll<AdminUserRow>(
     c,
     `SELECT id, username, email, first_name, last_name, bio, pfp_key, created_at,
             banned_until, banned_reason
      FROM users
-     WHERE username LIKE ? ESCAPE '\\' OR email LIKE ? ESCAPE '\\'
-     ORDER BY username ASC
-     LIMIT ?`,
-    [pattern, pattern, limit]
+     ${whereClause}
+     ORDER BY ${sortColumn} ${order}
+     LIMIT ? OFFSET ?`,
+    [...whereParams, limit, offset]
   );
 
   return c.json({
@@ -63,6 +85,9 @@ admin.get('/users', async (c) => {
       bannedReason: r.banned_reason,
       isBanned: r.banned_until ? r.banned_until > new Date().toISOString() : false,
     })),
+    total,
+    page,
+    limit,
   });
 });
 

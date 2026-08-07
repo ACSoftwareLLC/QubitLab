@@ -41,6 +41,7 @@ describe('admin routes', () => {
 
   it('searches users by username or email', async () => {
     const env = makeAdminEnv({
+      'COUNT(*) AS count': () => [{ count: 1 }],
       'LIKE ? ESCAPE': () => [
         { id: 'user-2', username: 'bob', email: 'bob@example.com', first_name: null, last_name: null, bio: null, pfp_key: null, created_at: '2026-07-01T00:00:00Z', banned_until: null, banned_reason: null },
       ],
@@ -55,15 +56,143 @@ describe('admin routes', () => {
     );
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { users: { username: string; email: string }[] };
+    const body = (await res.json()) as { users: { username: string; email: string }[]; total: number; page: number; limit: number };
     expect(body.users).toHaveLength(1);
+    expect(body.users[0].username).toBe('bob');
+    expect(body.total).toBe(1);
+    expect(body.page).toBe(1);
+    expect(body.limit).toBe(20);
+  });
+
+  it('lists all users when search is omitted', async () => {
+    const env = makeAdminEnv({
+      'COUNT(*) AS count': () => [{ count: 2 }],
+      'ORDER BY created_at': () => [
+        { id: 'user-3', username: 'carol', email: 'carol@example.com', first_name: null, last_name: null, bio: null, pfp_key: null, created_at: '2026-07-03T00:00:00Z', banned_until: null, banned_reason: null },
+        { id: 'user-2', username: 'bob', email: 'bob@example.com', first_name: null, last_name: null, bio: null, pfp_key: null, created_at: '2026-07-02T00:00:00Z', banned_until: null, banned_reason: null },
+      ],
+    });
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/admin/users', {
+        headers: { Cookie: ADMIN_COOKIE },
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { users: { username: string; createdAt: string }[]; total: number };
+    expect(body.users).toHaveLength(2);
+    expect(body.users[0].username).toBe('carol');
+    expect(body.total).toBe(2);
+  });
+
+  it('defaults to most recent signups', async () => {
+    const env = makeAdminEnv({
+      'COUNT(*) AS count': () => [{ count: 2 }],
+      'ORDER BY created_at': (_sql: string, params: unknown[]) => {
+        expect(params).toContain(20);
+        expect(params).toContain(0);
+        return [
+          { id: 'user-2', username: 'bob', email: 'bob@example.com', first_name: null, last_name: null, bio: null, pfp_key: null, created_at: '2026-07-02T00:00:00Z', banned_until: null, banned_reason: null },
+          { id: 'user-1', username: 'alice', email: 'alice@example.com', first_name: null, last_name: null, bio: null, pfp_key: null, created_at: '2026-07-01T00:00:00Z', banned_until: null, banned_reason: null },
+        ];
+      },
+    });
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/admin/users', {
+        headers: { Cookie: ADMIN_COOKIE },
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { users: { username: string; createdAt: string }[] };
     expect(body.users[0].username).toBe('bob');
   });
 
-  it('validates search query', async () => {
+  it('sorts alphabetically when requested', async () => {
+    const env = makeAdminEnv({
+      'COUNT(*) AS count': () => [{ count: 2 }],
+      'ORDER BY username': (_sql: string, params: unknown[]) => {
+        expect(params).toContain(20);
+        expect(params).toContain(0);
+        return [
+          { id: 'user-1', username: 'alice', email: 'alice@example.com', first_name: null, last_name: null, bio: null, pfp_key: null, created_at: '2026-07-02T00:00:00Z', banned_until: null, banned_reason: null },
+          { id: 'user-2', username: 'bob', email: 'bob@example.com', first_name: null, last_name: null, bio: null, pfp_key: null, created_at: '2026-07-01T00:00:00Z', banned_until: null, banned_reason: null },
+        ];
+      },
+    });
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/admin/users?sort=username&order=asc', {
+        headers: { Cookie: ADMIN_COOKIE },
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { users: { username: string }[] };
+    expect(body.users.map((u) => u.username)).toEqual(['alice', 'bob']);
+  });
+
+  it('paginates with limit and offset', async () => {
+    const env = makeAdminEnv({
+      'COUNT(*) AS count': () => [{ count: 15 }],
+      'ORDER BY created_at': (_sql: string, params: unknown[]) => {
+        expect(params).toContain(10);
+        expect(params).toContain(10);
+        return [
+          { id: 'user-2', username: 'bob', email: 'bob@example.com', first_name: null, last_name: null, bio: null, pfp_key: null, created_at: '2026-07-02T00:00:00Z', banned_until: null, banned_reason: null },
+        ];
+      },
+    });
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/admin/users?page=2&limit=10', {
+        headers: { Cookie: ADMIN_COOKIE },
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { users: { username: string }[]; total: number; page: number; limit: number };
+    expect(body.users).toHaveLength(1);
+    expect(body.users[0].username).toBe('bob');
+    expect(body.total).toBe(15);
+    expect(body.page).toBe(2);
+    expect(body.limit).toBe(10);
+  });
+
+  it('accepts 10, 20, 50, and 100 per page', async () => {
+    const env = makeAdminEnv({
+      'COUNT(*) AS count': () => [{ count: 0 }],
+      'ORDER BY created_at': () => [],
+    });
+
+    for (const limit of [10, 20, 50, 100]) {
+      const res = await app.fetch(
+        new Request(`http://localhost/auth/admin/users?limit=${limit}`, {
+          headers: { Cookie: ADMIN_COOKIE },
+        }),
+        env as unknown as Record<string, unknown>,
+        mockExecutionCtx()
+      );
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { limit: number };
+      expect(body.limit).toBe(limit);
+    }
+  });
+
+  it('rejects invalid limit values', async () => {
     const env = makeAdminEnv();
     const res = await app.fetch(
-      new Request('http://localhost/auth/admin/users?search=', {
+      new Request('http://localhost/auth/admin/users?limit=200', {
         headers: { Cookie: ADMIN_COOKIE },
       }),
       env as unknown as Record<string, unknown>,
