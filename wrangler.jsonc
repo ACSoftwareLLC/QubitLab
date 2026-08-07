@@ -75,7 +75,7 @@
 				}
 			],
 		"vars": {
-			"TURNSTILE_SITE_KEY": "3x00000000000000000000FF",
+			"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv",
 			"ADMINS": "alex"
 		}
 		}
