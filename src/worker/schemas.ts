@@ -110,7 +110,13 @@ export const analyticsTrackBodySchema = z.object({
   language: z.string().max(64).optional(),
   country: z.string().max(128).optional(),
   screen: z.string().max(64).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.union([z.string(), z.number(), z.boolean()])).optional().refine(
+    (val) => {
+      if (!val) return true;
+      return JSON.stringify(val).length <= 1024;
+    },
+    { message: 'Metadata must be <= 1 KB when serialized' }
+  ),
 });
 
 export type AnalyticsDaysParam = z.infer<typeof analyticsDaysParamSchema>;
