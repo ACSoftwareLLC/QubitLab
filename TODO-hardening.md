@@ -25,22 +25,22 @@ Approach: 5 small, independently shippable PRs, ordered so each phase reduces th
 Fixes the two actively-open production holes: unlimited login/register attempts and unlimited unauthenticated D1 writes.
 
 ### Migration `0002_rate_limits.sql`
-- [ ] `rate_limits(key TEXT PRIMARY KEY, count INTEGER NOT NULL, reset_at TEXT NOT NULL)` + index on `reset_at`
+- [x] `rate_limits(key TEXT PRIMARY KEY, count INTEGER NOT NULL, reset_at TEXT NOT NULL)` + index on `reset_at`
 
 ### Code
-- [ ] `src/worker/rate-limit.ts` — rewrite as async D1-backed fixed-window limiter (UPSERT … `ON CONFLICT DO UPDATE` comparing `reset_at`; reset when expired). Keep `DISABLE_RATE_LIMIT` escape hatch for local/tests only. On D1 error: fail open + `console.error` (avoid self-DoS)
-- [ ] `wrangler.jsonc` — remove `DISABLE_RATE_LIMIT: "true"` from production
-- [ ] `src/worker/turnstile.ts` + `src/worker/routes/auth.ts` — fail closed when keys are configured but verification errors; make "verification skipped" an explicit local-only path
-- [ ] Extend the 6-hour cron (`src/worker/index.ts` / `session.ts`) to purge expired `rate_limits` rows
-- [ ] Extend limiter coverage: `account/password` (~10/15min), `account/avatar` (~20/15min), `POST /circuits` (~30/15min), `POST /analytics/track` (~60/1min per IP) — plus existing register/login limits
-- [ ] `src/worker/schemas.ts` — cap `metadata` on the track event (max ~1 KB serialized, shallow record of primitives)
-- [ ] `scripts/seed-dev.ts` — hard-refuse `--env production` / `--remote` against production
+- [x] `src/worker/rate-limit.ts` — rewrite as async D1-backed fixed-window limiter (UPSERT … `ON CONFLICT DO UPDATE` comparing `reset_at`; reset when expired). Keep `DISABLE_RATE_LIMIT` escape hatch for local/tests only. On D1 error: fail open + `console.error` (avoid self-DoS)
+- [x] `wrangler.jsonc` — remove `DISABLE_RATE_LIMIT: "true"` from production
+- [x] `src/worker/turnstile.ts` + `src/worker/routes/auth.ts` — fail closed when keys are configured but verification errors; make "verification skipped" an explicit local-only path
+- [x] Extend the 6-hour cron (`src/worker/index.ts` / `session.ts`) to purge expired `rate_limits` rows
+- [x] Extend limiter coverage: `account/password` (~10/15min), `account/avatar` (~20/15min), `POST /circuits` (~30/15min), `POST /analytics/track` (~60/1min per IP) — plus existing register/login limits
+- [x] `src/worker/schemas.ts` — cap `metadata` on the track event (max ~1 KB serialized, shallow record of primitives)
+- [x] `scripts/seed-dev.ts` — hard-refuse `--env production` / `--remote` against production
 
 ### Tests
-- [ ] New `src/worker/rate-limit.test.ts` (window expiry, per-key isolation, disabled flag)
-- [ ] Turnstile fail-closed tests
-- [ ] `/track` 429 test
-- [ ] Update `src/worker/test-helpers.ts` to exercise enforcement rather than blanket-disabling
+- [x] New `src/worker/rate-limit.test.ts` (window expiry, per-key isolation, disabled flag)
+- [x] Turnstile fail-closed tests
+- [x] `/track` 429 test
+- [x] Update `src/worker/test-helpers.ts` to exercise enforcement rather than blanket-disabling
 
 ---
 
