@@ -3,7 +3,7 @@ import type { HonoEnv } from '../types.js';
 import { jsonError, formatZodError } from '../errors.js';
 import { publicUser } from '../types.js';
 import { registerSchema, loginSchema } from '../schemas.js';
-import { verifyTurnstileToken } from '../turnstile.js';
+import { verifyTurnstileToken, shouldRequireTurnstile } from '../turnstile.js';
 import { hashPassword, verifyPassword } from '../password.js';
 import { randomUUID } from '../crypto.js';
 import { queryFirst, runQuery, uniqueConstraintError } from '../db.js';
@@ -51,8 +51,7 @@ auth.post('/register', rateLimit('register', 5, 15 * 60 * 1000), async (c) => {
 
   const { username, email, password, turnstileToken } = result.data;
 
-  const siteKey = c.env.TURNSTILE_SITE_KEY?.trim();
-  if (c.env.TURNSTILE_SKIP_VERIFICATION !== 'true' && siteKey) {
+  if (shouldRequireTurnstile(c)) {
     if (!turnstileToken) {
       return jsonError(c, 'Turnstile verification required', 400);
     }

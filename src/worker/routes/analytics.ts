@@ -8,6 +8,7 @@ import {
 } from '../schemas.js';
 import { queryAll } from '../db.js';
 import { requireAdmin, getRecentAdminActionCount } from '../auth.js';
+import { rateLimitAnalyticsTrack } from '../rate-limit.js';
 import { recordAnalyticsTrackEvent } from '../analytics.js';
 
 const analytics = new Hono<HonoEnv>();
@@ -16,7 +17,7 @@ function sinceDate(days: number): string {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 }
 
-analytics.post('/track', async (c) => {
+analytics.post('/track', rateLimitAnalyticsTrack, async (c) => {
   const body = await c.req.json();
   const result = analyticsTrackBodySchema.safeParse(body);
   if (!result.success) {

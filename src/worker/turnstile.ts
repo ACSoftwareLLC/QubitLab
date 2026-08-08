@@ -7,6 +7,25 @@ type TurnstileVerifyResponse = {
   hostname?: string;
 };
 
+function isLocalhost(c: HonoContext): boolean {
+  const host = c.req.header('host') ?? '';
+  return /^(localhost|127\.0\.0\.1|::1)(:\d+)?$/i.test(host);
+}
+
+// Turnstile is required when a site key is configured, unless explicitly skipped.
+// If no site key is present, verification is skipped only in local development;
+// production deployments without keys fail closed.
+export function shouldRequireTurnstile(c: HonoContext): boolean {
+  if (c.env.TURNSTILE_SKIP_VERIFICATION === 'true') {
+    return false;
+  }
+  const siteKey = c.env.TURNSTILE_SITE_KEY?.trim();
+  if (siteKey) {
+    return true;
+  }
+  return !isLocalhost(c);
+}
+
 export async function verifyTurnstileToken(
   c: HonoContext,
   token: string
