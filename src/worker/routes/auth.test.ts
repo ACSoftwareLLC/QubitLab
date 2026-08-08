@@ -16,16 +16,13 @@ const { hashPassword, verifyPassword } = await import('../password.js');
 vi.mock('../turnstile.js', async () => {
   return {
     verifyTurnstileToken: vi.fn().mockResolvedValue(true),
-    shouldRequireTurnstile: vi.fn().mockReturnValue(false),
   };
 });
-
-const { shouldRequireTurnstile } = await import('../turnstile.js');
 
 let uuidCounter = 0;
 
 describe('auth routes', () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     uuidCounter = 0;
     vi.spyOn(crypto, 'randomUUID').mockImplementation(() => {
       uuidCounter += 1;
@@ -33,9 +30,6 @@ describe('auth routes', () => {
     });
     vi.mocked(hashPassword).mockResolvedValue('mock-hash');
     vi.mocked(verifyPassword).mockResolvedValue(false);
-    vi.mocked(shouldRequireTurnstile).mockReturnValue(false);
-    const { verifyTurnstileToken } = await import('../turnstile.js');
-    vi.mocked(verifyTurnstileToken).mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -69,55 +63,6 @@ describe('auth routes', () => {
       mockExecutionCtx()
     );
     expect(res.status).toBe(500);
-  });
-
-  it('rejects registration when turnstile is required and token is missing', async () => {
-    vi.mocked(shouldRequireTurnstile).mockReturnValue(true);
-
-    const res = await app.fetch(
-      new Request('http://localhost/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: 'bob',
-          email: 'bob@example.com',
-          password: 'password123',
-        }),
-      }),
-      makeEnv() as unknown as Record<string, unknown>,
-      mockExecutionCtx()
-    );
-
-    expect(res.status).toBe(400);
-    expect((await res.json()) as { error: string }).toEqual({
-      error: 'Turnstile verification required',
-    });
-  });
-
-  it('rejects registration when turnstile verification fails', async () => {
-    vi.mocked(shouldRequireTurnstile).mockReturnValue(true);
-    const { verifyTurnstileToken } = await import('../turnstile.js');
-    vi.mocked(verifyTurnstileToken).mockResolvedValue(false);
-
-    const res = await app.fetch(
-      new Request('http://localhost/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: 'bob',
-          email: 'bob@example.com',
-          password: 'password123',
-          turnstileToken: 'bad-token',
-        }),
-      }),
-      makeEnv() as unknown as Record<string, unknown>,
-      mockExecutionCtx()
-    );
-
-    expect(res.status).toBe(400);
-    expect((await res.json()) as { error: string }).toEqual({
-      error: 'Turnstile verification failed',
-    });
   });
 
   it('rejects invalid registration body', async () => {

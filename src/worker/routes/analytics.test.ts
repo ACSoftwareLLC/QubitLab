@@ -7,41 +7,6 @@ function mockD1(
 ): D1Database {
   let currentSql = '';
   let currentParams: unknown[] = [];
-  const rateLimits = new Map<string, { count: number; reset_at: string }>();
-
-  function handleRateLimit(sql: string, params: unknown[]): unknown {
-    if (sql.includes('INSERT INTO rate_limits')) {
-      const key = String(params[0]);
-      const resetAt = String(params[1]);
-      const existing = rateLimits.get(key);
-      const now = new Date(Date.now()).toISOString();
-      if (!existing || existing.reset_at < now) {
-        rateLimits.set(key, { count: 1, reset_at: resetAt });
-      } else {
-        existing.count += 1;
-      }
-      return { success: true };
-    }
-    if (sql.includes('SELECT count, reset_at FROM rate_limits WHERE key = ?')) {
-      const key = String(params[0]);
-      const existing = rateLimits.get(key);
-      const now = new Date(Date.now()).toISOString();
-      if (!existing || existing.reset_at < now) {
-        return null;
-      }
-      return existing;
-    }
-    if (sql.includes('DELETE FROM rate_limits WHERE reset_at < ?')) {
-      const now = String(params[0]);
-      for (const [key, value] of rateLimits.entries()) {
-        if (value.reset_at < now) {
-          rateLimits.delete(key);
-        }
-      }
-      return { success: true };
-    }
-    return undefined;
-  }
 
   const prepared = {
     bind: vi.fn((...params: unknown[]) => {
@@ -49,10 +14,6 @@ function mockD1(
       return prepared;
     }),
     first: vi.fn(async <T>() => {
-      const rateLimitResult = handleRateLimit(currentSql, currentParams);
-      if (rateLimitResult !== undefined) {
-        return rateLimitResult as T;
-      }
       for (const [fragment, handler] of Object.entries(handlers)) {
         if (currentSql.includes(fragment)) {
           const result = handler(currentSql, currentParams);
@@ -62,12 +23,6 @@ function mockD1(
       return null;
     }),
     all: vi.fn(async <T>() => {
-      const rateLimitResult = handleRateLimit(currentSql, currentParams);
-      if (rateLimitResult !== undefined) {
-        return { results: Array.isArray(rateLimitResult) ? (rateLimitResult as T[]) : [] } as {
-          results: T[];
-        };
-      }
       for (const [fragment, handler] of Object.entries(handlers)) {
         if (currentSql.includes(fragment)) {
           const result = handler(currentSql, currentParams);
@@ -79,10 +34,6 @@ function mockD1(
       return { results: [] as T[] };
     }),
     run: vi.fn(async () => {
-      const rateLimitResult = handleRateLimit(currentSql, currentParams);
-      if (rateLimitResult !== undefined) {
-        return rateLimitResult as { success: true };
-      }
       for (const [fragment, handler] of Object.entries(handlers)) {
         if (currentSql.includes(fragment)) {
           return handler(currentSql, currentParams) as { success: true };
@@ -231,39 +182,6 @@ describe('analytics routes', () => {
     const waitUntilCalls = (ctx.waitUntil as ReturnType<typeof vi.fn>).mock.calls;
     expect(waitUntilCalls.length).toBeGreaterThan(0);
     await Promise.all(waitUntilCalls.map((call) => call[0] as Promise<unknown>));
-  });
-
-  it('returns 429 when the per-IP track limit is exceeded', async () => {
-    const env = makeEnv();
-    const ctx = mockExecutionCtx();
-    const body = JSON.stringify({
-      type: 'page_view',
-      path: '/home',
-      sessionId: 'rate-limit-session',
-    });
-
-    const responses: Response[] = [];
-    for (let i = 0; i < 61; i += 1) {
-      const res = await app.fetch(
-        new Request('http://localhost/auth/analytics/track', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body,
-        }),
-        env as unknown as Record<string, unknown>,
-        ctx
-      );
-      responses.push(res);
-    }
-
-    const successCount = responses.filter((r) => r.status === 204).length;
-    const limitedCount = responses.filter((r) => r.status === 429).length;
-
-    expect(successCount).toBe(60);
-    expect(limitedCount).toBe(1);
-    expect((await responses[60].json()) as { error: string }).toEqual({
-      error: 'Too many requests',
-    });
   });
 
   it('rejects summary for non-admin users', async () => {

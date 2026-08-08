@@ -10,7 +10,7 @@ import {
 import { queryFirst, runQuery, uniqueConstraintError } from '../db.js';
 import { verifyPassword, hashPassword } from '../password.js';
 import { requireAuth } from '../auth.js';
-import { checkUserActionLimit, recordUserAction, rateLimitUser } from '../rate-limit.js';
+import { checkUserActionLimit, recordUserAction } from '../rate-limit.js';
 import { r2Upload, r2Delete } from '../r2.js';
 import { randomUUID } from '../crypto.js';
 import { getSessionId } from '../session.js';
@@ -68,7 +68,7 @@ account.patch('/username', async (c) => {
   }
 });
 
-account.patch('/password', rateLimitUser('password_change', 10, 15 * 60 * 1000), async (c) => {
+account.patch('/password', async (c) => {
   const body = await c.req.json();
   const result = updatePasswordSchema.safeParse(body);
   if (!result.success) {

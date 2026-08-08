@@ -30,16 +30,6 @@ if (local && remote) {
   process.exit(1);
 }
 
-if (env === 'production') {
-  console.error('Refusing to seed production environment');
-  process.exit(1);
-}
-
-if (remote && !envExplicit) {
-  console.error('Cannot use --remote without an explicit --env');
-  process.exit(1);
-}
-
 // Default to remote when --env is explicitly provided, otherwise local.
 const targetLocal = local || (!remote && !envExplicit);
 

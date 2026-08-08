@@ -9,41 +9,6 @@ function mockD1(
 ): D1Database {
   let currentSql = '';
   let currentParams: unknown[] = [];
-  const rateLimits = new Map<string, { count: number; reset_at: string }>();
-
-  function handleRateLimit(sql: string, params: unknown[]): unknown {
-    if (sql.includes('INSERT INTO rate_limits')) {
-      const key = String(params[0]);
-      const resetAt = String(params[1]);
-      const existing = rateLimits.get(key);
-      const now = new Date(Date.now()).toISOString();
-      if (!existing || existing.reset_at < now) {
-        rateLimits.set(key, { count: 1, reset_at: resetAt });
-      } else {
-        existing.count += 1;
-      }
-      return { success: true };
-    }
-    if (sql.includes('SELECT count, reset_at FROM rate_limits WHERE key = ?')) {
-      const key = String(params[0]);
-      const existing = rateLimits.get(key);
-      const now = new Date(Date.now()).toISOString();
-      if (!existing || existing.reset_at < now) {
-        return null;
-      }
-      return existing;
-    }
-    if (sql.includes('DELETE FROM rate_limits WHERE reset_at < ?')) {
-      const now = String(params[0]);
-      for (const [key, value] of rateLimits.entries()) {
-        if (value.reset_at < now) {
-          rateLimits.delete(key);
-        }
-      }
-      return { success: true };
-    }
-    return undefined;
-  }
 
   const prepared = {
     bind: vi.fn((...params: unknown[]) => {
@@ -51,10 +16,6 @@ function mockD1(
       return prepared;
     }),
     first: vi.fn(async <T>() => {
-      const rateLimitResult = handleRateLimit(currentSql, currentParams);
-      if (rateLimitResult !== undefined) {
-        return rateLimitResult as T;
-      }
       for (const [fragment, handler] of Object.entries(handlers)) {
         if (currentSql.includes(fragment)) {
           const result = handler(currentSql, currentParams);
@@ -64,12 +25,6 @@ function mockD1(
       return null;
     }),
     all: vi.fn(async <T>() => {
-      const rateLimitResult = handleRateLimit(currentSql, currentParams);
-      if (rateLimitResult !== undefined) {
-        return { results: Array.isArray(rateLimitResult) ? (rateLimitResult as T[]) : [] } as {
-          results: T[];
-        };
-      }
       for (const [fragment, handler] of Object.entries(handlers)) {
         if (currentSql.includes(fragment)) {
           const result = handler(currentSql, currentParams);
@@ -81,10 +36,6 @@ function mockD1(
       return { results: [] as T[] };
     }),
     run: vi.fn(async () => {
-      const rateLimitResult = handleRateLimit(currentSql, currentParams);
-      if (rateLimitResult !== undefined) {
-        return rateLimitResult as { success: true };
-      }
       for (const [fragment, handler] of Object.entries(handlers)) {
         if (currentSql.includes(fragment)) {
           return handler(currentSql, currentParams) as { success: true };

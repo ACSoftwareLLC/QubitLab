@@ -4,7 +4,6 @@ import { loadSessionMiddleware, deleteExpiredSessions } from './session.js';
 import { validateOrigin } from './origin.js';
 import { logRequestError } from './logger.js';
 import { jsonError } from './errors.js';
-import { purgeOldRateLimits } from './rate-limit.js';
 import authRoutes from './routes/auth.js';
 import accountRoutes from './routes/account.js';
 import circuitRoutes from './routes/circuits.js';
@@ -47,14 +46,9 @@ export default {
   },
   async scheduled(_controller: unknown, env: WorkerBindings, ctx: ExecutionContext) {
     ctx.waitUntil(
-      Promise.all([
-        deleteExpiredSessions(env.DB).catch((err) => {
-          console.error('Failed to delete expired sessions', err);
-        }),
-        purgeOldRateLimits(env.DB).catch((err) => {
-          console.error('Failed to purge old rate limits', err);
-        })
-      ])
+      deleteExpiredSessions(env.DB).catch((err) => {
+        console.error('Failed to delete expired sessions', err);
+      })
     );
   },
 };
