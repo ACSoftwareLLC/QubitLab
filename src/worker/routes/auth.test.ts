@@ -71,6 +71,19 @@ describe('auth routes', () => {
     expect(res.status).toBe(500);
   });
 
+  it('bypasses turnstile site key when TURNSTILE_SKIP_VERIFICATION is true', async () => {
+    const res = await app.fetch(
+      new Request('http://localhost/auth/turnstile-sitekey'),
+      makeEnv({}, DEFAULT_USER, {
+        TURNSTILE_SKIP_VERIFICATION: 'true',
+        TURNSTILE_SITE_KEY: 'test-key',
+      }) as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ siteKey: null });
+  });
+
   it('rejects registration when turnstile is required and token is missing', async () => {
     vi.mocked(shouldRequireTurnstile).mockReturnValue(true);
 
@@ -213,6 +226,72 @@ describe('auth routes', () => {
     expect(setCookie).toContain('SameSite=Strict');
     const body = (await res.json()) as { user: { username: string } };
     expect(body.user.username).toBe('bob');
+  });
+
+  it('registers without a turnstile token when bypass is enabled', async () => {
+    const env = makeEnv(
+      {
+        'INSERT INTO users': () => ({ success: true }),
+        'INSERT INTO sessions': () => ({ success: true }),
+        'FROM users WHERE id': () => [
+          { ...DEFAULT_USER, id: 'uuid-1', username: 'bob' },
+        ],
+      },
+      DEFAULT_USER,
+      {
+        TURNSTILE_SKIP_VERIFICATION: 'true',
+        TURNSTILE_SITE_KEY: 'test-key',
+      }
+    );
+
+    vi.mocked(verifyPassword).mockResolvedValue(true);
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: 'bob',
+          email: 'bob@example.com',
+          password: 'password123',
+        }),
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(200);
+  });
+
+  it('rejects registration without a token when site key is configured', async () => {
+    vi.mocked(shouldRequireTurnstile).mockReturnValue(true);
+
+    const env = makeEnv(
+      {},
+      DEFAULT_USER,
+      {
+        TURNSTILE_SITE_KEY: 'test-key',
+      }
+    );
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: 'bob',
+          email: 'bob@example.com',
+          password: 'password123',
+        }),
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(400);
+    expect((await res.json()) as { error: string }).toEqual({
+      error: 'Turnstile verification required',
+    });
   });
 
   it('rejects duplicate username during registration', async () => {

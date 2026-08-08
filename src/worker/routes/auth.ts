@@ -16,6 +16,11 @@ const auth = new Hono<HonoEnv>();
 auth.get('/health', (c) => c.json({ status: 'ok' }));
 
 auth.get('/turnstile-sitekey', (c) => {
+  // Local bypass: don't expose a site key or require a Turnstile token.
+  if (c.env.TURNSTILE_SKIP_VERIFICATION === 'true') {
+    return c.json({ siteKey: null });
+  }
+
   const siteKey = c.env.TURNSTILE_SITE_KEY;
   if (!siteKey) {
     return jsonError(c, 'Turnstile site key not configured', 500);
