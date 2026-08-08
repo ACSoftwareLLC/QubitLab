@@ -14,6 +14,7 @@
   overflow-y: auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.85rem;
+  position: relative;
 }
 
 .state-panel-collapsed {
@@ -28,6 +29,36 @@
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.9rem;
+}
+
+.state-panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.state-panel-action-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.state-panel-action-btn:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+
+.state-panel-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .state-panel-title {
@@ -68,6 +99,22 @@
 .state-panel-collapse-btn:hover {
   color: var(--text);
   background: var(--panel-2);
+}
+
+.state-panel-resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 10;
+  transition: background 0.15s ease;
+}
+
+.state-panel-resize-handle:hover,
+.state-panel-resize-handle:active {
+  background: rgba(56, 189, 248, 0.25);
 }
 
 /* --- Messages -------------------------------------------------------------- */
@@ -181,4 +228,47 @@
 .state-measurement-outcome {
   color: var(--success);
   font-weight: 700;
+}
+
+/* --- Bloch Sphere ----------------------------------------------------------- */
+.state-panel-bloch-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.state-panel-bloch-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  background: var(--panel-2);
+  border-radius: var(--radius-sm);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.75rem;
+}
+
+.state-panel-bloch-controls label {
+  color: var(--muted);
+}
+
+.state-panel-select {
+  background: var(--panel-3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-size: 0.75rem;
+  padding: 0 0.25rem;
+  flex: 1;
+}
+
+.state-panel-bloch-canvas {
+  flex: 1;
+  width: 100%;
+  min-height: 300px;
+  position: relative;
+  background: #000;
+  border-radius: var(--radius-md);
+  overflow: hidden;
 }

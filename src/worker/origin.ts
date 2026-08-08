@@ -4,6 +4,10 @@ import { jsonError } from './errors.js';
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 export const validateOrigin: MiddlewareHandler = (c, next) => {
+  if (c.env.DISABLE_ORIGIN_VALIDATION?.toLowerCase() === 'true') {
+    return next();
+  }
+
   if (SAFE_METHODS.has(c.req.method)) {
     return next();
   }

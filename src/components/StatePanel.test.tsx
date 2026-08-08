@@ -14,6 +14,7 @@ const defaultProps = (): StatePanelProps => ({
   peekSnapshot: null,
   errors: [],
   unconnectedGateIds: [],
+  numBits: 1,
 });
 
 const snapshot: Snapshot = {
@@ -108,5 +109,19 @@ describe('StatePanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Show state panel' }));
     expect(screen.getByText('State')).toBeTruthy();
+  });
+
+  it('renders the Bloch sphere toggle when qubits are present', () => {
+    render(<StatePanel {...defaultProps()} numBits={2} />);
+    const btn = screen.getByRole('button', { name: 'Show Bloch Sphere' }) as HTMLButtonElement;
+    expect(btn).toBeTruthy();
+    expect(btn.disabled).toBe(false);
+  });
+
+  it('disables the Bloch sphere toggle when no qubits are configured', () => {
+    render(<StatePanel {...defaultProps()} numBits={0} />);
+    const btn = screen.getByRole('button', { name: 'Show Bloch Sphere' }) as HTMLButtonElement;
+    expect(btn).toBeTruthy();
+    expect(btn.disabled).toBe(true);
   });
 });
