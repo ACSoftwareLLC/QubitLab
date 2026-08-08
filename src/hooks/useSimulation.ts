@@ -24,6 +24,7 @@ export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBit
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [peekSnapshot, setPeekSnapshot] = useState<Snapshot | null>(null);
+  const [snapshotHistory, setSnapshotHistory] = useState<Snapshot[]>([]);
   const [numSteps, setNumSteps] = useState(0);
   const sessionRef = useRef<SimulationSession | null>(null);
 
@@ -40,6 +41,7 @@ export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBit
     setStatus('idle');
     setSnapshot(null);
     setPeekSnapshot(null);
+    setSnapshotHistory([]);
     setErrors([]);
   }
 
@@ -74,6 +76,7 @@ export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBit
         setStatus('ready');
         setSnapshot(null);
         setPeekSnapshot(null);
+        setSnapshotHistory([]);
         return;
       }
       if (reply.type === 'error') {
@@ -90,18 +93,24 @@ export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBit
     setStatus('ready');
     setSnapshot(null);
     setPeekSnapshot(null);
+    setSnapshotHistory([]);
   }, [circuit, segments]);
 
   const step = useCallback(async () => {
     if (status !== 'ready' && status !== 'running') return;
     const session = sessionRef.current;
 
-    if (session) {
+      if (session) {
       const reply = await session.step().catch(() => null);
       if (!reply) {
         setStatus('offline');
       } else if (reply.type === 'state') {
         setSnapshot(reply);
+        setSnapshotHistory(prev =>
+          prev.length > 0 && prev[prev.length - 1].segment === reply.segment
+            ? prev
+            : [...prev, reply],
+        );
         setStatus('running');
       } else if (reply.type === 'done') {
         setStatus('done');
@@ -122,6 +131,11 @@ export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBit
       return;
     }
     setSnapshot(snap);
+    setSnapshotHistory(prev =>
+      prev.length > 0 && prev[prev.length - 1].segment === snap.segment
+        ? prev
+        : [...prev, snap],
+    );
     setStatus(segments.some(s => s > next) ? 'running' : 'done');
   }, [circuit, segments, snapshot, status]);
 
@@ -135,6 +149,11 @@ export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBit
         setStatus('offline');
       } else if (reply.type === 'state') {
         setSnapshot(reply);
+        setSnapshotHistory(prev =>
+          prev.length > 0 && prev[prev.length - 1].segment === reply.segment
+            ? prev
+            : [...prev, reply],
+        );
         setStatus('done');
       }
       return;
@@ -146,6 +165,11 @@ export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBit
       return;
     }
     setSnapshot(snap);
+    setSnapshotHistory(prev =>
+      prev.length > 0 && prev[prev.length - 1].segment === snap.segment
+        ? prev
+        : [...prev, snap],
+    );
     setStatus('done');
   }, [circuit, status]);
 
@@ -162,6 +186,7 @@ export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBit
       if (status !== 'offline') setStatus('ready');
     }
     setPeekSnapshot(null);
+    setSnapshotHistory([]);
   }, [status]);
 
   const peek = useCallback(
@@ -185,6 +210,7 @@ export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBit
     errors,
     snapshot,
     peekSnapshot,
+    snapshotHistory,
     numSteps,
     currentSegment: snapshot?.segment ?? -1,
     unconnectedGateIds,

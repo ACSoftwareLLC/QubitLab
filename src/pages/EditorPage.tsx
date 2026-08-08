@@ -125,13 +125,15 @@ export function EditorPage() {
         />
       </div>
 
-      <StatePanel
-        status={sim.status}
-        snapshot={sim.snapshot}
-        peekSnapshot={sim.peekSnapshot}
-        errors={sim.errors}
-        unconnectedGateIds={sim.unconnectedGateIds}
-      />
+        <StatePanel
+          status={sim.status}
+          snapshot={sim.snapshot}
+          peekSnapshot={sim.peekSnapshot}
+          snapshotHistory={sim.snapshotHistory}
+          errors={sim.errors}
+          unconnectedGateIds={sim.unconnectedGateIds}
+          numBits={numBits}
+        />
     </div>
   );
 }

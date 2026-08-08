@@ -97,8 +97,10 @@ export function makeEnv(
     SESSION_SECRET: string;
     TURNSTILE_SECRET_KEY: string;
     TURNSTILE_SITE_KEY: string;
+    TURNSTILE_SKIP_VERIFICATION: string;
     ADMINS: string;
     DISABLE_RATE_LIMIT: string;
+    DISABLE_ORIGIN_VALIDATION: string;
   }> = {}
 ) {
   return {
@@ -112,8 +114,10 @@ export function makeEnv(
     SESSION_SECRET: overrides.SESSION_SECRET ?? 'test-secret',
     TURNSTILE_SECRET_KEY: overrides.TURNSTILE_SECRET_KEY ?? '',
     TURNSTILE_SITE_KEY: overrides.TURNSTILE_SITE_KEY ?? '',
+    TURNSTILE_SKIP_VERIFICATION: overrides.TURNSTILE_SKIP_VERIFICATION ?? '',
     ADMINS: overrides.ADMINS ?? 'alice',
     DISABLE_RATE_LIMIT: overrides.DISABLE_RATE_LIMIT ?? 'true',
+    DISABLE_ORIGIN_VALIDATION: overrides.DISABLE_ORIGIN_VALIDATION ?? '',
   };
 }
 

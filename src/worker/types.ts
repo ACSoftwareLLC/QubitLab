@@ -7,8 +7,10 @@ export type WorkerBindings = {
   SESSION_SECRET: string;
   TURNSTILE_SECRET_KEY: string;
   TURNSTILE_SITE_KEY: string;
+  TURNSTILE_SKIP_VERIFICATION?: string;
   ADMINS: string;
   DISABLE_RATE_LIMIT?: string;
+  DISABLE_ORIGIN_VALIDATION?: string;
 };
 
 export type SessionUser = {
