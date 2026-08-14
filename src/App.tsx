@@ -25,7 +25,7 @@ function HomeOrLanding() {
 }
 
 function App() {
-  const { loading } = useAuth();
+  const { loading, error } = useAuth();
   useAnalytics();
 
   if (loading) {
@@ -33,6 +33,18 @@ function App() {
       <div className="app-loading">
         <span className="app-loading-spinner" aria-hidden="true" />
         Loading…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="app-loading" style={{ flexDirection: 'column', gap: '0.75rem' }}>
+        <i className="bi bi-wifi-off" style={{ fontSize: '1.5rem', color: 'var(--danger)' }} />
+        <span style={{ color: 'var(--danger)', fontWeight: 600 }}>{error}</span>
+        <span style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>
+          Run <code>npm run dev:worker</code> first, then <code>npm run dev</code>.
+        </span>
       </div>
     );
   }

@@ -14,7 +14,19 @@ export default defineConfig({
     // while the API runs on the Worker runtime. This proxy is not used in the
     // production build, which is served entirely from the same-origin Worker.
     proxy: {
-      '/auth': 'http://localhost:8787',
+      '/auth': {
+        target: 'http://localhost:8787',
+        // Preserve the browser's Host header (e.g. localhost:5173) so it
+        // matches the Origin header and passes the Worker's origin validation.
+        configure: (proxy, _options) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            const host = req.headers.host;
+            if (host) {
+              proxyReq.setHeader('Host', host);
+            }
+          });
+        },
+      },
     },
   },
 })

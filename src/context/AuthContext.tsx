@@ -43,12 +43,14 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const authFetch = async (
   method: string,
   path: string,
-  body?: Record<string, unknown> | FormData
+  body?: Record<string, unknown> | FormData,
+  signal?: AbortSignal,
 ) => {
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
   const res = await fetch(path, {
     method,
     credentials: 'include',
+    signal,
     // FormData sets its own multipart Content-Type (with boundary) — never override it.
     headers: body && !isForm ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
@@ -63,16 +65,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const checkSession = useCallback(async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     try {
-      const { ok, data } = await authFetch('GET', '/auth/me');
+      const { ok, data } = await authFetch('GET', '/auth/me', undefined, controller.signal);
       if (ok && data.user) {
         setUser(data.user);
       } else {
         setUser(null);
       }
-    } catch {
+    } catch (err) {
       setUser(null);
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setError('Could not reach the QubitLab backend. Is the Worker running?');
+      } else {
+        setError('Could not reach the QubitLab backend. Is the Worker running?');
+      }
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   }, []);
