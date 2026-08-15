@@ -12,6 +12,7 @@ import { verifyPassword, hashPassword } from '../password.js';
 import { requireAuth } from '../auth.js';
 import { checkUserActionLimit, recordUserAction, rateLimitUser } from '../rate-limit.js';
 import { r2Upload, r2Delete } from '../r2.js';
+import { sniffImageType } from '../buffer.js';
 import { randomUUID } from '../crypto.js';
 import { getSessionId, hashSessionId } from '../session.js';
 
@@ -161,8 +162,14 @@ account.post('/avatar', async (c) => {
     return jsonError(c, 'Avatar exceeds the 5MB size limit', 413);
   }
 
-  const key = `${user.id}/${randomUUID()}.${ext}`;
   const arrayBuffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  const sniffed = sniffImageType(bytes);
+  if (!sniffed || sniffed !== ext) {
+    return jsonError(c, 'Avatar file content does not match its extension', 400);
+  }
+
+  const key = `${user.id}/${randomUUID()}.${ext}`;
   await r2Upload(c, 'AVATARS', key, arrayBuffer, file.type);
 
   const updated = await queryFirst<

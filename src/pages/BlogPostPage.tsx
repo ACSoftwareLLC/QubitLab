@@ -5,6 +5,7 @@ import { getBlog } from '../api/blogs';
 import type { BlogPost } from '../types/blog';
 import { QuantumField } from '../components/QuantumField';
 import { AuthorChip } from '../components/AuthorChip';
+import { sanitizeHtml } from '../utils/sanitize';
 
 function isPublicPost(post: BlogPost): boolean {
   return post.published && (!post.publish_at || new Date(post.publish_at) <= new Date());
@@ -65,7 +66,7 @@ export function BlogPostPage() {
             )}
             <div
               className="blog-article-content"
-              dangerouslySetInnerHTML={{ __html: post.content }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
             />
           </article>
         )}

@@ -5,6 +5,7 @@ import { listBlogs, deleteBlog } from '../api/blogs';
 import type { BlogPost } from '../types/blog';
 import { QuantumField } from '../components/QuantumField';
 import { AuthorChip } from '../components/AuthorChip';
+import { sanitizeHtmlForExcerpt } from '../utils/sanitize';
 
 function isPublicPost(post: BlogPost): boolean {
   return post.published && (!post.publish_at || new Date(post.publish_at) <= new Date());
@@ -96,7 +97,7 @@ export function BlogPage() {
                 <h2 className="blog-card-title">{post.title}</h2>
               <div
                 className="blog-card-excerpt"
-                dangerouslySetInnerHTML={{ __html: post.content.slice(0, 300) + (post.content.length > 300 ? '…' : '') }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtmlForExcerpt(post.content, 300) }}
               />
               <div className="blog-card-actions">
                 <Link to={`/blog/${post.slug}`} className="blog-read-link">

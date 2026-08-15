@@ -144,6 +144,7 @@ export function makeEnv(
   overrides: Partial<{
     AVATARS: R2Bucket;
     THUMBNAILS: R2Bucket;
+    ASSETS: Fetcher;
     SESSION_SECRET: string;
     TURNSTILE_SECRET_KEY: string;
     TURNSTILE_SITE_KEY: string;
@@ -160,6 +161,7 @@ export function makeEnv(
     }),
     AVATARS: overrides.AVATARS ?? mockR2(),
     THUMBNAILS: overrides.THUMBNAILS ?? mockR2(),
+    ASSETS: overrides.ASSETS,
     SESSION_SECRET: overrides.SESSION_SECRET ?? 'test-secret',
     TURNSTILE_SECRET_KEY: overrides.TURNSTILE_SECRET_KEY ?? '',
     TURNSTILE_SITE_KEY: overrides.TURNSTILE_SITE_KEY ?? '',

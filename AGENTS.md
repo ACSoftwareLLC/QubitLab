@@ -152,7 +152,7 @@ This validates that the configured D1 database and R2 buckets exist for the targ
 - **Admin privileges**: determined by `users.is_admin = 1` in D1, not by an env var.
 - **Rate limiting**: auth routes (`/auth/register`, `/auth/login`) are rate-limited by client IP. Set `DISABLE_RATE_LIMIT=true` to disable (e.g., for production load testing).
 - **CORS**: none — the app is same-origin, so frontend requests to `/auth/*` do not require CORS headers.
-- **CSP**: enforced by the static asset handler via `wrangler.jsonc` (configure as needed for inline scripts/WASM).
+- **Security headers**: `Content-Security-Policy`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, and `Cross-Origin-Opener-Policy` are applied by `src/worker/security-headers.ts` to both API responses and static asset responses served through the `ASSETS` binding.
 - **Turnstile domains**: restrict the Turnstile widget to `localhost` and the deployed hostnames for each environment.
 - **Error logging**: unhandled Worker errors are logged with request method, path, timestamp, and optional `CF-Ray` request ID.
 

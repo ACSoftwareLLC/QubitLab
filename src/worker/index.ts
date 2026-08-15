@@ -5,6 +5,7 @@ import { validateOrigin } from './origin.js';
 import { logRequestError } from './logger.js';
 import { jsonError } from './errors.js';
 import { purgeOldRateLimits } from './rate-limit.js';
+import { applySecurityHeaders } from './security-headers.js';
 import authRoutes from './routes/auth.js';
 import accountRoutes from './routes/account.js';
 import circuitRoutes from './routes/circuits.js';
@@ -43,7 +44,23 @@ app.route('/auth', auth);
 
 export default {
   async fetch(request: Request, env: WorkerBindings, ctx: ExecutionContext) {
-    return app.fetch(request, env, ctx);
+    const url = new URL(request.url);
+
+    // API routes: run through Hono and harden the response.
+    if (url.pathname.startsWith('/auth/')) {
+      const response = await app.fetch(request, env, ctx);
+      return applySecurityHeaders(response);
+    }
+
+    // Static assets: serve through the ASSETS binding and apply the same
+    // security headers. When ASSETS is unavailable (e.g., some unit tests),
+    // fall back to a minimal 404 so tests don't need a full asset binding.
+    if (env.ASSETS) {
+      const assetResponse = await env.ASSETS.fetch(request);
+      return applySecurityHeaders(assetResponse);
+    }
+
+    return new Response('Not found', { status: 404 });
   },
   async scheduled(_controller: unknown, env: WorkerBindings, ctx: ExecutionContext) {
     ctx.waitUntil(

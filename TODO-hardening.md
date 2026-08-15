@@ -71,22 +71,22 @@ Removes the privilege-escalation design flaw; limits blast radius of a DB read.
 Breaks the stored-XSS chain and adds the currently-missing browser security controls.
 
 ### Frontend
-- [ ] Add `dompurify` dependency; sanitize at all three sinks (`src/pages/BlogPostPage.tsx:68`, `src/pages/BlogPage.tsx:99`, `src/pages/HomePage.tsx:124`) and before loading HTML into `src/components/WysiwygEditor.tsx:17`
-- [ ] Fix excerpt slicing to sanitize then truncate safely
-- [ ] `WysiwygEditor.tsx` — allowlist `https:`/`mailto:` on `insertLink`; validate `insertImage` URLs
+- [x] Add `dompurify` dependency; sanitize at all three sinks (`src/pages/BlogPostPage.tsx:68`, `src/pages/BlogPage.tsx:99`, `src/pages/HomePage.tsx:124`) and before loading HTML into `src/components/WysiwygEditor.tsx:17`
+- [x] Fix excerpt slicing to sanitize then truncate safely
+- [x] `WysiwygEditor.tsx` — allowlist `https:`/`mailto:` on `insertLink`; validate `insertImage` URLs
 
 ### Worker
-- [ ] Security-headers middleware in `src/worker/index.ts` (use `hono/secure-headers` or hand-roll), applied to API and asset responses:
+- [x] Security-headers middleware in `src/worker/index.ts` (use `hono/secure-headers` or hand-roll), applied to API and asset responses:
   - `Content-Security-Policy`: `default-src 'self'; script-src 'self' https://challenges.cloudflare.com 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`
   - `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`, `Cross-Origin-Opener-Policy: same-origin`
-- [ ] `src/worker/r2.ts` — add `nosniff` + `Content-Disposition: inline` and `Cache-Control` on avatar serves; reflect only allowlisted content types
-- [ ] `src/worker/routes/account.ts` — avatar magic-byte validation (reuse the PNG/JPEG/WEBP sniffing in `src/worker/buffer.ts`), reject mismatches
-- [ ] `AGENTS.md` — fix the false "CSP enforced" claim to describe the real middleware
+- [x] `src/worker/r2.ts` — add `nosniff` + `Content-Disposition: inline` and `Cache-Control` on avatar serves; reflect only allowlisted content types
+- [x] `src/worker/routes/account.ts` — avatar magic-byte validation (reuse the PNG/JPEG/WEBP sniffing in `src/worker/buffer.ts`), reject mismatches
+- [x] `AGENTS.md` — fix the false "CSP enforced" claim to describe the real middleware
 
 ### Tests
-- [ ] Header assertions on API + asset responses
-- [ ] Sanitizer unit tests (script/event-handler/`javascript:` URLs stripped)
-- [ ] Avatar upload with mismatched magic bytes → 400
+- [x] Header assertions on API + asset responses
+- [x] Sanitizer unit tests (script/event-handler/`javascript:` URLs stripped)
+- [x] Avatar upload with mismatched magic bytes → 400
 - [ ] E2E smoke to confirm Turnstile + WASM still work under CSP
 
 ---

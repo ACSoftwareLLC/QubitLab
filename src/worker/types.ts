@@ -4,6 +4,7 @@ export type WorkerBindings = {
   DB: D1Database;
   AVATARS: R2Bucket;
   THUMBNAILS: R2Bucket;
+  ASSETS?: Fetcher;
   SESSION_SECRET: string;
   TURNSTILE_SECRET_KEY: string;
   TURNSTILE_SITE_KEY: string;

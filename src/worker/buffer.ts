@@ -42,6 +42,37 @@ export function dataUrlContentType(dataUrl: string): string | null {
 const PNG_DATA_URL_PREFIX = 'data:image/png;base64,';
 const PNG_MAGIC = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
 
+const JPEG_MAGIC = new Uint8Array([0xff, 0xd8, 0xff]);
+const WEBP_MAGIC = new Uint8Array([0x52, 0x49, 0x46, 0x46]); // "RIFF"
+const WEBP_SUBTYPE = new Uint8Array([0x57, 0x45, 0x42, 0x50]); // "WEBP" at offset 8
+
+function hasMagicPrefix(bytes: Uint8Array, magic: Uint8Array): boolean {
+  if (bytes.length < magic.length) return false;
+  for (let i = 0; i < magic.length; i++) {
+    if (bytes[i] !== magic[i]) return false;
+  }
+  return true;
+}
+
+export type ImageType = 'png' | 'jpg' | 'webp';
+
+/**
+ * Sniffs the image type from the first bytes of a file.
+ * Returns null if the magic bytes do not match a supported format.
+ */
+export function sniffImageType(bytes: Uint8Array): ImageType | null {
+  if (hasMagicPrefix(bytes, PNG_MAGIC)) return 'png';
+  if (hasMagicPrefix(bytes, JPEG_MAGIC)) return 'jpg';
+  if (
+    hasMagicPrefix(bytes, WEBP_MAGIC) &&
+    bytes.length >= 12 &&
+    hasMagicPrefix(bytes.subarray(8), WEBP_SUBTYPE)
+  ) {
+    return 'webp';
+  }
+  return null;
+}
+
 /**
  * Decodes a base64 PNG data URL, verifying the magic bytes.
  * Throws on malformed input — callers map this to a 400.

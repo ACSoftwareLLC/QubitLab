@@ -1,5 +1,8 @@
 import type { HonoContext } from './types.js';
 
+const AVATAR_CONTENT_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+const DEFAULT_AVATAR_CACHE_CONTROL = 'public, max-age=3600';
+
 export async function r2Upload(
   c: HonoContext,
   binding: 'AVATARS' | 'THUMBNAILS',
@@ -25,6 +28,17 @@ export async function r2Get(
   headers.set('etag', object.httpEtag);
   if (object.size) {
     headers.set('content-length', String(object.size));
+  }
+
+  const isAvatar = binding === 'AVATARS';
+  if (isAvatar) {
+    const contentType = headers.get('content-type');
+    if (!contentType || !AVATAR_CONTENT_TYPES.includes(contentType)) {
+      return new Response('Unsupported avatar content type', { status: 415 });
+    }
+    headers.set('x-content-type-options', 'nosniff');
+    headers.set('content-disposition', 'inline');
+    headers.set('cache-control', DEFAULT_AVATAR_CACHE_CONTROL);
   }
 
   return new Response(object.body as ReadableStream, { headers });
