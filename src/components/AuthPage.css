@@ -256,6 +256,45 @@
   cursor: pointer;
 }
 
+/* ---------- Footer ---------- */
+
+.app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--auth-panel);
+  color: var(--auth-muted);
+  border-top: 1px solid #334155;
+  font-size: 0.85rem;
+  flex: 0 0 auto;
+}
+
+.app-footer-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.app-footer-links a {
+  color: var(--auth-muted);
+  text-decoration: none;
+}
+
+.app-footer-links a:hover {
+  color: var(--auth-accent);
+}
+
+/* ---------- Privacy policy ---------- */
+
+.privacy-stub {
+  padding: 1.5rem;
+  border: 2px dashed #475569;
+  border-radius: 0.75rem;
+  color: var(--auth-muted);
+  text-align: center;
+}
+
 /* ---------- Modal ---------- */
 
 .modal-overlay {

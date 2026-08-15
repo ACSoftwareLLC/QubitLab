@@ -13,7 +13,7 @@ import { requireAuth } from '../auth.js';
 import { checkUserActionLimit, recordUserAction, rateLimitUser } from '../rate-limit.js';
 import { r2Upload, r2Delete } from '../r2.js';
 import { randomUUID } from '../crypto.js';
-import { getSessionId } from '../session.js';
+import { getSessionId, hashSessionId } from '../session.js';
 
 const account = new Hono<HonoEnv>();
 
@@ -51,15 +51,16 @@ account.patch('/username', async (c) => {
         last_name: string | null;
         bio: string | null;
         created_at: string;
+        is_admin: number;
       }
     >(
       c,
       `UPDATE users SET username = ? WHERE id = ?
-       RETURNING id, username, pfp_key, first_name, last_name, bio, created_at`,
+       RETURNING id, username, pfp_key, first_name, last_name, bio, created_at, is_admin`,
       [username, user.id]
     );
     await recordUserAction(c, 'username_change');
-    return c.json({ user: publicUser(updated!, c.env.ADMINS) });
+    return c.json({ user: publicUser(updated!) });
   } catch (err) {
     if (uniqueConstraintError(err)) {
       return jsonError(c, 'Username already taken', 409);
@@ -92,10 +93,11 @@ account.patch('/password', rateLimitUser('password_change', 10, 15 * 60 * 1000),
   await runQuery(c, `UPDATE users SET password_hash = ? WHERE id = ?`, [hash, user.id]);
 
   const currentSessionId = getSessionId(c);
+  const currentSessionHash = currentSessionId ? await hashSessionId(currentSessionId) : null;
   await runQuery(
     c,
     `DELETE FROM sessions WHERE user_id = ? AND id <> ?`,
-    [user.id, currentSessionId ?? '']
+    [user.id, currentSessionHash ?? '']
   );
 
   return c.json({ success: true });
@@ -120,17 +122,18 @@ account.patch('/profile', async (c) => {
       last_name: string | null;
       bio: string | null;
       created_at: string;
+      is_admin: number;
     }
   >(
     c,
     `UPDATE users
      SET first_name = ?, last_name = ?, bio = ?
      WHERE id = ?
-     RETURNING id, username, pfp_key, first_name, last_name, bio, created_at`,
+     RETURNING id, username, pfp_key, first_name, last_name, bio, created_at, is_admin`,
     [firstName ?? null, lastName ?? null, bio ?? null, user.id]
   );
 
-  return c.json({ user: publicUser(updated!, c.env.ADMINS) });
+  return c.json({ user: publicUser(updated!) });
 });
 
 account.post('/avatar', async (c) => {
@@ -171,11 +174,12 @@ account.post('/avatar', async (c) => {
       last_name: string | null;
       bio: string | null;
       created_at: string;
+      is_admin: number;
     }
   >(
     c,
     `UPDATE users SET pfp_key = ? WHERE id = ?
-     RETURNING id, username, pfp_key, first_name, last_name, bio, created_at`,
+     RETURNING id, username, pfp_key, first_name, last_name, bio, created_at, is_admin`,
     [key, user.id]
   );
 
@@ -184,7 +188,7 @@ account.post('/avatar', async (c) => {
   }
 
   await recordUserAction(c, 'avatar_change');
-  return c.json({ user: publicUser(updated!, c.env.ADMINS) });
+  return c.json({ user: publicUser(updated!) });
 });
 
 export default account;

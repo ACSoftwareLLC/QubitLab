@@ -18,7 +18,7 @@ describe('admin routes', () => {
   });
 
   it('rejects non-admins', async () => {
-    const env = makeEnv({}, DEFAULT_USER, { ADMINS: 'alex' });
+    const env = makeEnv({}, DEFAULT_USER);
     const res = await app.fetch(
       new Request('http://localhost/auth/admin/users?search=alice', {
         headers: { Cookie: USER_COOKIE },
@@ -29,8 +29,23 @@ describe('admin routes', () => {
     expect(res.status).toBe(403);
   });
 
+  it('rejects users whose username matches the old ADMINS env but DB flag is false', async () => {
+    const env = makeEnv(
+      {},
+      { ...DEFAULT_USER, username: 'alex', is_admin: 0 }
+    );
+    const res = await app.fetch(
+      new Request('http://localhost/auth/admin/users?search=alice', {
+        headers: { Cookie: ADMIN_COOKIE },
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+    expect(res.status).toBe(403);
+  });
+
   it('requires authentication', async () => {
-    const env = makeEnv({}, DEFAULT_USER, { ADMINS: 'alex' });
+    const env = makeEnv({}, DEFAULT_USER);
     const res = await app.fetch(
       new Request('http://localhost/auth/admin/users?search=alice'),
       env as unknown as Record<string, unknown>,
@@ -205,7 +220,7 @@ describe('admin routes', () => {
     const env = makeAdminEnv({
       'FROM users WHERE id': (_sql, params) => {
         if (params[0] === 'user-2') return [{ username: 'bob', email: 'bob@example.com' }];
-        return [{ ...DEFAULT_USER, username: 'alex' }];
+        return [{ ...DEFAULT_USER, username: 'alex', is_admin: 1 }];
       },
       'UPDATE users SET banned_until': () => ({ success: true }),
       'DELETE FROM sessions WHERE user_id': () => ({ success: true }),
@@ -234,7 +249,7 @@ describe('admin routes', () => {
     const env = makeAdminEnv({
       'FROM users WHERE id': (_sql, params) => {
         if (params[0] === 'user-2') return [{ username: 'bob', email: 'bob@example.com' }];
-        return [{ ...DEFAULT_USER, username: 'alex' }];
+        return [{ ...DEFAULT_USER, username: 'alex', is_admin: 1 }];
       },
       'UPDATE users SET banned_until': () => ({ success: true }),
       'DELETE FROM sessions WHERE user_id': () => ({ success: true }),
@@ -262,7 +277,7 @@ describe('admin routes', () => {
     const env = makeAdminEnv({
       'FROM users WHERE id': (_sql, params) => {
         if (params[0] === 'user-2') return [{ username: 'bob', email: 'bob@example.com', banned_until: '2027-01-01T00:00:00Z' }];
-        return [{ ...DEFAULT_USER, username: 'alex' }];
+        return [{ ...DEFAULT_USER, username: 'alex', is_admin: 1 }];
       },
       'UPDATE users SET banned_until = NULL': () => ({ success: true }),
       'DELETE FROM email_blacklist WHERE email': () => ({ success: true }),
@@ -291,7 +306,7 @@ describe('admin routes', () => {
       {
         'FROM users WHERE id': (_sql, params) => {
           if (params[0] === 'user-2') return [{ username: 'bob', email: 'bob@example.com', pfp_key: 'avatars/bob.png' }];
-          return [{ ...DEFAULT_USER, username: 'alex' }];
+          return [{ ...DEFAULT_USER, username: 'alex', is_admin: 1 }];
         },
         'SELECT thumbnail_key FROM circuits WHERE user_id': () => [
           { thumbnail_key: 'thumb1.png' },

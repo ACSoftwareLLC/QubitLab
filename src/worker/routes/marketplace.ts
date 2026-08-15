@@ -19,20 +19,19 @@ export type MarketplaceCircuitRow = {
   first_name: string | null;
   last_name: string | null;
   bio: string | null;
+  is_admin: number;
 };
 
-function marketplaceResponse(row: MarketplaceCircuitRow, admins: string) {
-  const user = publicUser(
-    {
-      id: row.user_id,
-      username: row.username,
-      pfp_key: row.pfp_key,
-      first_name: row.first_name,
-      last_name: row.last_name,
-      bio: row.bio,
-    },
-    admins
-  );
+function marketplaceResponse(row: MarketplaceCircuitRow) {
+  const user = publicUser({
+    id: row.user_id,
+    username: row.username,
+    pfp_key: row.pfp_key,
+    is_admin: row.is_admin,
+    first_name: row.first_name,
+    last_name: row.last_name,
+    bio: row.bio,
+  });
 
   return {
     id: row.id,
@@ -54,7 +53,7 @@ const marketplace = new Hono<HonoEnv>();
 marketplace.get('/', async (c) => {
   const rows = await queryAll<MarketplaceCircuitRow>(
     c,
-    `SELECT c.id, c.user_id, u.username, u.pfp_key, u.first_name, u.last_name, u.bio,
+    `SELECT c.id, c.user_id, u.username, u.pfp_key, u.first_name, u.last_name, u.bio, u.is_admin,
             c.name, c.circuit, c.thumbnail_key, c.shared, c.created_at, c.updated_at
      FROM circuits c
      JOIN users u ON c.user_id = u.id
@@ -62,14 +61,14 @@ marketplace.get('/', async (c) => {
      ORDER BY c.updated_at DESC
      LIMIT 200`
   );
-  return c.json({ circuits: rows.map((r) => marketplaceResponse(r, c.env.ADMINS)) });
+  return c.json({ circuits: rows.map((r) => marketplaceResponse(r)) });
 });
 
 marketplace.get('/:id', async (c) => {
   const id = c.req.param('id');
   const row = await queryFirst<MarketplaceCircuitRow>(
     c,
-    `SELECT c.id, c.user_id, u.username, u.pfp_key, u.first_name, u.last_name, u.bio,
+    `SELECT c.id, c.user_id, u.username, u.pfp_key, u.first_name, u.last_name, u.bio, u.is_admin,
             c.name, c.circuit, c.thumbnail_key, c.shared, c.created_at, c.updated_at
      FROM circuits c
      JOIN users u ON c.user_id = u.id
@@ -79,7 +78,7 @@ marketplace.get('/:id', async (c) => {
   if (!row) {
     return jsonError(c, 'Circuit not found', 404);
   }
-  return c.json({ circuit: marketplaceResponse(row, c.env.ADMINS) });
+  return c.json({ circuit: marketplaceResponse(row) });
 });
 
 marketplace.get('/:id/thumbnail', async (c) => {

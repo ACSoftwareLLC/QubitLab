@@ -82,6 +82,7 @@ const SESSION_USER = {
   first_name: 'Alice',
   last_name: 'Admin',
   bio: 'Admin bio',
+  is_admin: 1,
   created_at: '2026-07-01T00:00:00Z',
 };
 
@@ -90,12 +91,12 @@ const USER_COOKIE = 'sessionId=user-session';
 
 function makeEnv(
   d1Handlers: Record<string, (sql: string, params: unknown[]) => unknown> = {},
-  admins = 'alice'
+  user = SESSION_USER
 ) {
   return {
     DB: mockD1({
-      'FROM sessions': () => [SESSION_USER],
-      'FROM users WHERE id': () => [SESSION_USER],
+      'FROM sessions': () => [user],
+      'FROM users WHERE id': () => [user],
       ...d1Handlers,
     }),
     AVATARS: mockR2(),
@@ -103,7 +104,6 @@ function makeEnv(
     SESSION_SECRET: 'test-secret',
     TURNSTILE_SECRET_KEY: '',
     TURNSTILE_SITE_KEY: '',
-    ADMINS: admins,
   };
 }
 
@@ -124,6 +124,7 @@ function makePostRow(overrides: Partial<Record<string, unknown>> = {}) {
     author_first_name: 'Alice',
     author_last_name: 'Admin',
     author_bio: 'Admin bio',
+    author_is_admin: 1,
     ...overrides,
   };
 }
@@ -188,7 +189,7 @@ describe('blog routes', () => {
   });
 
   it('rejects non-admin create', async () => {
-    const env = makeEnv({}, '');
+    const env = makeEnv({}, { ...SESSION_USER, is_admin: 0 });
     const res = await app.fetch(
       new Request('http://localhost/auth/blogs', {
         method: 'POST',

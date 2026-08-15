@@ -8,7 +8,6 @@ export type WorkerBindings = {
   TURNSTILE_SECRET_KEY: string;
   TURNSTILE_SITE_KEY: string;
   TURNSTILE_SKIP_VERIFICATION?: string;
-  ADMINS: string;
   DISABLE_RATE_LIMIT?: string;
   DISABLE_ORIGIN_VALIDATION?: string;
 };
@@ -49,22 +48,22 @@ export function publicUser(
     id: string;
     username: string;
     pfp_key: string | null;
+    is_admin?: number | boolean;
+    isAdmin?: boolean;
     first_name?: string | null;
     last_name?: string | null;
     bio?: string | null;
     created_at?: string | null;
-  },
-  admins: string
+  }
 ): PublicUserData {
   const firstName = u.first_name ?? null;
   const lastName = u.last_name ?? null;
   const bio = u.bio ?? null;
-  const adminList = admins.split(',').map((s) => s.trim()).filter(Boolean);
   const data: PublicUserData = {
     id: u.id,
     username: u.username,
     pfpUrl: u.pfp_key ? `/auth/users/${u.id}/avatar` : null,
-    isAdmin: adminList.includes(u.username),
+    isAdmin: u.is_admin === 1 || u.is_admin === true || u.isAdmin === true,
     firstName,
     lastName,
     bio,

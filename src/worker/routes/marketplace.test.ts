@@ -82,6 +82,7 @@ const sharedCircuitRow = {
   first_name: null,
   last_name: null,
   bio: null,
+  is_admin: 1,
   name: 'Bell state',
   circuit: JSON.stringify({ numBits: 2, ops: [] }),
   thumbnail_key: 'user-1/shared-1/thumb.png',
@@ -103,7 +104,6 @@ function makeEnv(
     SESSION_SECRET: 'test-secret',
     TURNSTILE_SECRET_KEY: '',
     TURNSTILE_SITE_KEY: '',
-    ADMINS: 'alice',
   };
 }
 

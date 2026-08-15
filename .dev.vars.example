@@ -6,4 +6,3 @@ TURNSTILE_SITE_KEY=3x00000000000000000000FF
 # TURNSTILE_SKIP_VERIFICATION=true
 # Disable origin validation when running frontend and worker on separate ports:
 # DISABLE_ORIGIN_VALIDATION=true
-ADMINS=alex,devadmin

@@ -15,6 +15,7 @@ import { BlogPage } from './pages/BlogPage';
 import { BlogPostPage } from './pages/BlogPostPage';
 import { BlogEditorPage } from './pages/BlogEditorPage';
 import { PatchNotesPage } from './pages/PatchNotesPage';
+import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { UserProfilePage } from './pages/UserProfilePage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { UserManagementPage } from './pages/UserManagementPage';
@@ -60,6 +61,7 @@ function App() {
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
           <Route path="/patch-notes" element={<PatchNotesPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/user/:username" element={<UserProfilePage />} />
         </Route>
         {/* Admin-only routes. */}

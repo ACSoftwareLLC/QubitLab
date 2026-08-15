@@ -27,8 +27,7 @@
 		}
 	],
 	"vars": {
-		"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv",
-		"ADMINS": "alex,devadmin"
+		"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv"
 	},
 	"env": {
 		"dev": {
@@ -51,8 +50,7 @@
 				}
 			],
 			"vars": {
-				"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv",
-				"ADMINS": "alex,devadmin"
+				"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv"
 			}
 		},
 		"production": {
@@ -75,8 +73,7 @@
 				}
 			],
 		"vars": {
-			"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv",
-			"ADMINS": "alex"
+			"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv"
 		}
 		}
 	}

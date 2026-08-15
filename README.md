@@ -121,6 +121,19 @@ Seeded dev accounts:
 - `devadmin` / `devpassword` — admin user (blog editor).
 - `devuser` / `devpassword` — regular user.
 
+Admin privileges are controlled by the `users.is_admin` column, not by an env var. After applying migrations, grant admin rights with a D1 command:
+
+```bash
+# Local
+wrangler d1 execute DB --local --command "UPDATE users SET is_admin = 1 WHERE username IN ('alex')"
+
+# Dev
+wrangler d1 execute DB --env dev --command "UPDATE users SET is_admin = 1 WHERE username IN ('alex')"
+
+# Production
+wrangler d1 execute DB --env production --command "UPDATE users SET is_admin = 1 WHERE username IN ('alex')"
+```
+
 ### Deployment checks
 
 Before deploying to a remote environment, verify that the configured D1 database and R2 buckets exist:

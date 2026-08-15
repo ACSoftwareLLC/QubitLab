@@ -10,6 +10,7 @@ import { queryFirst, runQuery, uniqueConstraintError } from '../db.js';
 import { setSessionCookie, clearSessionCookie, sessionExpiration } from '../cookie.js';
 import { requireAuth, getBanStatus } from '../auth.js';
 import { rateLimit } from '../rate-limit.js';
+import { hashSessionId, getSessionId } from '../session.js';
 
 const auth = new Hono<HonoEnv>();
 
@@ -91,12 +92,13 @@ auth.post('/register', rateLimit('register', 5, 15 * 60 * 1000), async (c) => {
   }
 
   const sessionId = randomUUID();
+  const sessionHash = await hashSessionId(sessionId);
   const expires = sessionExpiration();
   await runQuery(
     c,
     `INSERT INTO sessions (id, user_id, expires_at, created_at)
      VALUES (?, ?, ?, ?)`,
-    [sessionId, userId, expires.toISOString(), now]
+    [sessionHash, userId, expires.toISOString(), now]
   );
   setSessionCookie(c, sessionId, expires);
 
@@ -109,15 +111,16 @@ auth.post('/register', rateLimit('register', 5, 15 * 60 * 1000), async (c) => {
       last_name: string | null;
       bio: string | null;
       created_at: string;
+      is_admin: number;
     }
   >(
     c,
-    `SELECT id, username, pfp_key, first_name, last_name, bio, created_at
+    `SELECT id, username, pfp_key, first_name, last_name, bio, created_at, is_admin
      FROM users WHERE id = ?`,
     [userId]
   );
 
-  return c.json({ user: publicUser(user!, c.env.ADMINS) });
+  return c.json({ user: publicUser(user!) });
 });
 
 auth.post('/login', rateLimit('login', 10, 15 * 60 * 1000), async (c) => {
@@ -139,10 +142,11 @@ auth.post('/login', rateLimit('login', 10, 15 * 60 * 1000), async (c) => {
       last_name: string | null;
       bio: string | null;
       created_at: string;
+      is_admin: number;
     }
   >(
     c,
-    `SELECT id, username, password_hash, pfp_key, first_name, last_name, bio, created_at
+    `SELECT id, username, password_hash, pfp_key, first_name, last_name, bio, created_at, is_admin
      FROM users WHERE username = ?`,
     [username]
   );
@@ -161,22 +165,24 @@ auth.post('/login', rateLimit('login', 10, 15 * 60 * 1000), async (c) => {
   }
 
   const sessionId = randomUUID();
+  const sessionHash = await hashSessionId(sessionId);
   const expires = sessionExpiration();
   await runQuery(
     c,
     `INSERT INTO sessions (id, user_id, expires_at, created_at)
      VALUES (?, ?, ?, ?)`,
-    [sessionId, user.id, expires.toISOString(), new Date().toISOString()]
+    [sessionHash, user.id, expires.toISOString(), new Date().toISOString()]
   );
   setSessionCookie(c, sessionId, expires);
 
-  return c.json({ user: publicUser(user, c.env.ADMINS) });
+  return c.json({ user: publicUser(user) });
 });
 
 auth.post('/logout', requireAuth, async (c) => {
-  const sessionId = c.req.header('Cookie')?.match(/(?:^|;\s*)sessionId=([^;]+)/)?.[1];
+  const sessionId = getSessionId(c);
   if (sessionId) {
-    await runQuery(c, `DELETE FROM sessions WHERE id = ?`, [decodeURIComponent(sessionId)]);
+    const sessionHash = await hashSessionId(sessionId);
+    await runQuery(c, `DELETE FROM sessions WHERE id = ?`, [sessionHash]);
   }
   clearSessionCookie(c);
   return c.json({ success: true });
@@ -184,7 +190,7 @@ auth.post('/logout', requireAuth, async (c) => {
 
 auth.get('/me', requireAuth, (c) => {
   const user = c.get('user');
-  return c.json({ user: publicUser(user!, c.env.ADMINS) });
+  return c.json({ user: publicUser(user!) });
 });
 
 export default auth;

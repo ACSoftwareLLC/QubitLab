@@ -133,6 +133,7 @@ const SESSION_USER = {
   first_name: null,
   last_name: null,
   bio: null,
+  is_admin: 0,
   created_at: '2026-07-01T00:00:00Z',
 };
 
@@ -155,7 +156,6 @@ function makeEnv(
     SESSION_SECRET: 'test-secret',
     TURNSTILE_SECRET_KEY: '',
     TURNSTILE_SITE_KEY: '',
-    ADMINS: '',
     DISABLE_RATE_LIMIT: overrides.DISABLE_RATE_LIMIT,
   };
 }

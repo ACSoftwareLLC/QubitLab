@@ -26,8 +26,20 @@ Configuration lives in `wrangler.jsonc`. The top-level configuration is used for
 Vars (non-sensitive) are in `wrangler.jsonc` under `vars` or `env.<name>.vars`:
 
 - `TURNSTILE_SITE_KEY` — public Turnstile site key.
-- `ADMINS` — comma-separated list of admin usernames.
 - `DISABLE_RATE_LIMIT` — optional; set to `"true"` to disable rate limiting.
+
+Admin privileges are controlled by the `users.is_admin` column (not an env var). After deploying the `0005_admin_and_session_hardening.sql` migration, grant admin rights with a D1 command:
+
+```bash
+# Local
+wrangler d1 execute DB --local --command "UPDATE users SET is_admin = 1 WHERE username IN ('alex')"
+
+# Dev
+wrangler d1 execute DB --env dev --command "UPDATE users SET is_admin = 1 WHERE username IN ('alex')"
+
+# Production
+wrangler d1 execute DB --env production --command "UPDATE users SET is_admin = 1 WHERE username IN ('alex')"
+```
 
 Secrets (sensitive) must be set with `wrangler secret put` per environment:
 
@@ -137,6 +149,7 @@ This validates that the configured D1 database and R2 buckets exist for the targ
 
 - **Sessions**: `sessionId` cookies use `HttpOnly`, `Secure`, `SameSite=Strict`, and a 7-day `Max-Age`.
 - **Origin validation**: state-changing requests (`POST`, `PATCH`, `DELETE`, etc.) require the `Origin` header to match the request `Host` (skipped for `GET`, `HEAD`, `OPTIONS`, and missing origins).
+- **Admin privileges**: determined by `users.is_admin = 1` in D1, not by an env var.
 - **Rate limiting**: auth routes (`/auth/register`, `/auth/login`) are rate-limited by client IP. Set `DISABLE_RATE_LIMIT=true` to disable (e.g., for production load testing).
 - **CORS**: none — the app is same-origin, so frontend requests to `/auth/*` do not require CORS headers.
 - **CSP**: enforced by the static asset handler via `wrangler.jsonc` (configure as needed for inline scripts/WASM).

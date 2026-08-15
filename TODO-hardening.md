@@ -48,21 +48,21 @@ Fixes the two actively-open production holes: unlimited login/register attempts 
 
 Removes the privilege-escalation design flaw; limits blast radius of a DB read.
 
-### Migration `0003_admin_and_session_hardening.sql`
-- [ ] `ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0 CHECK (is_admin IN (0,1))`
-- [ ] Optional: case-insensitive username uniqueness via UNIQUE index on `username COLLATE NOCASE` (pre-check for existing conflicts first) — kills `Alex`/`alex` impersonation
+### Migration `0005_admin_and_session_hardening.sql`
+- [x] `ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0 CHECK (is_admin IN (0,1))`
+- [x] Optional: case-insensitive username uniqueness via UNIQUE index on `username COLLATE NOCASE` (pre-check for existing conflicts first) — kills `Alex`/`alex` impersonation
 
 ### Code
-- [ ] `src/worker/session.ts` — `getSessionUser` selects `u.is_admin` from the JOIN; drop `ADMINS` env parsing
-- [ ] `src/worker/routes/auth.ts` (`requireAdmin`), `src/worker/routes/blogs.ts` (`isAdminRequest`), `src/worker/types.ts` (`publicUser`) — read `is_admin` from the user row
-- [ ] Session tokens hashed at rest: login/register store `SHA-256(sessionId)` in `sessions.id`; `getSessionUser` hashes the cookie value before lookup. Existing sessions invalidate → one-time forced re-login (acceptable). No schema change needed
-- [ ] `scripts/seed-dev.ts` — set `is_admin = 1` for `devadmin`
-- [ ] Docs: `AGENTS.md` + `README.md` — replace `ADMINS` var docs with the `wrangler d1 execute … UPDATE users SET is_admin = 1` grant procedure
+- [x] `src/worker/session.ts` — `getSessionUser` selects `u.is_admin` from the JOIN; drop `ADMINS` env parsing
+- [x] `src/worker/routes/auth.ts` (`requireAdmin`), `src/worker/routes/blogs.ts` (`isAdminRequest`), `src/worker/types.ts` (`publicUser`) — read `is_admin` from the user row
+- [x] Session tokens hashed at rest: login/register store `SHA-256(sessionId)` in `sessions.id`; `getSessionUser` hashes the cookie value before lookup. Existing sessions invalidate → one-time forced re-login (acceptable). No schema change needed
+- [x] `scripts/seed-dev.ts` — set `is_admin = 1` for `devadmin`
+- [x] Docs: `AGENTS.md` + `README.md` — replace `ADMINS` var docs with the `wrangler d1 execute … UPDATE users SET is_admin = 1` grant procedure
 
 ### Tests
-- [ ] Non-admin → 403 on blog CRUD/analytics; admin via DB flag → 200
-- [ ] Username in `ADMINS` env no longer grants anything
-- [ ] Session lookup works with hashed IDs; old plaintext session IDs rejected
+- [x] Non-admin → 403 on blog CRUD/analytics; admin via DB flag → 200
+- [x] Username in `ADMINS` env no longer grants anything
+- [x] Session lookup works with hashed IDs; old plaintext session IDs rejected
 
 ---
 

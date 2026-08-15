@@ -122,7 +122,6 @@ function makeEnv(
     SESSION_SECRET: 'test-secret',
     TURNSTILE_SECRET_KEY: '',
     TURNSTILE_SITE_KEY: '',
-    ADMINS: '',
     DISABLE_RATE_LIMIT: 'false',
     ...overrides,
   };

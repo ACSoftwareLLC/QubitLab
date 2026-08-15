@@ -75,8 +75,7 @@ function mockExecutionCtx(): ExecutionContext {
 }
 
 function makeEnv(
-  d1Handlers: Record<string, (sql: string, params: unknown[]) => unknown> = {},
-  admins = 'alice'
+  d1Handlers: Record<string, (sql: string, params: unknown[]) => unknown> = {}
 ) {
   return {
     DB: mockD1(d1Handlers),
@@ -85,7 +84,6 @@ function makeEnv(
     SESSION_SECRET: 'test-secret',
     TURNSTILE_SECRET_KEY: '',
     TURNSTILE_SITE_KEY: '',
-    ADMINS: admins,
   };
 }
 
@@ -101,6 +99,7 @@ describe('user profile route', () => {
           last_name: 'Admin',
           bio: 'Hello',
           created_at: '2026-07-01T00:00:00Z',
+          is_admin: 1,
         },
       ],
     });

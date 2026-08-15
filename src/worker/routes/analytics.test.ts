@@ -131,6 +131,7 @@ const ADMIN_USER = {
   first_name: null,
   last_name: null,
   bio: null,
+  is_admin: 1,
   created_at: '2026-07-01T00:00:00Z',
 };
 
@@ -142,6 +143,7 @@ const NON_ADMIN_USER = {
   first_name: null,
   last_name: null,
   bio: null,
+  is_admin: 0,
   created_at: '2026-07-01T00:00:00Z',
 };
 
@@ -150,8 +152,7 @@ const USER_COOKIE = 'sessionId=user-session';
 
 function makeEnv(
   d1Handlers: Record<string, (sql: string, params: unknown[]) => unknown> = {},
-  user = ADMIN_USER,
-  admins = 'alex'
+  user = ADMIN_USER
 ) {
   return {
     DB: mockD1({
@@ -164,7 +165,6 @@ function makeEnv(
     SESSION_SECRET: 'test-secret',
     TURNSTILE_SECRET_KEY: '',
     TURNSTILE_SITE_KEY: '',
-    ADMINS: admins,
   };
 }
 

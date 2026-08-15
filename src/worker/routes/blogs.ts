@@ -24,6 +24,7 @@ export type BlogRow = {
   author_first_name: string | null;
   author_last_name: string | null;
   author_bio: string | null;
+  author_is_admin: number | null;
 };
 
 export type BlogPostResponse = {
@@ -46,7 +47,8 @@ const VISIBILITY_FILTER = `
 const SELECT_BLOGS = `
   b.id, b.slug, b.title, b.content, b.author, b.published, b.publish_at, b.created_at, b.updated_at,
   b.user_id, u.username AS author_username, u.pfp_key AS author_pfp_key,
-  u.first_name AS author_first_name, u.last_name AS author_last_name, u.bio AS author_bio
+  u.first_name AS author_first_name, u.last_name AS author_last_name, u.bio AS author_bio,
+  u.is_admin AS author_is_admin
 `;
 
 function slugify(input: string): string {
@@ -57,22 +59,20 @@ function slugify(input: string): string {
     .slice(0, 128);
 }
 
-function buildAuthorProfile(row: BlogRow, admins: string): PublicUserData | null {
+function buildAuthorProfile(row: BlogRow): PublicUserData | null {
   if (!row.user_id || !row.author_username) return null;
-  return publicUser(
-    {
-      id: row.user_id,
-      username: row.author_username,
-      pfp_key: row.author_pfp_key,
-      first_name: row.author_first_name,
-      last_name: row.author_last_name,
-      bio: row.author_bio,
-    },
-    admins
-  );
+  return publicUser({
+    id: row.user_id,
+    username: row.author_username,
+    pfp_key: row.author_pfp_key,
+    is_admin: row.author_is_admin ?? 0,
+    first_name: row.author_first_name,
+    last_name: row.author_last_name,
+    bio: row.author_bio,
+  });
 }
 
-function buildBlogPost(row: BlogRow, admins: string): BlogPostResponse {
+function buildBlogPost(row: BlogRow): BlogPostResponse {
   return {
     id: row.id,
     slug: row.slug,
@@ -83,15 +83,13 @@ function buildBlogPost(row: BlogRow, admins: string): BlogPostResponse {
     publishAt: row.publish_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    authorProfile: buildAuthorProfile(row, admins),
+    authorProfile: buildAuthorProfile(row),
   };
 }
 
 function isAdminRequest(c: HonoContext): boolean {
   const user = c.get('user');
-  if (!user) return false;
-  const adminList = c.env.ADMINS.split(',').map((s) => s.trim()).filter(Boolean);
-  return adminList.includes(user.username);
+  return user?.isAdmin ?? false;
 }
 
 const blogs = new Hono<HonoEnv>();
@@ -106,7 +104,7 @@ blogs.get('/', async (c) => {
      ${admin ? '' : `WHERE ${VISIBILITY_FILTER}`}
      ORDER BY b.created_at DESC`
   );
-  return c.json({ posts: rows.map((r) => buildBlogPost(r, c.env.ADMINS)) });
+  return c.json({ posts: rows.map((r) => buildBlogPost(r)) });
 });
 
 blogs.get('/:slug', async (c) => {
@@ -123,7 +121,7 @@ blogs.get('/:slug', async (c) => {
   if (!row) {
     return jsonError(c, 'Post not found', 404);
   }
-  return c.json({ post: buildBlogPost(row, c.env.ADMINS) });
+  return c.json({ post: buildBlogPost(row) });
 });
 
 blogs.use(requireAdmin);
@@ -154,17 +152,7 @@ blogs.post('/', async (c) => {
         normalizedSlug,
         data.title,
         data.content,
-        publicUser(
-          {
-            id: user.id,
-            username: user.username,
-            pfp_key: user.pfp_key,
-            first_name: user.first_name,
-            last_name: user.last_name,
-            bio: user.bio,
-          },
-          c.env.ADMINS
-        ).displayName,
+        publicUser(user).displayName,
         published ? 1 : 0,
         publishAt ?? (published ? now : null),
         user.id,
@@ -193,7 +181,7 @@ blogs.post('/', async (c) => {
       );
     }
 
-    return c.json({ post: buildBlogPost(row!, c.env.ADMINS) }, 201);
+    return c.json({ post: buildBlogPost(row!) }, 201);
   } catch (err) {
     if (uniqueConstraintError(err)) {
       return jsonError(c, 'A post with that slug already exists', 409);
@@ -276,7 +264,7 @@ blogs.patch('/:slug', async (c) => {
     [updated!.id]
   );
 
-  return c.json({ post: buildBlogPost(row!, c.env.ADMINS) });
+  return c.json({ post: buildBlogPost(row!) });
 });
 
 blogs.delete('/:slug', async (c) => {

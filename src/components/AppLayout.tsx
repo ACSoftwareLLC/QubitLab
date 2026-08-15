@@ -91,6 +91,13 @@ export function AppLayout() {
 
       <Outlet />
 
+      <footer className="app-footer">
+        <span>© {new Date().getFullYear()} QubitLab</span>
+        <div className="app-footer-links">
+          <Link to="/privacy">Privacy Policy</Link>
+        </div>
+      </footer>
+
       {saveOpen && actions && <SaveCircuitModal onClose={() => setSaveOpen(false)} />}
     </div>
   );

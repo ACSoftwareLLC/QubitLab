@@ -122,9 +122,9 @@ async function buildSql(): Promise<string> {
     'DELETE FROM sessions;',
     'DELETE FROM users;',
     '',
-    'INSERT INTO users (id, username, password_hash, first_name, last_name, bio, created_at) VALUES',
-    `  (${escapeSql(adminId)}, ${escapeSql('devadmin')}, ${escapeSql(adminPassword)}, ${escapeSql('Dev')}, ${escapeSql('Admin')}, ${escapeSql('Development administrator account.')}, ${escapeSql(now)}),`,
-    `  (${escapeSql(userId)}, ${escapeSql('devuser')}, ${escapeSql(userPassword)}, ${escapeSql('Dev')}, ${escapeSql('User')}, ${escapeSql('Development user account.')}, ${escapeSql(now)});`,
+    'INSERT INTO users (id, username, password_hash, first_name, last_name, bio, is_admin, created_at) VALUES',
+    `  (${escapeSql(adminId)}, ${escapeSql('devadmin')}, ${escapeSql(adminPassword)}, ${escapeSql('Dev')}, ${escapeSql('Admin')}, ${escapeSql('Development administrator account.')}, 1, ${escapeSql(now)}),`,
+    `  (${escapeSql(userId)}, ${escapeSql('devuser')}, ${escapeSql(userPassword)}, ${escapeSql('Dev')}, ${escapeSql('User')}, ${escapeSql('Development user account.')}, 0, ${escapeSql(now)});`,
     '',
   ];
 
