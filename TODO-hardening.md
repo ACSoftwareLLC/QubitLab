@@ -95,18 +95,18 @@ Breaks the stored-XSS chain and adds the currently-missing browser security cont
 
 Closes the cost-exhaustion/DoS vectors and correctness bugs in security controls.
 
-- [ ] `src/worker/schemas.ts`: password `.max(128)`; cap `ops` array length, `targets`/`controls` lengths, gate `type` length; blog list/query caps
-- [ ] `src/worker/routes/circuits.ts`: per-user circuit count quota (e.g. 100) → 403/413 with clear error
-- [ ] `src/worker/routes/blogs.ts`: `LIMIT` on list endpoint + server-side excerpt (stop shipping full `content` for every post)
-- [ ] `src/worker/routes/blogs.ts`: fix `VISIBILITY_FILTER` datetime bug — compare against an ISO `?` param instead of `datetime('now')`
-- [ ] `src/worker/routes/blogs.ts`: guard empty slugs after `slugify`
-- [ ] `src/worker/index.ts` / `errors.ts`: body-size guard via `Content-Length` check on JSON routes (e.g. 1 MB); malformed JSON → 400 instead of 500
-- [ ] Frontend: clamp `numBits <= 16` in `src/api/deserialize.ts` / `src/hooks/useCanvasState.ts` when loading marketplace circuits
+- [x] `src/worker/schemas.ts`: password `.max(128)`; cap `ops` array length, `targets`/`controls` lengths, gate `type` length; blog list/query caps
+- [x] `src/worker/routes/circuits.ts`: per-user circuit count quota (e.g. 100) → 403/413 with clear error
+- [x] `src/worker/routes/blogs.ts`: `LIMIT` on list endpoint + server-side excerpt (stop shipping full `content` for every post)
+- [x] `src/worker/routes/blogs.ts`: fix `VISIBILITY_FILTER` datetime bug — compare against an ISO `?` param instead of `datetime('now')`
+- [x] `src/worker/routes/blogs.ts`: guard empty slugs after `slugify`
+- [x] `src/worker/index.ts` / `errors.ts`: body-size guard via `Content-Length` check on JSON routes (e.g. 1 MB); malformed JSON → 400 instead of 500
+- [x] Frontend: clamp `numBits <= 16` in `src/api/deserialize.ts` / `src/hooks/useCanvasState.ts` when loading marketplace circuits
 
 ### Tests
-- [ ] Quota exhaustion → 4xx; oversized bodies → 413; malformed JSON → 400
-- [ ] Scheduled post publishes same-day (visibility filter fix)
-- [ ] Crafted 30-bit marketplace circuit clamps to 16
+- [x] Quota exhaustion → 4xx; oversized bodies → 413; malformed JSON → 400
+- [x] Scheduled post publishes same-day (visibility filter fix)
+- [x] Crafted 30-bit marketplace circuit clamps to 16
 
 ---
 

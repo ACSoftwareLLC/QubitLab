@@ -410,4 +410,45 @@ describe('circuit routes', () => {
       error: 'Too many requests',
     });
   });
+
+  it('enforces per-user circuit quota', async () => {
+    const env = makeEnv({
+      'COUNT(*) as count FROM circuits WHERE user_id': () => [{ count: 100 }],
+    });
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/circuits', {
+        method: 'POST',
+        headers: { Cookie: AUTH_COOKIE, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Over quota', circuit: validCircuit }),
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain('quota exceeded');
+  });
+
+  it('rejects oversized JSON bodies with 413', async () => {
+    const env = makeEnv();
+    const bigBody = JSON.stringify({ name: 'x'.repeat(2_000_000), circuit: validCircuit });
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/circuits', {
+        method: 'POST',
+        headers: {
+          Cookie: AUTH_COOKIE,
+          'Content-Type': 'application/json',
+          'Content-Length': String(bigBody.length),
+        },
+        body: bigBody,
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(413);
+  });
 });

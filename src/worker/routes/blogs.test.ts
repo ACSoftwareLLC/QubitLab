@@ -163,6 +163,45 @@ describe('blog routes', () => {
     });
   });
 
+  it('returns excerpts instead of full content on list endpoint', async () => {
+    const env = makeEnv({
+      'FROM blogs b': () => [
+        makePostRow({
+          slug: 'public-post',
+          title: 'Public',
+          content: '<p>First sentence. Second sentence here.</p>',
+          published: 1,
+          publish_at: null,
+        }),
+      ],
+    });
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/blogs'),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { posts: Array<{ excerpt: string; content?: string }> };
+    expect(body.posts[0].excerpt).toBe('First sentence. Second sentence here.');
+    expect(body.posts[0].content).toBeUndefined();
+  });
+
+  it('respects list pagination limits', async () => {
+    const env = makeEnv({
+      'FROM blogs b': () => [makePostRow({ slug: 'post-1' })],
+    });
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/blogs?limit=200'),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(400);
+  });
+
   it('lists all posts for admins', async () => {
     const env = makeEnv({
       'FROM blogs b': () => [
@@ -204,6 +243,50 @@ describe('blog routes', () => {
       mockExecutionCtx()
     );
     expect(res.status).toBe(403);
+  });
+
+  it('publishes scheduled posts whose publish_at has passed', async () => {
+    const env = makeEnv({
+      'FROM blogs b': () => [
+        makePostRow({
+          slug: 'scheduled-post',
+          title: 'Scheduled',
+          published: 1,
+          publish_at: new Date(Date.now() - 60_000).toISOString(),
+        }),
+      ],
+    });
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/blogs/scheduled-post'),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { post: { title: string } };
+    expect(body.post.title).toBe('Scheduled');
+  });
+
+  it('rejects empty slugs after slugification on create', async () => {
+    const env = makeEnv();
+    const res = await app.fetch(
+      new Request('http://localhost/auth/blogs', {
+        method: 'POST',
+        headers: { Cookie: ADMIN_COOKIE, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug: '-',
+          title: 'New Post',
+          content: 'Content',
+        }),
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain('Slug must contain');
   });
 
   it('creates a published post', async () => {

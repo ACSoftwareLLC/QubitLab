@@ -312,7 +312,7 @@ export function useCanvasState(fitScale = 1) {
     const loaded = deserializeCircuit(circuit);
     setGates(loaded.gates);
     setGateLines(loaded.gateLines);
-    setNumBits(loaded.numBits);
+    setNumBits(Math.min(16, Math.max(1, loaded.numBits)));
     setSelectedPlacedGateId(null);
     setDraggingGateLine(null);
     setDragPreview(null);

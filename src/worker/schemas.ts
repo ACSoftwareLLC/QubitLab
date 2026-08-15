@@ -3,13 +3,13 @@ import { z } from 'zod';
 export const registerSchema = z.object({
   username: z.string().min(3).max(32).regex(/^[a-zA-Z0-9_]+$/),
   email: z.string().email(),
-  password: z.string().min(8),
+  password: z.string().min(8).max(128),
   turnstileToken: z.string().min(1).optional(),
 });
 
 export const loginSchema = z.object({
   username: z.string().min(3).max(32).regex(/^[a-zA-Z0-9_]+$/),
-  password: z.string().min(8),
+  password: z.string().min(8).max(128),
 });
 
 export const updateUsernameSchema = z.object({
@@ -17,8 +17,8 @@ export const updateUsernameSchema = z.object({
 });
 
 export const updatePasswordSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(8),
+  currentPassword: z.string().min(1).max(128),
+  newPassword: z.string().min(8).max(128),
 });
 
 export const updateProfileSchema = z.object({
@@ -35,16 +35,16 @@ export type UpdateProfileBody = z.infer<typeof updateProfileSchema>;
 
 export const gateOpSchema = z.object({
   id: z.number().int(),
-  type: z.string().min(1),
+  type: z.string().min(1).max(32),
   segment: z.number().int().min(0),
-  targets: z.array(z.number().int().min(0)),
-  controls: z.array(z.number().int().min(0)),
+  targets: z.array(z.number().int().min(0)).max(16),
+  controls: z.array(z.number().int().min(0)).max(16),
   angle: z.number().nullable(),
 });
 
 export const circuitSchema = z.object({
   numBits: z.number().int().min(1).max(16),
-  ops: z.array(gateOpSchema),
+  ops: z.array(gateOpSchema).max(1000),
 });
 
 const thumbnailSchema = z
@@ -101,6 +101,11 @@ export const analyticsLimitParamSchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(20),
 });
 
+export const blogListParamSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 export const analyticsTrackBodySchema = z.object({
   type: z.enum(['page_view', 'event']),
   path: z.string().max(2048),
@@ -122,3 +127,4 @@ export const analyticsTrackBodySchema = z.object({
 export type AnalyticsDaysParam = z.infer<typeof analyticsDaysParamSchema>;
 export type AnalyticsLimitParam = z.infer<typeof analyticsLimitParamSchema>;
 export type AnalyticsTrackBody = z.infer<typeof analyticsTrackBodySchema>;
+export type BlogListParam = z.infer<typeof blogListParamSchema>;

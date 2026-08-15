@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import type { HonoEnv, HonoContext, PublicUserData } from '../types.js';
 import { publicUser } from '../types.js';
 import { jsonError, formatZodError } from '../errors.js';
-import { createBlogSchema, updateBlogSchema } from '../schemas.js';
+import { createBlogSchema, updateBlogSchema, blogListParamSchema } from '../schemas.js';
 import { queryFirst, queryAll, runQuery, uniqueConstraintError } from '../db.js';
 import { requireAdmin } from '../auth.js';
 import { randomUUID } from '../crypto.js';
@@ -40,8 +40,12 @@ export type BlogPostResponse = {
   authorProfile: PublicUserData | null;
 };
 
+export type BlogListPostResponse = Omit<BlogPostResponse, 'content'> & {
+  excerpt: string;
+};
+
 const VISIBILITY_FILTER = `
-  b.published = 1 AND (b.publish_at IS NULL OR b.publish_at <= datetime('now'))
+  b.published = 1 AND (b.publish_at IS NULL OR b.publish_at <= ?)
 `;
 
 const SELECT_BLOGS = `
@@ -57,6 +61,17 @@ function slugify(input: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 128);
+}
+
+function normalizeSlug(input: string): string | null {
+  const slug = slugify(input);
+  return slug.length > 0 ? slug : null;
+}
+
+function makeExcerpt(content: string, maxLength = 300): string {
+  const text = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength).trimEnd() + '…';
 }
 
 function buildAuthorProfile(row: BlogRow): PublicUserData | null {
@@ -87,6 +102,21 @@ function buildBlogPost(row: BlogRow): BlogPostResponse {
   };
 }
 
+function buildBlogListPost(row: BlogRow): BlogListPostResponse {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    excerpt: makeExcerpt(row.content),
+    author: row.author,
+    published: row.published === 1,
+    publishAt: row.publish_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    authorProfile: buildAuthorProfile(row),
+  };
+}
+
 function isAdminRequest(c: HonoContext): boolean {
   const user = c.get('user');
   return user?.isAdmin ?? false;
@@ -96,27 +126,39 @@ const blogs = new Hono<HonoEnv>();
 
 blogs.get('/', async (c) => {
   const admin = isAdminRequest(c);
+  const params = blogListParamSchema.safeParse(c.req.query());
+  if (!params.success) {
+    return jsonError(c, formatZodError(params), 400);
+  }
+
+  const { page, limit } = params.data;
+  const offset = (page - 1) * limit;
+  const now = new Date().toISOString();
+
   const rows = await queryAll<BlogRow>(
     c,
     `SELECT ${SELECT_BLOGS}
      FROM blogs b
      LEFT JOIN users u ON b.user_id = u.id
      ${admin ? '' : `WHERE ${VISIBILITY_FILTER}`}
-     ORDER BY b.created_at DESC`
+     ORDER BY b.created_at DESC
+     LIMIT ? OFFSET ?`,
+    admin ? [limit, offset] : [now, limit, offset]
   );
-  return c.json({ posts: rows.map((r) => buildBlogPost(r)) });
+  return c.json({ posts: rows.map((r) => buildBlogListPost(r)) });
 });
 
 blogs.get('/:slug', async (c) => {
   const slug = c.req.param('slug');
   const admin = isAdminRequest(c);
+  const now = new Date().toISOString();
   const row = await queryFirst<BlogRow>(
     c,
     `SELECT ${SELECT_BLOGS}
      FROM blogs b
      LEFT JOIN users u ON b.user_id = u.id
      WHERE b.slug = ? ${admin ? '' : `AND ${VISIBILITY_FILTER}`}`,
-    [slug]
+    admin ? [slug] : [slug, now]
   );
   if (!row) {
     return jsonError(c, 'Post not found', 404);
@@ -134,7 +176,10 @@ blogs.post('/', async (c) => {
   }
 
   const data = result.data;
-  const normalizedSlug = slugify(data.slug);
+  const normalizedSlug = normalizeSlug(data.slug);
+  if (!normalizedSlug) {
+    return jsonError(c, 'Slug must contain at least one letter or number', 400);
+  }
   const user = c.get('user')!;
   const now = new Date().toISOString();
 
@@ -236,8 +281,12 @@ blogs.patch('/:slug', async (c) => {
     values.push(publishAt);
   }
   if (data.slug !== undefined) {
+    const normalizedSlug = normalizeSlug(data.slug);
+    if (!normalizedSlug) {
+      return jsonError(c, 'Slug must contain at least one letter or number', 400);
+    }
     updates.push('slug = ?');
-    values.push(slugify(data.slug));
+    values.push(normalizedSlug);
   }
 
   if (updates.length === 0) {

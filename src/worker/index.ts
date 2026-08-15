@@ -6,6 +6,7 @@ import { logRequestError } from './logger.js';
 import { jsonError } from './errors.js';
 import { purgeOldRateLimits } from './rate-limit.js';
 import { applySecurityHeaders } from './security-headers.js';
+import { jsonBodyMiddleware } from './json-body.js';
 import authRoutes from './routes/auth.js';
 import accountRoutes from './routes/account.js';
 import circuitRoutes from './routes/circuits.js';
@@ -19,6 +20,9 @@ import statsRoutes from './routes/stats.js';
 const app = new Hono<HonoEnv>();
 
 app.onError((err, c) => {
+  if (err instanceof SyntaxError || (err instanceof Error && err.name === 'SyntaxError')) {
+    return jsonError(c, 'Invalid JSON', 400);
+  }
   const requestId = c.req.header('CF-Ray') ?? crypto.randomUUID();
   logRequestError(c, err, requestId);
   return jsonError(c, 'Internal server error', 500);
@@ -29,6 +33,7 @@ const auth = new Hono<HonoEnv>();
 // Attach the current user to every /auth/* request and validate origin on state-changing requests.
 auth.use(loadSessionMiddleware);
 auth.use(validateOrigin);
+auth.use(jsonBodyMiddleware);
 
 auth.route('/', authRoutes);
 auth.route('/account', accountRoutes);

@@ -369,6 +369,25 @@ describe('useCanvasState', () => {
     });
   });
 
+  describe('loadCircuit', () => {
+    it('clamps an oversized numBits to 16', () => {
+      const { result } = renderHook(() => useCanvasState());
+      act(() =>
+        result.current.loadCircuit({
+          numBits: 30,
+          ops: [{ id: 1, type: 'H', segment: 0, targets: [0], controls: [], angle: null }],
+        })
+      );
+      expect(result.current.numBits).toBe(16);
+    });
+
+    it('clamps an undersized numBits to 1', () => {
+      const { result } = renderHook(() => useCanvasState());
+      act(() => result.current.loadCircuit({ numBits: 0, ops: [] }));
+      expect(result.current.numBits).toBe(1);
+    });
+  });
+
   describe('handleDrop with fitScale', () => {
     it('maps client coordinates through the fit scale', () => {
       const { result } = renderHook(() => useCanvasState(0.5));
