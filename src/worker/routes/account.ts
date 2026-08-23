@@ -35,6 +35,12 @@ account.patch('/username', async (c) => {
   const user = c.get('user')!;
   const { username } = result.data;
 
+  // Reject reserved admin usernames to prevent privilege escalation
+  const adminList = c.env.ADMINS.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (adminList.includes(username.toLowerCase())) {
+    return jsonError(c, 'Username not available', 400);
+  }
+
   const HOUR_MS = 60 * 60 * 1000;
   const overLimit = await checkUserActionLimit(c, 'username_change', 3, HOUR_MS);
   if (overLimit) {

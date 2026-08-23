@@ -227,6 +227,132 @@ describe('account routes', () => {
       error: 'Avatar change limit reached (5 per hour)',
     });
   });
+
+  // Security tests for admin username reservation during username change (CVE mitigation)
+  describe('admin username reservation on username change', () => {
+    it('rejects username change to exact admin username', async () => {
+      const env = makeEnv({}, DEFAULT_USER, { ADMINS: 'alex,devadmin' });
+
+      const res = await app.fetch(
+        new Request('http://localhost/auth/account/username', {
+          method: 'PATCH',
+          headers: { Cookie: ADMIN_COOKIE, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'alex' }),
+        }),
+        env as unknown as Record<string, unknown>,
+        mockExecutionCtx()
+      );
+
+      expect(res.status).toBe(400);
+      expect((await res.json()) as { error: string }).toEqual({
+        error: 'Username not available',
+      });
+    });
+
+    it('rejects username change to admin username in different case', async () => {
+      const env = makeEnv({}, DEFAULT_USER, { ADMINS: 'alex,devadmin' });
+
+      const res = await app.fetch(
+        new Request('http://localhost/auth/account/username', {
+          method: 'PATCH',
+          headers: { Cookie: ADMIN_COOKIE, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'DEVADMIN' }),
+        }),
+        env as unknown as Record<string, unknown>,
+        mockExecutionCtx()
+      );
+
+      expect(res.status).toBe(400);
+      expect((await res.json()) as { error: string }).toEqual({
+        error: 'Username not available',
+      });
+    });
+
+    it('rejects username change to mixed-case admin username', async () => {
+      const env = makeEnv({}, DEFAULT_USER, { ADMINS: 'alex,devadmin' });
+
+      const res = await app.fetch(
+        new Request('http://localhost/auth/account/username', {
+          method: 'PATCH',
+          headers: { Cookie: ADMIN_COOKIE, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'DeVaDmIn' }),
+        }),
+        env as unknown as Record<string, unknown>,
+        mockExecutionCtx()
+      );
+
+      expect(res.status).toBe(400);
+      expect((await res.json()) as { error: string }).toEqual({
+        error: 'Username not available',
+      });
+    });
+
+    it('allows username change to non-admin username', async () => {
+      const env = makeEnv(
+        {
+          'UPDATE users SET username': () => [
+            { ...DEFAULT_USER, username: 'newusername' },
+          ],
+        },
+        DEFAULT_USER,
+        { ADMINS: 'alex,devadmin' }
+      );
+
+      const res = await app.fetch(
+        new Request('http://localhost/auth/account/username', {
+          method: 'PATCH',
+          headers: { Cookie: ADMIN_COOKIE, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'newusername' }),
+        }),
+        env as unknown as Record<string, unknown>,
+        mockExecutionCtx()
+      );
+
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { user: { username: string } };
+      expect(body.user.username).toBe('newusername');
+    });
+
+    it('prevents privilege escalation via username change', async () => {
+      // Simulate a regular user trying to change their username to an admin username
+      const regularUser = { ...DEFAULT_USER, username: 'regularuser' };
+      const env = makeEnv({}, regularUser, { ADMINS: 'alex,devadmin' });
+
+      const res = await app.fetch(
+        new Request('http://localhost/auth/account/username', {
+          method: 'PATCH',
+          headers: { Cookie: ADMIN_COOKIE, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'alex' }),
+        }),
+        env as unknown as Record<string, unknown>,
+        mockExecutionCtx()
+      );
+
+      expect(res.status).toBe(400);
+      expect((await res.json()) as { error: string }).toEqual({
+        error: 'Username not available',
+      });
+    });
+
+    it('handles admin list with whitespace in username change', async () => {
+      const env = makeEnv({}, DEFAULT_USER, { ADMINS: ' alex , devadmin ' });
+
+      const res = await app.fetch(
+        new Request('http://localhost/auth/account/username', {
+          method: 'PATCH',
+          headers: { Cookie: ADMIN_COOKIE, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'alex' }),
+        }),
+        env as unknown as Record<string, unknown>,
+        mockExecutionCtx()
+      );
+
+      expect(res.status).toBe(400);
+      expect((await res.json()) as { error: string }).toEqual({
+        error: 'Username not available',
+      });
+    });
+  });
 });
 
 // Avatar upload and display are exercised in Playwright end-to-end tests because

@@ -34,6 +34,12 @@ auth.get('/check-username', async (c) => {
     return c.json({ available: false });
   }
 
+  // Reject reserved admin usernames
+  const adminList = c.env.ADMINS.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (adminList.includes(username.toLowerCase())) {
+    return c.json({ available: false });
+  }
+
   const existing = await queryFirst<{ id: string }>(
     c,
     `SELECT id FROM users WHERE username = ?`,
@@ -50,6 +56,12 @@ auth.post('/register', rateLimit('register', 5, 15 * 60 * 1000), async (c) => {
   }
 
   const { username, email, password, turnstileToken } = result.data;
+
+  // Reject reserved admin usernames to prevent privilege escalation
+  const adminList = c.env.ADMINS.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (adminList.includes(username.toLowerCase())) {
+    return jsonError(c, 'Username not available', 400);
+  }
 
   if (shouldRequireTurnstile(c)) {
     if (!turnstileToken) {

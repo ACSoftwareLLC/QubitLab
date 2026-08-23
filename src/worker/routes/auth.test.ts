@@ -308,8 +308,8 @@ describe('auth routes', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: 'alice',
-          email: 'alice@example.com',
+          username: 'bob',
+          email: 'bob@example.com',
           password: 'password123',
         }),
       }),
@@ -516,5 +516,215 @@ describe('auth routes', () => {
     );
 
     expect(res.status).toBe(403);
+  });
+
+  // Security tests for admin username reservation (CVE mitigation)
+  describe('admin username reservation', () => {
+    it('rejects registration with exact admin username', async () => {
+      const env = makeEnv({}, DEFAULT_USER, { ADMINS: 'alex,devadmin' });
+
+      const res = await app.fetch(
+        new Request('http://localhost/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: 'alex',
+            email: 'attacker@example.com',
+            password: 'password123',
+          }),
+        }),
+        env as unknown as Record<string, unknown>,
+        mockExecutionCtx()
+      );
+
+      expect(res.status).toBe(400);
+      expect((await res.json()) as { error: string }).toEqual({
+        error: 'Username not available',
+      });
+    });
+
+    it('rejects registration with admin username in different case', async () => {
+      const env = makeEnv({}, DEFAULT_USER, { ADMINS: 'alex,devadmin' });
+
+      const res = await app.fetch(
+        new Request('http://localhost/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: 'ALEX',
+            email: 'attacker@example.com',
+            password: 'password123',
+          }),
+        }),
+        env as unknown as Record<string, unknown>,
+        mockExecutionCtx()
+      );
+
+      expect(res.status).toBe(400);
+      expect((await res.json()) as { error: string }).toEqual({
+        error: 'Username not available',
+      });
+    });
+
+    it('rejects registration with mixed-case admin username', async () => {
+      const env = makeEnv({}, DEFAULT_USER, { ADMINS: 'alex,devadmin' });
+
+      const res = await app.fetch(
+        new Request('http://localhost/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: 'AlEx',
+            email: 'attacker@example.com',
+            password: 'password123',
+          }),
+        }),
+        env as unknown as Record<string, unknown>,
+        mockExecutionCtx()
+      );
+
+      expect(res.status).toBe(400);
+      expect((await res.json()) as { error: string }).toEqual({
+        error: 'Username not available',
+      });
+    });
+
+    it('rejects registration with second admin username from list', async () => {
+      const env = makeEnv({}, DEFAULT_USER, { ADMINS: 'alex,devadmin' });
+
+      const res = await app.fetch(
+        new Request('http://localhost/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: 'devadmin',
+            email: 'attacker@example.com',
+            password: 'password123',
+          }),
+        }),
+        env as unknown as Record<string, unknown>,
+        mockExecutionCtx()
+      );
+
+      expect(res.status).toBe(400);
+      expect((await res.json()) as { error: string }).toEqual({
+        error: 'Username not available',
+      });
+    });
+
+    it('allows registration with non-admin username', async () => {
+      const env = makeEnv(
+        {
+          'INSERT INTO users': () => ({ success: true }),
+          'INSERT INTO sessions': () => ({ success: true }),
+          'FROM users WHERE id': () => [
+            { ...DEFAULT_USER, id: 'uuid-1', username: 'regularuser' },
+          ],
+        },
+        DEFAULT_USER,
+        { ADMINS: 'alex,devadmin' }
+      );
+
+      vi.mocked(verifyPassword).mockResolvedValue(true);
+
+      const res = await app.fetch(
+        new Request('http://localhost/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: 'regularuser',
+            email: 'regular@example.com',
+            password: 'password123',
+          }),
+        }),
+        env as unknown as Record<string, unknown>,
+        mockExecutionCtx()
+      );
+
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { user: { username: string } };
+      expect(body.user.username).toBe('regularuser');
+    });
+
+    it('reports admin usernames as unavailable in check-username endpoint', async () => {
+      const env = makeEnv({}, DEFAULT_USER, { ADMINS: 'alex,devadmin' });
+
+      const res = await app.fetch(
+        new Request('http://localhost/auth/check-username?username=alex'),
+        env as unknown as Record<string, unknown>,
+        mockExecutionCtx()
+      );
+
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ available: false });
+    });
+
+    it('reports admin usernames as unavailable case-insensitively in check-username', async () => {
+      const env = makeEnv({}, DEFAULT_USER, { ADMINS: 'alex,devadmin' });
+
+      const res = await app.fetch(
+        new Request('http://localhost/auth/check-username?username=DEVADMIN'),
+        env as unknown as Record<string, unknown>,
+        mockExecutionCtx()
+      );
+
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ available: false });
+    });
+
+    it('handles admin list with whitespace correctly', async () => {
+      const env = makeEnv({}, DEFAULT_USER, { ADMINS: ' alex , devadmin ' });
+
+      const res = await app.fetch(
+        new Request('http://localhost/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: 'alex',
+            email: 'attacker@example.com',
+            password: 'password123',
+          }),
+        }),
+        env as unknown as Record<string, unknown>,
+        mockExecutionCtx()
+      );
+
+      expect(res.status).toBe(400);
+      expect((await res.json()) as { error: string }).toEqual({
+        error: 'Username not available',
+      });
+    });
+
+    it('handles empty admin list gracefully', async () => {
+      const env = makeEnv(
+        {
+          'INSERT INTO users': () => ({ success: true }),
+          'INSERT INTO sessions': () => ({ success: true }),
+          'FROM users WHERE id': () => [
+            { ...DEFAULT_USER, id: 'uuid-1', username: 'anyuser' },
+          ],
+        },
+        DEFAULT_USER,
+        { ADMINS: '' }
+      );
+
+      vi.mocked(verifyPassword).mockResolvedValue(true);
+
+      const res = await app.fetch(
+        new Request('http://localhost/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: 'anyuser',
+            email: 'any@example.com',
+            password: 'password123',
+          }),
+        }),
+        env as unknown as Record<string, unknown>,
+        mockExecutionCtx()
+      );
+
+      expect(res.status).toBe(200);
+    });
   });
 });
