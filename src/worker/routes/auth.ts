@@ -14,6 +14,22 @@ import { hashSessionId, getSessionId } from '../session.js';
 
 const auth = new Hono<HonoEnv>();
 
+// Lazily-created throwaway hash used to equalize login timing for
+// non-existent usernames (see performTimingEqualizerVerify).
+let dummyHashPromise: Promise<string> | null = null;
+
+/**
+ * Runs a full PBKDF2 verification against a dummy hash so that logins
+ * for non-existent accounts take roughly as long as logins for existing
+ * ones, closing the username-enumeration timing oracle.
+ */
+async function performTimingEqualizerVerify(password: string): Promise<void> {
+  if (!dummyHashPromise) {
+    dummyHashPromise = hashPassword('timing-equalizer-dummy-password');
+  }
+  await verifyPassword(password, await dummyHashPromise);
+}
+
 auth.get('/health', (c) => c.json({ status: 'ok' }));
 
 auth.get('/turnstile-sitekey', (c) => {
@@ -151,7 +167,12 @@ auth.post('/login', rateLimit('login', 10, 15 * 60 * 1000), async (c) => {
     [username]
   );
 
-  if (!user || !(await verifyPassword(password, user.password_hash))) {
+  if (!user) {
+    await performTimingEqualizerVerify(password);
+    return jsonError(c, 'Invalid credentials', 401);
+  }
+
+  if (!(await verifyPassword(password, user.password_hash))) {
     return jsonError(c, 'Invalid credentials', 401);
   }
 

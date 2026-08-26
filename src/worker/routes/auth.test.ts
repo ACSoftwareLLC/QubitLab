@@ -27,6 +27,7 @@ let uuidCounter = 0;
 describe('auth routes', () => {
   beforeEach(async () => {
     uuidCounter = 0;
+    vi.clearAllMocks();
     vi.spyOn(crypto, 'randomUUID').mockImplementation(() => {
       uuidCounter += 1;
       return `uuid-${uuidCounter}`;
@@ -442,6 +443,25 @@ describe('auth routes', () => {
     expect(res.status).toBe(403);
     const body = (await res.json()) as { error: string };
     expect(body.error).toContain('banned');
+  });
+
+  it('performs equivalent password work for unknown users to avoid timing leaks', async () => {
+    const env = makeEnv({
+      'FROM users WHERE username': () => [],
+    });
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'ghost', password: 'password123' }),
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(401);
+    expect(verifyPassword).toHaveBeenCalledTimes(1);
   });
 
   it('rejects registration with blacklisted email', async () => {
