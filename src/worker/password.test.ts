@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import bcrypt from "bcryptjs";
 import {
   hashPassword,
   verifyPassword,
@@ -40,6 +41,13 @@ describe("password", () => {
 
   it("returns false for an invalid hash format", async () => {
     expect(await verifyPassword("password123", "not-a-hash")).toBe(false);
+  });
+
+  it("still verifies pre-migration bcrypt hashes from the legacy auth-server", async () => {
+    const legacyBcryptHash = bcrypt.hashSync("password123", 10);
+    expect(legacyBcryptHash.startsWith("$2")).toBe(true);
+    expect(await verifyPassword("password123", legacyBcryptHash)).toBe(true);
+    expect(await verifyPassword("wrong", legacyBcryptHash)).toBe(false);
   });
 });
 

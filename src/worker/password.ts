@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import { base64ToBytes, bytesToBase64, pbkdf2Hash } from "./crypto.js";
 
 // OWASP 2024+ guidance for PBKDF2-HMAC-SHA-256: 600,000 iterations.
@@ -11,6 +12,15 @@ export async function hashPassword(password: string): Promise<string> {
   const derived = await pbkdf2Hash(password, salt, PBKDF2_ITERATIONS);
   const hash = bytesToBase64(new Uint8Array(derived));
   return `${HASH_FORMAT}$${PBKDF2_ITERATIONS}$${bytesToBase64(salt)}$${hash}`;
+}
+
+// Hashes created by the legacy Docker/Fastify auth-server (bcryptjs, cost 10)
+// that survived the migration into D1. They verify via bcrypt and are
+// upgraded to PBKDF2 on next successful login (see passwordNeedsRehash).
+const BCRYPT_PREFIXES = ["$2a$", "$2b$", "$2y$", "$2x$"] as const;
+
+function isBcryptHash(storedHash: string): boolean {
+  return BCRYPT_PREFIXES.some((prefix) => storedHash.startsWith(prefix));
 }
 
 /**
@@ -32,6 +42,10 @@ export async function verifyPassword(
   password: string,
   storedHash: string,
 ): Promise<boolean> {
+  if (isBcryptHash(storedHash)) {
+    return bcrypt.compare(password, storedHash);
+  }
+
   const parts = storedHash.split("$");
   if (parts.length !== 4 || parts[0] !== HASH_FORMAT) {
     return false;
