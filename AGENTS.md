@@ -14,7 +14,7 @@ QubitLab is a quantum-circuit designer and statevector simulator. The stack is h
 ## Environments
 
 | Environment | Branch | Worker name | D1 database | R2 buckets |
-|-------------|--------|-------------|-------------|------------|
+| ------------- | -------- | ------------- | ------------- | ------------ |
 | local | any (not deployed) | `qubitlab` (wrangler dev --local) | local D1 file | local R2 files |
 | dev | `dev` | `qubitlab-dev` | `qubitlab-dev` | `qubitlab-avatars-dev`, `qubitlab-thumbnails-dev` |
 | production | `main` | `qubitlab` | `qubitlab` | `qubitlab-avatars`, `qubitlab-thumbnails` |

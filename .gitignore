@@ -164,3 +164,6 @@ src/wasm/pkg/
 
 # Generated changelog copy served as a static asset
 public/CHANGELOG.md
+
+
+.pi

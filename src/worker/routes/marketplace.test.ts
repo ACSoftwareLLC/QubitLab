@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
-import app from '../index.js';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
+import app from "../index.js";
 
 function mockD1(
-  handlers: Record<string, (sql: string, params: unknown[]) => unknown>
+  handlers: Record<string, (sql: string, params: unknown[]) => unknown>,
 ): D1Database {
-  let currentSql = '';
+  let currentSql = "";
   let currentParams: unknown[] = [];
 
   const prepared = {
@@ -75,107 +75,107 @@ function mockExecutionCtx(): ExecutionContext {
 }
 
 const sharedCircuitRow = {
-  id: 'shared-1',
-  user_id: 'user-1',
-  username: 'alice',
+  id: "shared-1",
+  user_id: "user-1",
+  username: "alice",
   pfp_key: null,
   first_name: null,
   last_name: null,
   bio: null,
   is_admin: 1,
-  name: 'Bell state',
+  name: "Bell state",
   circuit: JSON.stringify({ numBits: 2, ops: [] }),
-  thumbnail_key: 'user-1/shared-1/thumb.png',
+  thumbnail_key: "user-1/shared-1/thumb.png",
   shared: 1,
-  created_at: '2026-07-01T00:00:00Z',
-  updated_at: '2026-07-02T00:00:00Z',
+  created_at: "2026-07-01T00:00:00Z",
+  updated_at: "2026-07-02T00:00:00Z",
 };
 
 function makeEnv(
-  d1Handlers: Record<string, (sql: string, params: unknown[]) => unknown> = {}
+  d1Handlers: Record<string, (sql: string, params: unknown[]) => unknown> = {},
 ) {
   return {
     DB: mockD1({
-      'FROM sessions': () => [],
+      "FROM sessions": () => [],
       ...d1Handlers,
     }),
     AVATARS: mockR2(),
     THUMBNAILS: mockR2(),
-    SESSION_SECRET: 'test-secret',
-    TURNSTILE_SECRET_KEY: '',
-    TURNSTILE_SITE_KEY: '',
+    SESSION_SECRET: "test-secret",
+    TURNSTILE_SECRET_KEY: "",
+    TURNSTILE_SITE_KEY: "",
   };
 }
 
-describe('marketplace routes', () => {
+describe("marketplace routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('lists only shared circuits without authentication', async () => {
+  it("lists only shared circuits without authentication", async () => {
     const env = makeEnv({
-      'c.shared = 1': () => [sharedCircuitRow],
+      "c.shared = 1": () => [sharedCircuitRow],
     });
 
     const res = await app.fetch(
-      new Request('http://localhost/auth/marketplace'),
+      new Request("http://localhost/auth/marketplace"),
       env as unknown as Record<string, unknown>,
-      mockExecutionCtx()
+      mockExecutionCtx(),
     );
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as { circuits: unknown[] };
     expect(body.circuits).toHaveLength(1);
     expect(body.circuits[0]).toMatchObject({
-      id: 'shared-1',
-      name: 'Bell state',
-      username: 'alice',
-      userId: 'user-1',
+      id: "shared-1",
+      name: "Bell state",
+      username: "alice",
+      userId: "user-1",
       shared: true,
-      badge: 'admin',
-      thumbnailUrl: '/auth/marketplace/shared-1/thumbnail',
+      badge: "admin",
+      thumbnailUrl: "/auth/marketplace/shared-1/thumbnail",
     });
-    expect(body.circuits[0]).not.toHaveProperty('isAdmin');
+    expect(body.circuits[0]).not.toHaveProperty("isAdmin");
   });
 
-  it('returns a shared circuit by id without authentication', async () => {
+  it("returns a shared circuit by id without authentication", async () => {
     const env = makeEnv({
-      'c.id = ? AND c.shared = 1': () => [sharedCircuitRow],
+      "c.id = ? AND c.shared = 1": () => [sharedCircuitRow],
     });
 
     const res = await app.fetch(
-      new Request('http://localhost/auth/marketplace/shared-1'),
+      new Request("http://localhost/auth/marketplace/shared-1"),
       env as unknown as Record<string, unknown>,
-      mockExecutionCtx()
+      mockExecutionCtx(),
     );
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as { circuit: Record<string, unknown> };
     expect(body.circuit).toMatchObject({
-      id: 'shared-1',
-      username: 'alice',
+      id: "shared-1",
+      username: "alice",
       shared: true,
     });
   });
 
-  it('returns 404 for private or missing circuits', async () => {
+  it("returns 404 for private or missing circuits", async () => {
     const env = makeEnv({
-      'c.id = ? AND c.shared = 1': () => [],
+      "c.id = ? AND c.shared = 1": () => [],
     });
 
     const res = await app.fetch(
-      new Request('http://localhost/auth/marketplace/private-1'),
+      new Request("http://localhost/auth/marketplace/private-1"),
       env as unknown as Record<string, unknown>,
-      mockExecutionCtx()
+      mockExecutionCtx(),
     );
 
     expect(res.status).toBe(404);
   });
 
-  it('returns a shared circuit thumbnail without authentication', async () => {
+  it("returns a shared circuit thumbnail without authentication", async () => {
     const env = makeEnv({
-      'SELECT thumbnail_key FROM circuits WHERE id = ? AND shared = 1': () => [
-        { thumbnail_key: 'shared/thumb.png' },
+      "SELECT thumbnail_key FROM circuits WHERE id = ? AND shared = 1": () => [
+        { thumbnail_key: "shared/thumb.png" },
       ],
     });
     env.THUMBNAILS.get = vi.fn().mockResolvedValue({
@@ -185,22 +185,22 @@ describe('marketplace routes', () => {
           controller.close();
         },
       }),
-      headers: new Headers({ 'Content-Type': 'image/png' }),
+      headers: new Headers({ "Content-Type": "image/png" }),
       httpEtag: '"etag"',
       size: 4,
       writeHttpMetadata: (headers: Headers) => {
-        headers.set('Content-Type', 'image/png');
+        headers.set("Content-Type", "image/png");
       },
     });
 
     const res = await app.fetch(
-      new Request('http://localhost/auth/marketplace/shared-1/thumbnail'),
+      new Request("http://localhost/auth/marketplace/shared-1/thumbnail"),
       env as unknown as Record<string, unknown>,
-      mockExecutionCtx()
+      mockExecutionCtx(),
     );
 
     expect(res.status).toBe(200);
-    expect(res.headers.get('content-type')).toBe('image/png');
-    expect(res.headers.get('cache-control')).toBe('public, max-age=300');
+    expect(res.headers.get("content-type")).toBe("image/png");
+    expect(res.headers.get("cache-control")).toBe("public, max-age=300");
   });
 });

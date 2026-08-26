@@ -1,4 +1,4 @@
-import type { Context } from 'hono';
+import type { Context } from "hono";
 
 export type WorkerBindings = {
   DB: D1Database;
@@ -49,7 +49,7 @@ export type PublicUserData = {
   lastName: string | null;
   bio: string | null;
   displayName: string;
-  badge?: 'admin' | null;
+  badge?: "admin" | null;
   memberSince?: number | null;
   isAdmin?: boolean;
   createdAt?: string;
@@ -67,7 +67,7 @@ export function publicUser(
     bio?: string | null;
     created_at?: string | null;
   },
-  options: { self?: boolean } = {}
+  options: { self?: boolean } = {},
 ): PublicUserData {
   const firstName = u.first_name ?? null;
   const lastName = u.last_name ?? null;
@@ -80,7 +80,11 @@ export function publicUser(
     firstName,
     lastName,
     bio,
-    displayName: displayNameFor({ username: u.username, first_name: firstName, last_name: lastName }),
+    displayName: displayNameFor({
+      username: u.username,
+      first_name: firstName,
+      last_name: lastName,
+    }),
   };
   if (options.self) {
     data.isAdmin = isAdmin;
@@ -91,7 +95,7 @@ export function publicUser(
     // Public view: disclose only what the UI needs. The badge mirrors
     // the admin flag for display purposes but stays decoupled from the
     // authorization attribute, and tenure is rounded down to a year.
-    data.badge = isAdmin ? 'admin' : null;
+    data.badge = isAdmin ? "admin" : null;
     const year = u.created_at ? Number(u.created_at.slice(0, 4)) : NaN;
     data.memberSince = Number.isFinite(year) ? year : null;
   }

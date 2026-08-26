@@ -4,6 +4,7 @@ Security hardening roadmap based on a full-platform audit (Worker routes, fronte
 Approach: 5 small, independently shippable PRs, ordered so each phase reduces the risk the next one assumes.
 
 **Locked-in decisions:**
+
 - Admin privileges: DB `is_admin` column (replaces `ADMINS` env-var matching)
 - Rate limiting: D1-backed limiter (replaces per-isolate in-memory Map)
 - Sequencing: small phased PRs
@@ -25,9 +26,11 @@ Approach: 5 small, independently shippable PRs, ordered so each phase reduces th
 Fixes the two actively-open production holes: unlimited login/register attempts and unlimited unauthenticated D1 writes.
 
 ### Migration `0002_rate_limits.sql`
+
 - [x] `rate_limits(key TEXT PRIMARY KEY, count INTEGER NOT NULL, reset_at TEXT NOT NULL)` + index on `reset_at`
 
 ### Code
+
 - [x] `src/worker/rate-limit.ts` — rewrite as async D1-backed fixed-window limiter (UPSERT … `ON CONFLICT DO UPDATE` comparing `reset_at`; reset when expired). Keep `DISABLE_RATE_LIMIT` escape hatch for local/tests only. On D1 error: fail open + `console.error` (avoid self-DoS)
 - [x] `wrangler.jsonc` — remove `DISABLE_RATE_LIMIT: "true"` from production
 - [x] `src/worker/turnstile.ts` + `src/worker/routes/auth.ts` — fail closed when keys are configured but verification errors; make "verification skipped" an explicit local-only path
@@ -37,6 +40,7 @@ Fixes the two actively-open production holes: unlimited login/register attempts 
 - [x] `scripts/seed-dev.ts` — hard-refuse `--env production` / `--remote` against production
 
 ### Tests
+
 - [x] New `src/worker/rate-limit.test.ts` (window expiry, per-key isolation, disabled flag)
 - [x] Turnstile fail-closed tests
 - [x] `/track` 429 test
@@ -49,10 +53,12 @@ Fixes the two actively-open production holes: unlimited login/register attempts 
 Removes the privilege-escalation design flaw; limits blast radius of a DB read.
 
 ### Migration `0005_admin_and_session_hardening.sql`
+
 - [x] `ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0 CHECK (is_admin IN (0,1))`
 - [x] Optional: case-insensitive username uniqueness via UNIQUE index on `username COLLATE NOCASE` (pre-check for existing conflicts first) — kills `Alex`/`alex` impersonation
 
 ### Code
+
 - [x] `src/worker/session.ts` — `getSessionUser` selects `u.is_admin` from the JOIN; drop `ADMINS` env parsing
 - [x] `src/worker/routes/auth.ts` (`requireAdmin`), `src/worker/routes/blogs.ts` (`isAdminRequest`), `src/worker/types.ts` (`publicUser`) — read `is_admin` from the user row
 - [x] Session tokens hashed at rest: login/register store `SHA-256(sessionId)` in `sessions.id`; `getSessionUser` hashes the cookie value before lookup. Existing sessions invalidate → one-time forced re-login (acceptable). No schema change needed
@@ -60,6 +66,7 @@ Removes the privilege-escalation design flaw; limits blast radius of a DB read.
 - [x] Docs: `AGENTS.md` + `README.md` — replace `ADMINS` var docs with the `wrangler d1 execute … UPDATE users SET is_admin = 1` grant procedure
 
 ### Tests
+
 - [x] Non-admin → 403 on blog CRUD/analytics; admin via DB flag → 200
 - [x] Username in `ADMINS` env no longer grants anything
 - [x] Session lookup works with hashed IDs; old plaintext session IDs rejected
@@ -71,11 +78,13 @@ Removes the privilege-escalation design flaw; limits blast radius of a DB read.
 Breaks the stored-XSS chain and adds the currently-missing browser security controls.
 
 ### Frontend
+
 - [x] Add `dompurify` dependency; sanitize at all three sinks (`src/pages/BlogPostPage.tsx:68`, `src/pages/BlogPage.tsx:99`, `src/pages/HomePage.tsx:124`) and before loading HTML into `src/components/WysiwygEditor.tsx:17`
 - [x] Fix excerpt slicing to sanitize then truncate safely
 - [x] `WysiwygEditor.tsx` — allowlist `https:`/`mailto:` on `insertLink`; validate `insertImage` URLs
 
 ### Worker
+
 - [x] Security-headers middleware in `src/worker/index.ts` (use `hono/secure-headers` or hand-roll), applied to API and asset responses:
   - `Content-Security-Policy`: `default-src 'self'; script-src 'self' https://challenges.cloudflare.com 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`
   - `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`, `Cross-Origin-Opener-Policy: same-origin`
@@ -84,6 +93,7 @@ Breaks the stored-XSS chain and adds the currently-missing browser security cont
 - [x] `AGENTS.md` — fix the false "CSP enforced" claim to describe the real middleware
 
 ### Tests
+
 - [x] Header assertions on API + asset responses
 - [x] Sanitizer unit tests (script/event-handler/`javascript:` URLs stripped)
 - [x] Avatar upload with mismatched magic bytes → 400
@@ -106,6 +116,7 @@ Closes the cost-exhaustion/DoS vectors and correctness bugs in security controls
 - [x] Frontend: clamp `numBits <= 16` in `src/api/deserialize.ts` / `src/hooks/useCanvasState.ts` when loading marketplace circuits
 
 ### Tests
+
 - [x] Quota exhaustion → 4xx; oversized bodies → 413; malformed JSON → 400
 - [x] Scheduled post publishes same-day (visibility filter fix)
 - [x] Crafted 30-bit marketplace circuit clamps to 16
@@ -141,7 +152,7 @@ npm run check:deployment -- --env dev   # before any remote deploy
 ## Audit findings reference (what each phase fixes)
 
 | Severity | Finding | Phase |
-|---|---|---|
+| --- | --- | --- |
 | High | Rate limiting disabled in production (`wrangler.jsonc`) + per-isolate limiter | 1 |
 | High | Turnstile dummy key in production + fail-open verification | 1 |
 | High | `POST /auth/analytics/track` unauthenticated + unrate-limited | 1 |

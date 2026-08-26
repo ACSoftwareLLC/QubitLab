@@ -83,7 +83,7 @@ Terminal 2 — run the Vite dev server with HMR (proxies `/auth` to the Worker):
 npm run dev
 ```
 
-Then open http://localhost:5173.
+Then open <http://localhost:5173>.
 
 ### Deploy
 

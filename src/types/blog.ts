@@ -3,7 +3,7 @@ export interface BlogAuthorProfile {
   displayName: string;
   pfpUrl: string | null;
   /** Presentational staff badge ('admin' renders an AdminBadge). */
-  badge: 'admin' | null;
+  badge: "admin" | null;
 }
 
 export interface BlogPost {

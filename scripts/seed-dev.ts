@@ -1,42 +1,48 @@
 #!/usr/bin/env node
-import { spawn } from 'node:child_process';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { hashPassword } from '../src/worker/password.ts';
+import { spawn } from "node:child_process";
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { hashPassword } from "../src/worker/password.ts";
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 const args = process.argv.slice(2);
 
 function parseArg(name: string, short?: string): string | undefined {
-  const index = args.findIndex((a) => a === name || a === short || a.startsWith(`${name}=`) || (short && a.startsWith(`${short}=`)));
+  const index = args.findIndex(
+    (a) =>
+      a === name ||
+      a === short ||
+      a.startsWith(`${name}=`) ||
+      (short && a.startsWith(`${short}=`)),
+  );
   if (index === -1) return undefined;
   const arg = args[index];
-  if (arg.includes('=')) return arg.split('=')[1];
+  if (arg.includes("=")) return arg.split("=")[1];
   return args[index + 1];
 }
 
-const envArg = parseArg('--env', '-e');
-const env = envArg ?? 'dev';
+const envArg = parseArg("--env", "-e");
+const env = envArg ?? "dev";
 const envExplicit = envArg !== undefined;
-const local = args.includes('--local');
-const remote = args.includes('--remote');
-const skipWrangler = args.includes('--dry-run');
+const local = args.includes("--local");
+const remote = args.includes("--remote");
+const skipWrangler = args.includes("--dry-run");
 
 if (local && remote) {
-  console.error('Cannot specify both --local and --remote');
+  console.error("Cannot specify both --local and --remote");
   process.exit(1);
 }
 
-if (env === 'production') {
-  console.error('Refusing to seed production environment');
+if (env === "production") {
+  console.error("Refusing to seed production environment");
   process.exit(1);
 }
 
 if (remote && !envExplicit) {
-  console.error('Cannot use --remote without an explicit --env');
+  console.error("Cannot use --remote without an explicit --env");
   process.exit(1);
 }
 
@@ -48,8 +54,8 @@ function randomUUID(): string {
 }
 
 function escapeSql(value: string | null | number): string {
-  if (value === null) return 'NULL';
-  if (typeof value === 'number') return String(value);
+  if (value === null) return "NULL";
+  if (typeof value === "number") return String(value);
   return `'${value.replace(/'/g, "''")}'`;
 }
 
@@ -59,81 +65,190 @@ function nowIso(): string {
 
 function circuitJson(name: string): string {
   const circuits: Record<string, unknown> = {
-    'Bell State': {
+    "Bell State": {
       numBits: 2,
       ops: [
-        { id: 1, type: 'H', segment: 0, targets: [0], controls: [], angle: null },
-        { id: 2, type: 'CX', segment: 1, targets: [1], controls: [0], angle: null },
+        {
+          id: 1,
+          type: "H",
+          segment: 0,
+          targets: [0],
+          controls: [],
+          angle: null,
+        },
+        {
+          id: 2,
+          type: "CX",
+          segment: 1,
+          targets: [1],
+          controls: [0],
+          angle: null,
+        },
       ],
     },
-    'Hadamard Test': {
+    "Hadamard Test": {
       numBits: 2,
       ops: [
-        { id: 1, type: 'H', segment: 0, targets: [0], controls: [], angle: null },
-        { id: 2, type: 'CX', segment: 1, targets: [1], controls: [0], angle: null },
-        { id: 3, type: 'H', segment: 0, targets: [0], controls: [], angle: null },
-        { id: 4, type: 'M', segment: 1, targets: [0], controls: [], angle: null },
+        {
+          id: 1,
+          type: "H",
+          segment: 0,
+          targets: [0],
+          controls: [],
+          angle: null,
+        },
+        {
+          id: 2,
+          type: "CX",
+          segment: 1,
+          targets: [1],
+          controls: [0],
+          angle: null,
+        },
+        {
+          id: 3,
+          type: "H",
+          segment: 0,
+          targets: [0],
+          controls: [],
+          angle: null,
+        },
+        {
+          id: 4,
+          type: "M",
+          segment: 1,
+          targets: [0],
+          controls: [],
+          angle: null,
+        },
       ],
     },
-    'Phase Kickback': {
+    "Phase Kickback": {
       numBits: 2,
       ops: [
-        { id: 1, type: 'H', segment: 0, targets: [0], controls: [], angle: null },
-        { id: 2, type: 'X', segment: 1, targets: [1], controls: [], angle: null },
-        { id: 3, type: 'CZ', segment: 1, targets: [1], controls: [0], angle: null },
-        { id: 4, type: 'H', segment: 0, targets: [0], controls: [], angle: null },
+        {
+          id: 1,
+          type: "H",
+          segment: 0,
+          targets: [0],
+          controls: [],
+          angle: null,
+        },
+        {
+          id: 2,
+          type: "X",
+          segment: 1,
+          targets: [1],
+          controls: [],
+          angle: null,
+        },
+        {
+          id: 3,
+          type: "CZ",
+          segment: 1,
+          targets: [1],
+          controls: [0],
+          angle: null,
+        },
+        {
+          id: 4,
+          type: "H",
+          segment: 0,
+          targets: [0],
+          controls: [],
+          angle: null,
+        },
       ],
     },
-    'Toffoli Sandbox': {
+    "Toffoli Sandbox": {
       numBits: 3,
       ops: [
-        { id: 1, type: 'H', segment: 0, targets: [0], controls: [], angle: null },
-        { id: 2, type: 'H', segment: 0, targets: [1], controls: [], angle: null },
-        { id: 3, type: 'CCX', segment: 2, targets: [2], controls: [0, 1], angle: null },
+        {
+          id: 1,
+          type: "H",
+          segment: 0,
+          targets: [0],
+          controls: [],
+          angle: null,
+        },
+        {
+          id: 2,
+          type: "H",
+          segment: 0,
+          targets: [1],
+          controls: [],
+          angle: null,
+        },
+        {
+          id: 3,
+          type: "CCX",
+          segment: 2,
+          targets: [2],
+          controls: [0, 1],
+          angle: null,
+        },
       ],
     },
-    'Parameter Playground': {
+    "Parameter Playground": {
       numBits: 1,
       ops: [
-        { id: 1, type: 'Rx', segment: 0, targets: [0], controls: [], angle: Math.PI / 4 },
-        { id: 2, type: 'Ry', segment: 0, targets: [0], controls: [], angle: Math.PI / 3 },
+        {
+          id: 1,
+          type: "Rx",
+          segment: 0,
+          targets: [0],
+          controls: [],
+          angle: Math.PI / 4,
+        },
+        {
+          id: 2,
+          type: "Ry",
+          segment: 0,
+          targets: [0],
+          controls: [],
+          angle: Math.PI / 3,
+        },
       ],
     },
   };
-  return JSON.stringify(circuits[name] ?? circuits['Bell State']);
+  return JSON.stringify(circuits[name] ?? circuits["Bell State"]);
 }
 
 async function buildSql(): Promise<string> {
   const adminId = randomUUID();
   const userId = randomUUID();
-  const adminPassword = await hashPassword('devpassword');
-  const userPassword = await hashPassword('devpassword');
+  const adminPassword = await hashPassword("devpassword");
+  const userPassword = await hashPassword("devpassword");
   const now = nowIso();
 
   const lines: string[] = [
-    '-- QubitLab dev seed data',
-    '-- Generated by scripts/seed-dev.ts',
-    '',
-    'PRAGMA foreign_keys = OFF;',
-    '',
-    'DELETE FROM analytics_events;',
-    'DELETE FROM blogs;',
-    'DELETE FROM circuits;',
-    'DELETE FROM sessions;',
-    'DELETE FROM users;',
-    '',
-    'INSERT INTO users (id, username, password_hash, first_name, last_name, bio, is_admin, created_at) VALUES',
-    `  (${escapeSql(adminId)}, ${escapeSql('devadmin')}, ${escapeSql(adminPassword)}, ${escapeSql('Dev')}, ${escapeSql('Admin')}, ${escapeSql('Development administrator account.')}, 1, ${escapeSql(now)}),`,
-    `  (${escapeSql(userId)}, ${escapeSql('devuser')}, ${escapeSql(userPassword)}, ${escapeSql('Dev')}, ${escapeSql('User')}, ${escapeSql('Development user account.')}, 0, ${escapeSql(now)});`,
-    '',
+    "-- QubitLab dev seed data",
+    "-- Generated by scripts/seed-dev.ts",
+    "",
+    "PRAGMA foreign_keys = OFF;",
+    "",
+    "DELETE FROM analytics_events;",
+    "DELETE FROM blogs;",
+    "DELETE FROM circuits;",
+    "DELETE FROM sessions;",
+    "DELETE FROM users;",
+    "",
+    "INSERT INTO users (id, username, password_hash, first_name, last_name, bio, is_admin, created_at) VALUES",
+    `  (${escapeSql(adminId)}, ${escapeSql("devadmin")}, ${escapeSql(adminPassword)}, ${escapeSql("Dev")}, ${escapeSql("Admin")}, ${escapeSql("Development administrator account.")}, 1, ${escapeSql(now)}),`,
+    `  (${escapeSql(userId)}, ${escapeSql("devuser")}, ${escapeSql(userPassword)}, ${escapeSql("Dev")}, ${escapeSql("User")}, ${escapeSql("Development user account.")}, 0, ${escapeSql(now)});`,
+    "",
   ];
 
-  const circuitsToSeed: Array<{ name: string; userId: string; shared: boolean }> = [
-    { name: 'Bell State', userId: adminId, shared: true },
-    { name: 'Hadamard Test', userId: userId, shared: true },
-    { name: 'Phase Kickback', userId: adminId, shared: true },
-    { name: 'Toffoli Sandbox', userId: adminId, shared: false },
-    { name: 'Parameter Playground', userId: userId, shared: false },
+  const circuitsToSeed: Array<{
+    name: string;
+    userId: string;
+    shared: boolean;
+  }> = [
+    { name: "Bell State", userId: adminId, shared: true },
+    { name: "Hadamard Test", userId: userId, shared: true },
+    { name: "Phase Kickback", userId: adminId, shared: true },
+    { name: "Toffoli Sandbox", userId: adminId, shared: false },
+    { name: "Parameter Playground", userId: userId, shared: false },
   ];
 
   const circuitRows: Array<{
@@ -156,50 +271,57 @@ async function buildSql(): Promise<string> {
     });
   }
 
-  lines.push('INSERT INTO circuits (id, user_id, name, circuit, thumbnail_key, shared, created_at, updated_at) VALUES');
+  lines.push(
+    "INSERT INTO circuits (id, user_id, name, circuit, thumbnail_key, shared, created_at, updated_at) VALUES",
+  );
   circuitRows.forEach((row, index) => {
-    const suffix = index === circuitRows.length - 1 ? ';' : ',';
+    const suffix = index === circuitRows.length - 1 ? ";" : ",";
     lines.push(
-      `  (${escapeSql(row.id)}, ${escapeSql(row.userId)}, ${escapeSql(row.name)}, ${escapeSql(row.circuit)}, NULL, ${row.shared}, ${escapeSql(row.createdAt)}, ${escapeSql(row.createdAt)})${suffix}`
+      `  (${escapeSql(row.id)}, ${escapeSql(row.userId)}, ${escapeSql(row.name)}, ${escapeSql(row.circuit)}, NULL, ${row.shared}, ${escapeSql(row.createdAt)}, ${escapeSql(row.createdAt)})${suffix}`,
     );
   });
-  lines.push('');
+  lines.push("");
 
   const blogPosts = [
     {
-      slug: 'welcome-to-qubitlab',
-      title: 'Welcome to QubitLab',
-      content: 'QubitLab is a browser-based quantum circuit designer and statevector simulator. This dev environment is seeded with sample data so you can explore the editor, community, and blog features.',
+      slug: "welcome-to-qubitlab",
+      title: "Welcome to QubitLab",
+      content:
+        "QubitLab is a browser-based quantum circuit designer and statevector simulator. This dev environment is seeded with sample data so you can explore the editor, community, and blog features.",
       published: 1,
       publishAt: null,
     },
     {
-      slug: 'dev-turnstile',
-      title: 'Using Turnstile in Development',
-      content: 'In development, Turnstile uses the site key from `wrangler.jsonc` vars. The registration form requires a valid challenge token unless the key is configured for testing only.',
+      slug: "dev-turnstile",
+      title: "Using Turnstile in Development",
+      content:
+        "In development, Turnstile uses the site key from `wrangler.jsonc` vars. The registration form requires a valid challenge token unless the key is configured for testing only.",
       published: 1,
       publishAt: null,
     },
     {
-      slug: 'future-release-notes',
-      title: 'Future Release Notes',
-      content: 'This draft post is unpublished and only visible to admin users in the blog list.',
+      slug: "future-release-notes",
+      title: "Future Release Notes",
+      content:
+        "This draft post is unpublished and only visible to admin users in the blog list.",
       published: 0,
       publishAt: null,
     },
   ];
 
-  lines.push('INSERT INTO blogs (id, slug, title, content, author, published, publish_at, user_id, created_at, updated_at) VALUES');
+  lines.push(
+    "INSERT INTO blogs (id, slug, title, content, author, published, publish_at, user_id, created_at, updated_at) VALUES",
+  );
   blogPosts.forEach((post, index) => {
-    const suffix = index === blogPosts.length - 1 ? ';' : ',';
+    const suffix = index === blogPosts.length - 1 ? ";" : ",";
     lines.push(
-      `  (${escapeSql(randomUUID())}, ${escapeSql(post.slug)}, ${escapeSql(post.title)}, ${escapeSql(post.content)}, ${escapeSql('QubitLab Team')}, ${post.published}, ${escapeSql(post.publishAt)}, ${escapeSql(adminId)}, ${escapeSql(now)}, ${escapeSql(now)})${suffix}`
+      `  (${escapeSql(randomUUID())}, ${escapeSql(post.slug)}, ${escapeSql(post.title)}, ${escapeSql(post.content)}, ${escapeSql("QubitLab Team")}, ${post.published}, ${escapeSql(post.publishAt)}, ${escapeSql(adminId)}, ${escapeSql(now)}, ${escapeSql(now)})${suffix}`,
     );
   });
-  lines.push('');
-  lines.push('PRAGMA foreign_keys = ON;');
+  lines.push("");
+  lines.push("PRAGMA foreign_keys = ON;");
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 function runWrangler(file: string): Promise<void> {
@@ -208,22 +330,30 @@ function runWrangler(file: string): Promise<void> {
     // `wrangler dev --local` serves, which is the top-level config's DB.
     // Passing --env here would resolve a different database_id and write
     // to an unrelated local file. --env is only meaningful for --remote.
-    const cmdArgs = ['wrangler', 'd1', 'execute', 'DB', '--file', file, '--yes'];
+    const cmdArgs = [
+      "wrangler",
+      "d1",
+      "execute",
+      "DB",
+      "--file",
+      file,
+      "--yes",
+    ];
     if (!targetLocal) {
-      cmdArgs.push('--env', env, '--remote');
+      cmdArgs.push("--env", env, "--remote");
     } else {
-      cmdArgs.push('--local');
+      cmdArgs.push("--local");
     }
 
-    console.log(`Running: npx ${cmdArgs.join(' ')}`);
-    const child = spawn('npx', cmdArgs, {
+    console.log(`Running: npx ${cmdArgs.join(" ")}`);
+    const child = spawn("npx", cmdArgs, {
       cwd: __dirname,
-      stdio: 'inherit',
+      stdio: "inherit",
       shell: false,
     });
 
-    child.on('error', reject);
-    child.on('close', (code) => {
+    child.on("error", reject);
+    child.on("close", (code) => {
       if (code === 0) {
         resolve();
       } else {
@@ -235,11 +365,11 @@ function runWrangler(file: string): Promise<void> {
 
 async function main() {
   const sql = await buildSql();
-  const tmpDir = await mkdtemp(join(tmpdir(), 'qubitlab-seed-'));
-  const file = join(tmpDir, 'seed-dev.sql');
+  const tmpDir = await mkdtemp(join(tmpdir(), "qubitlab-seed-"));
+  const file = join(tmpDir, "seed-dev.sql");
 
   try {
-    await writeFile(file, sql, 'utf8');
+    await writeFile(file, sql, "utf8");
 
     if (skipWrangler) {
       console.log(`--dry-run: wrote seed SQL to ${file}`);
@@ -248,7 +378,9 @@ async function main() {
     }
 
     await runWrangler(file);
-    console.log(`Seeded QubitLab ${targetLocal ? 'local' : 'remote'} database for environment: ${env}`);
+    console.log(
+      `Seeded QubitLab ${targetLocal ? "local" : "remote"} database for environment: ${env}`,
+    );
   } finally {
     await rm(tmpDir, { recursive: true, force: true });
   }

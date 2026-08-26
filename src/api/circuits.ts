@@ -1,4 +1,4 @@
-import type { Circuit } from './types';
+import type { Circuit } from "./types";
 
 export type SavedCircuit = {
   id: string;
@@ -12,16 +12,20 @@ export type SavedCircuit = {
   userId?: string;
   pfpUrl?: string | null;
   /** Presentational staff badge on the circuit author. */
-  badge?: 'admin' | null;
+  badge?: "admin" | null;
 };
 
 export type CommunityCircuit = SavedCircuit;
 
-async function request<T>(method: string, path: string, body?: Record<string, unknown>): Promise<T> {
+async function request<T>(
+  method: string,
+  path: string,
+  body?: Record<string, unknown>,
+): Promise<T> {
   const res = await fetch(path, {
     method,
-    credentials: 'include',
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    credentials: "include",
+    headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = (await res.json().catch(() => ({}))) as { error?: string } & T;
@@ -32,12 +36,18 @@ async function request<T>(method: string, path: string, body?: Record<string, un
 }
 
 export async function listCircuits(): Promise<SavedCircuit[]> {
-  const data = await request<{ circuits: SavedCircuit[] }>('GET', '/auth/circuits');
+  const data = await request<{ circuits: SavedCircuit[] }>(
+    "GET",
+    "/auth/circuits",
+  );
   return data.circuits;
 }
 
 export async function getCircuit(id: string): Promise<SavedCircuit> {
-  const data = await request<{ circuit: SavedCircuit }>('GET', `/auth/circuits/${id}`);
+  const data = await request<{ circuit: SavedCircuit }>(
+    "GET",
+    `/auth/circuits/${id}`,
+  );
   return data.circuit;
 }
 
@@ -46,35 +56,56 @@ export async function createCircuit(input: {
   circuit: Circuit;
   thumbnail?: string;
 }): Promise<SavedCircuit> {
-  const data = await request<{ circuit: SavedCircuit }>('POST', '/auth/circuits', input);
+  const data = await request<{ circuit: SavedCircuit }>(
+    "POST",
+    "/auth/circuits",
+    input,
+  );
   return data.circuit;
 }
 
 export async function updateCircuit(
   id: string,
-  patch: { name?: string; circuit?: Circuit; thumbnail?: string }
+  patch: { name?: string; circuit?: Circuit; thumbnail?: string },
 ): Promise<SavedCircuit> {
-  const data = await request<{ circuit: SavedCircuit }>('PATCH', `/auth/circuits/${id}`, patch);
+  const data = await request<{ circuit: SavedCircuit }>(
+    "PATCH",
+    `/auth/circuits/${id}`,
+    patch,
+  );
   return data.circuit;
 }
 
 export async function deleteCircuit(id: string): Promise<void> {
-  await request('DELETE', `/auth/circuits/${id}`);
+  await request("DELETE", `/auth/circuits/${id}`);
 }
 
-export async function shareCircuit(id: string, shared: boolean): Promise<SavedCircuit> {
-  const data = await request<{ circuit: SavedCircuit }>('PATCH', `/auth/circuits/${id}`, {
-    shared,
-  });
+export async function shareCircuit(
+  id: string,
+  shared: boolean,
+): Promise<SavedCircuit> {
+  const data = await request<{ circuit: SavedCircuit }>(
+    "PATCH",
+    `/auth/circuits/${id}`,
+    {
+      shared,
+    },
+  );
   return data.circuit;
 }
 
 export async function listCommunity(): Promise<SavedCircuit[]> {
-  const data = await request<{ circuits: SavedCircuit[] }>('GET', '/auth/marketplace');
+  const data = await request<{ circuits: SavedCircuit[] }>(
+    "GET",
+    "/auth/marketplace",
+  );
   return data.circuits;
 }
 
 export async function getCommunityCircuit(id: string): Promise<SavedCircuit> {
-  const data = await request<{ circuit: SavedCircuit }>('GET', `/auth/marketplace/${id}`);
+  const data = await request<{ circuit: SavedCircuit }>(
+    "GET",
+    `/auth/marketplace/${id}`,
+  );
   return data.circuit;
 }

@@ -1,10 +1,10 @@
-import { Hono } from 'hono';
-import type { HonoEnv } from '../types.js';
-import { publicUser } from '../types.js';
-import type { CircuitData } from '../schemas.js';
-import { jsonError } from '../errors.js';
-import { queryFirst, queryAll } from '../db.js';
-import { r2Get } from '../r2.js';
+import { Hono } from "hono";
+import type { HonoEnv } from "../types.js";
+import { publicUser } from "../types.js";
+import type { CircuitData } from "../schemas.js";
+import { jsonError } from "../errors.js";
+import { queryFirst, queryAll } from "../db.js";
+import { r2Get } from "../r2.js";
 
 export type MarketplaceCircuitRow = {
   id: string;
@@ -54,13 +54,15 @@ function marketplaceResponse(row: MarketplaceCircuitRow) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     shared: row.shared === 1,
-    thumbnailUrl: row.thumbnail_key ? `/auth/marketplace/${row.id}/thumbnail` : null,
+    thumbnailUrl: row.thumbnail_key
+      ? `/auth/marketplace/${row.id}/thumbnail`
+      : null,
   };
 }
 
 const marketplace = new Hono<HonoEnv>();
 
-marketplace.get('/', async (c) => {
+marketplace.get("/", async (c) => {
   const rows = await queryAll<MarketplaceCircuitRow>(
     c,
     `SELECT c.id, c.user_id, u.username, u.pfp_key, u.first_name, u.last_name, u.bio, u.is_admin,
@@ -69,13 +71,13 @@ marketplace.get('/', async (c) => {
      JOIN users u ON c.user_id = u.id
      WHERE c.shared = 1
      ORDER BY c.updated_at DESC
-     LIMIT 200`
+     LIMIT 200`,
   );
   return c.json({ circuits: rows.map((r) => marketplaceResponse(r)) });
 });
 
-marketplace.get('/:id', async (c) => {
-  const id = c.req.param('id');
+marketplace.get("/:id", async (c) => {
+  const id = c.req.param("id");
   const row = await queryFirst<MarketplaceCircuitRow>(
     c,
     `SELECT c.id, c.user_id, u.username, u.pfp_key, u.first_name, u.last_name, u.bio, u.is_admin,
@@ -83,32 +85,32 @@ marketplace.get('/:id', async (c) => {
      FROM circuits c
      JOIN users u ON c.user_id = u.id
      WHERE c.id = ? AND c.shared = 1`,
-    [id]
+    [id],
   );
   if (!row) {
-    return jsonError(c, 'Circuit not found', 404);
+    return jsonError(c, "Circuit not found", 404);
   }
   return c.json({ circuit: marketplaceResponse(row) });
 });
 
-marketplace.get('/:id/thumbnail', async (c) => {
-  const id = c.req.param('id');
+marketplace.get("/:id/thumbnail", async (c) => {
+  const id = c.req.param("id");
   const row = await queryFirst<{ thumbnail_key: string | null }>(
     c,
     `SELECT thumbnail_key FROM circuits WHERE id = ? AND shared = 1`,
-    [id]
+    [id],
   );
   if (!row || !row.thumbnail_key) {
-    return jsonError(c, 'Thumbnail not found', 404);
+    return jsonError(c, "Thumbnail not found", 404);
   }
 
-  const response = await r2Get(c, 'THUMBNAILS', row.thumbnail_key);
+  const response = await r2Get(c, "THUMBNAILS", row.thumbnail_key);
   if (!response) {
-    return jsonError(c, 'Thumbnail not found', 404);
+    return jsonError(c, "Thumbnail not found", 404);
   }
 
   const headers = new Headers(response.headers);
-  headers.set('Cache-Control', 'public, max-age=300');
+  headers.set("Cache-Control", "public, max-age=300");
   return new Response(response.body, { headers, status: response.status });
 });
 

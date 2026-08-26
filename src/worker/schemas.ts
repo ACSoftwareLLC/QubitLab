@@ -1,19 +1,31 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const registerSchema = z.object({
-  username: z.string().min(3).max(32).regex(/^[a-zA-Z0-9_]+$/),
+  username: z
+    .string()
+    .min(3)
+    .max(32)
+    .regex(/^[a-zA-Z0-9_]+$/),
   email: z.string().email(),
   password: z.string().min(8).max(128),
   turnstileToken: z.string().min(1).optional(),
 });
 
 export const loginSchema = z.object({
-  username: z.string().min(3).max(32).regex(/^[a-zA-Z0-9_]+$/),
+  username: z
+    .string()
+    .min(3)
+    .max(32)
+    .regex(/^[a-zA-Z0-9_]+$/),
   password: z.string().min(8).max(128),
 });
 
 export const updateUsernameSchema = z.object({
-  username: z.string().min(3).max(32).regex(/^[a-zA-Z0-9_]+$/),
+  username: z
+    .string()
+    .min(3)
+    .max(32)
+    .regex(/^[a-zA-Z0-9_]+$/),
 });
 
 export const updatePasswordSchema = z.object({
@@ -52,7 +64,7 @@ export type CircuitData = z.infer<typeof circuitSchema>;
 
 const thumbnailSchema = z
   .string()
-  .regex(/^data:image\/png;base64,/, 'Thumbnail must be a PNG data URL')
+  .regex(/^data:image\/png;base64,/, "Thumbnail must be a PNG data URL")
   .max(5_000_000);
 
 export const createCircuitSchema = z.object({
@@ -75,15 +87,19 @@ export const updateCircuitSchema = z
       v.thumbnail !== undefined ||
       v.shared !== undefined,
     {
-      message: 'At least one field must be provided',
-    }
+      message: "At least one field must be provided",
+    },
   );
 
 export type CreateCircuitBody = z.infer<typeof createCircuitSchema>;
 export type UpdateCircuitBody = z.infer<typeof updateCircuitSchema>;
 
 export const createBlogSchema = z.object({
-  slug: z.string().min(1).max(128).regex(/^[a-z0-9-]+$/),
+  slug: z
+    .string()
+    .min(1)
+    .max(128)
+    .regex(/^[a-z0-9-]+$/),
   title: z.string().min(1).max(200),
   content: z.string().min(1).max(50000),
   published: z.boolean().optional().default(true),
@@ -110,7 +126,7 @@ export const blogListParamSchema = z.object({
 });
 
 export const analyticsTrackBodySchema = z.object({
-  type: z.enum(['page_view', 'event']),
+  type: z.enum(["page_view", "event"]),
   path: z.string().max(2048),
   sessionId: z.string().max(128),
   referrer: z.string().max(2048).optional(),
@@ -118,13 +134,16 @@ export const analyticsTrackBodySchema = z.object({
   language: z.string().max(64).optional(),
   country: z.string().max(128).optional(),
   screen: z.string().max(64).optional(),
-  metadata: z.record(z.union([z.string(), z.number(), z.boolean()])).optional().refine(
-    (val) => {
-      if (!val) return true;
-      return JSON.stringify(val).length <= 1024;
-    },
-    { message: 'Metadata must be <= 1 KB when serialized' }
-  ),
+  metadata: z
+    .record(z.union([z.string(), z.number(), z.boolean()]))
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return JSON.stringify(val).length <= 1024;
+      },
+      { message: "Metadata must be <= 1 KB when serialized" },
+    ),
 });
 
 export type AnalyticsDaysParam = z.infer<typeof analyticsDaysParamSchema>;
