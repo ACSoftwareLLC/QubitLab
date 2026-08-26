@@ -204,9 +204,13 @@ async function buildSql(): Promise<string> {
 
 function runWrangler(file: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const cmdArgs = ['wrangler', 'd1', 'execute', 'DB', '--env', env, '--file', file, '--yes'];
+    // Local seeding must target the same local D1 database that
+    // `wrangler dev --local` serves, which is the top-level config's DB.
+    // Passing --env here would resolve a different database_id and write
+    // to an unrelated local file. --env is only meaningful for --remote.
+    const cmdArgs = ['wrangler', 'd1', 'execute', 'DB', '--file', file, '--yes'];
     if (!targetLocal) {
-      cmdArgs.push('--remote');
+      cmdArgs.push('--env', env, '--remote');
     } else {
       cmdArgs.push('--local');
     }

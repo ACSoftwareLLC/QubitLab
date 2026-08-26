@@ -25,7 +25,8 @@
 	"assets": {
 		"binding": "ASSETS",
 		"directory": "./dist",
-		"not_found_handling": "single-page-application"
+		"not_found_handling": "single-page-application",
+		"run_worker_first": true
 	},
 	"vars": {
 		"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv"
@@ -53,7 +54,8 @@
 			"assets": {
 				"binding": "ASSETS",
 				"directory": "./dist",
-				"not_found_handling": "single-page-application"
+				"not_found_handling": "single-page-application",
+				"run_worker_first": true
 			},
 			"vars": {
 				"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv"
@@ -81,7 +83,8 @@
 			"assets": {
 				"binding": "ASSETS",
 				"directory": "./dist",
-				"not_found_handling": "single-page-application"
+				"not_found_handling": "single-page-application",
+				"run_worker_first": true
 			},
 			"vars": {
 				"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv"
