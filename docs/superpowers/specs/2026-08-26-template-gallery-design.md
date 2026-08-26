@@ -67,12 +67,14 @@ the blogs route pattern.
 ### Public
 
 - `GET /auth/templates`
-  Published templates only. Returns list fields (`id`, `slug`, `title`,
-  `description`, `category`, `difficulty`) ordered by `sort_order`, then
-  `created_at`. Hard `LIMIT` cap like other list endpoints.
+  Ordered by `sort_order`, then `created_at`. Hard `LIMIT` cap like other
+  list endpoints. Returns published templates; **admins additionally see
+  drafts** (flagged by `published: false`), following the blog
+  draft-preview precedent (`isAdminRequest`).
 - `GET /auth/templates/:slug`
-  Full record including `circuit` (parsed JSON) and `article_html`.
-  404 for unknown slug or unpublished template.
+  Full record including `circuit` (parsed JSON) and `articleHtml`.
+  404 for unknown slugs and for drafts — except admins, who can preview
+  their own drafts like on blog posts.
 
 ### Admin (all mutations behind `requireAdmin`)
 
