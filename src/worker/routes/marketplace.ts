@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { HonoEnv } from '../types.js';
 import { publicUser } from '../types.js';
+import type { CircuitData } from '../schemas.js';
 import { jsonError } from '../errors.js';
 import { queryFirst, queryAll } from '../db.js';
 import { r2Get } from '../r2.js';
@@ -22,6 +23,15 @@ export type MarketplaceCircuitRow = {
   is_admin: number;
 };
 
+/** Parses the stored `circuit` column; corrupted rows degrade to null rather than failing the request. */
+function parseStoredCircuit(raw: string): CircuitData | null {
+  try {
+    return JSON.parse(raw) as CircuitData;
+  } catch {
+    return null;
+  }
+}
+
 function marketplaceResponse(row: MarketplaceCircuitRow) {
   const user = publicUser({
     id: row.user_id,
@@ -39,8 +49,8 @@ function marketplaceResponse(row: MarketplaceCircuitRow) {
     userId: row.user_id,
     username: row.username,
     pfpUrl: user.pfpUrl,
-    isAdmin: user.isAdmin,
-    circuit: JSON.parse(row.circuit) as unknown,
+    badge: user.badge,
+    circuit: parseStoredCircuit(row.circuit),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     shared: row.shared === 1,

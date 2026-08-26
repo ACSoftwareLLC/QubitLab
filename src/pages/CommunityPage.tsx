@@ -56,7 +56,7 @@ export function CommunityPage() {
                 <AuthorChip
                   username={circuit.username}
                   pfpUrl={circuit.pfpUrl}
-                  isAdmin={circuit.isAdmin}
+                  badge={circuit.badge}
                   className="circuit-author"
                 />
                 <span className="circuit-detail">

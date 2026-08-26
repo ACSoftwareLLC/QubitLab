@@ -83,7 +83,7 @@ export function BlogPage() {
                       username={post.authorProfile.username}
                       displayName={post.authorProfile.displayName}
                       pfpUrl={post.authorProfile.pfpUrl}
-                      isAdmin={post.authorProfile.isAdmin}
+                      badge={post.authorProfile.badge}
                     />
                   ) : (
                     <span className="blog-card-author">by {post.author}</span>

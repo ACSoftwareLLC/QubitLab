@@ -111,9 +111,13 @@ describe('user profile route', () => {
     );
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { user: { username: string; isAdmin: boolean; pfpUrl: string | null } };
+    const body = (await res.json()) as { user: Record<string, unknown> };
     expect(body.user.username).toBe('alice');
-    expect(body.user.isAdmin).toBe(true);
+    // Public profile: presentational badge + year granularity only.
+    expect(body.user.badge).toBe('admin');
+    expect(body.user.memberSince).toBe(2026);
+    expect(body.user).not.toHaveProperty('isAdmin');
+    expect(body.user).not.toHaveProperty('createdAt');
     expect(body.user.pfpUrl).toBe('/auth/users/user-1/avatar');
   });
 

@@ -47,6 +47,9 @@ export const circuitSchema = z.object({
   ops: z.array(gateOpSchema).max(1000),
 });
 
+/** The circuit JSON stored in the `circuits.circuit` column. */
+export type CircuitData = z.infer<typeof circuitSchema>;
+
 const thumbnailSchema = z
   .string()
   .regex(/^data:image\/png;base64,/, 'Thumbnail must be a PNG data URL')

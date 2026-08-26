@@ -58,8 +58,11 @@ These are known limitations we have consciously accepted rather than fixed:
 - **CSRF defense-in-depth relies on one primary layer** — state-changing requests
   validate the `Origin` header, but non-browser clients may omit `Origin`;
   `SameSite=Strict` cookies are then the remaining barrier.
-- **Public payloads expose `isAdmin`/`createdAt`** — see the repository hardening
-  notes for the current disposition of this item.
+- **Public payloads expose a staff `badge`, not the authorization flag** — public
+  profiles, marketplace entries, and blog author chips expose a presentational
+  `badge: 'admin'` (needed to render admin badges) and year-granularity
+  `memberSince` instead of the raw `isAdmin` column or exact creation timestamp.
+  Exact values remain available only on self endpoints (`/auth/me`, account updates).
 
 ## Supported versions
 

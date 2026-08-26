@@ -6,8 +6,10 @@ export interface PublicUserProfile {
   bio: string | null;
   displayName: string;
   pfpUrl: string | null;
-  isAdmin: boolean;
-  createdAt: string;
+  /** Presentational staff badge ('admin' renders an AdminBadge). */
+  badge: 'admin' | null;
+  /** Year-granularity member tenure, e.g. 2024. */
+  memberSince: number | null;
 }
 
 export interface AdminUser {

@@ -2,7 +2,8 @@ export interface BlogAuthorProfile {
   username: string;
   displayName: string;
   pfpUrl: string | null;
-  isAdmin: boolean;
+  /** Presentational staff badge ('admin' renders an AdminBadge). */
+  badge: 'admin' | null;
 }
 
 export interface BlogPost {

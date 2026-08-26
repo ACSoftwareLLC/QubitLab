@@ -136,7 +136,7 @@ auth.post('/register', rateLimit('register', 5, 15 * 60 * 1000), async (c) => {
     [userId]
   );
 
-  return c.json({ user: publicUser(user!) });
+  return c.json({ user: publicUser(user!, { self: true }) });
 });
 
 auth.post('/login', rateLimit('login', 10, 15 * 60 * 1000), async (c) => {
@@ -206,7 +206,7 @@ auth.post('/login', rateLimit('login', 10, 15 * 60 * 1000), async (c) => {
   );
   setSessionCookie(c, sessionId, expires);
 
-  return c.json({ user: publicUser(user) });
+  return c.json({ user: publicUser(user, { self: true }) });
 });
 
 auth.post('/logout', requireAuth, async (c) => {
@@ -221,7 +221,7 @@ auth.post('/logout', requireAuth, async (c) => {
 
 auth.get('/me', requireAuth, (c) => {
   const user = c.get('user');
-  return c.json({ user: publicUser(user!) });
+  return c.json({ user: publicUser(user!, { self: true }) });
 });
 
 export default auth;

@@ -45,7 +45,7 @@ export function BlogPostPage() {
                   username={post.authorProfile.username}
                   displayName={post.authorProfile.displayName}
                   pfpUrl={post.authorProfile.pfpUrl}
-                  isAdmin={post.authorProfile.isAdmin}
+                  badge={post.authorProfile.badge}
                 />
               ) : (
                 <span>by {post.author}</span>

@@ -5,7 +5,7 @@ interface AuthorChipProps {
   username: string;
   displayName?: string;
   pfpUrl?: string | null;
-  isAdmin?: boolean;
+  badge?: 'admin' | null;
   className?: string;
 }
 
@@ -13,7 +13,7 @@ export function AuthorChip({
   username,
   displayName,
   pfpUrl,
-  isAdmin,
+  badge,
   className,
 }: AuthorChipProps) {
   const name = displayName || username;
@@ -27,7 +27,7 @@ export function AuthorChip({
         </span>
       )}
       <span className="author-chip-name">{name}</span>
-      {isAdmin && <AdminBadge />}
+      {badge === 'admin' && <AdminBadge />}
     </Link>
   );
 }

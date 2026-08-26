@@ -132,9 +132,10 @@ describe('marketplace routes', () => {
       username: 'alice',
       userId: 'user-1',
       shared: true,
-      isAdmin: true,
+      badge: 'admin',
       thumbnailUrl: '/auth/marketplace/shared-1/thumbnail',
     });
+    expect(body.circuits[0]).not.toHaveProperty('isAdmin');
   });
 
   it('returns a shared circuit by id without authentication', async () => {

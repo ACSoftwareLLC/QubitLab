@@ -51,11 +51,11 @@ export function UserProfilePage() {
               <div className="profile-titles">
                 <h1 className="profile-name">
                   {profile.displayName}
-                  {profile.isAdmin && <AdminBadge className="profile-admin-badge" />}
+                  {profile.badge === 'admin' && <AdminBadge className="profile-admin-badge" />}
                 </h1>
                 <p className="profile-username">@{profile.username}</p>
                 <p className="profile-joined">
-                  Member since {new Date(profile.createdAt).toLocaleDateString()}
+                  Member since {profile.memberSince ?? '—'}
                 </p>
               </div>
             </div>

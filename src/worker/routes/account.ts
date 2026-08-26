@@ -61,7 +61,7 @@ account.patch('/username', async (c) => {
       [username, user.id]
     );
     await recordUserAction(c, 'username_change');
-    return c.json({ user: publicUser(updated!) });
+    return c.json({ user: publicUser(updated!, { self: true }) });
   } catch (err) {
     if (uniqueConstraintError(err)) {
       return jsonError(c, 'Username already taken', 409);
@@ -134,7 +134,7 @@ account.patch('/profile', async (c) => {
     [firstName ?? null, lastName ?? null, bio ?? null, user.id]
   );
 
-  return c.json({ user: publicUser(updated!) });
+  return c.json({ user: publicUser(updated!, { self: true }) });
 });
 
 account.post('/avatar', async (c) => {
@@ -195,7 +195,7 @@ account.post('/avatar', async (c) => {
   }
 
   await recordUserAction(c, 'avatar_change');
-  return c.json({ user: publicUser(updated!) });
+  return c.json({ user: publicUser(updated!, { self: true }) });
 });
 
 export default account;

@@ -11,7 +11,8 @@ export type SavedCircuit = {
   thumbnailUrl: string | null;
   userId?: string;
   pfpUrl?: string | null;
-  isAdmin?: boolean;
+  /** Presentational staff badge on the circuit author. */
+  badge?: 'admin' | null;
 };
 
 export type CommunityCircuit = SavedCircuit;
