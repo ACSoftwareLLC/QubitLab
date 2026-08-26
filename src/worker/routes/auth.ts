@@ -4,7 +4,7 @@ import { jsonError, formatZodError } from '../errors.js';
 import { publicUser } from '../types.js';
 import { registerSchema, loginSchema } from '../schemas.js';
 import { verifyTurnstileToken, shouldRequireTurnstile } from '../turnstile.js';
-import { hashPassword, verifyPassword } from '../password.js';
+import { hashPassword, verifyPassword, passwordNeedsRehash } from '../password.js';
 import { randomUUID } from '../crypto.js';
 import { queryFirst, runQuery, uniqueConstraintError } from '../db.js';
 import { setSessionCookie, clearSessionCookie, sessionExpiration } from '../cookie.js';
@@ -162,6 +162,16 @@ auth.post('/login', rateLimit('login', 10, 15 * 60 * 1000), async (c) => {
       ? `Account permanently banned${banStatus.reason ? `: ${banStatus.reason}` : ''}`
       : `Account banned until ${new Date(banStatus.bannedUntil!).toLocaleString()}${banStatus.reason ? `: ${banStatus.reason}` : ''}`;
     return jsonError(c, message, 403);
+  }
+
+  // Upgrade hashes created with older cost parameters while we have the
+  // plaintext password in hand.
+  if (passwordNeedsRehash(user.password_hash)) {
+    const upgradedHash = await hashPassword(password);
+    await runQuery(c, `UPDATE users SET password_hash = ? WHERE id = ?`, [
+      upgradedHash,
+      user.id,
+    ]);
   }
 
   const sessionId = randomUUID();

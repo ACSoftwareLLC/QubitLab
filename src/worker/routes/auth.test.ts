@@ -364,6 +364,62 @@ describe('auth routes', () => {
     expect(res.headers.get('Set-Cookie')).toContain('sessionId=');
   });
 
+  it('upgrades legacy password hashes on successful login', async () => {
+    const updates: unknown[][] = [];
+    const env = makeEnv({
+      'FROM users WHERE username': () => [
+        { ...DEFAULT_USER, password_hash: 'pbkdf2-sha256$100000$c2FsdA==$aGFzaA==' },
+      ],
+      'INSERT INTO sessions': () => ({ success: true }),
+      'UPDATE users SET password_hash': (_sql, params) => {
+        updates.push([...params]);
+        return { success: true };
+      },
+    });
+    vi.mocked(verifyPassword).mockResolvedValue(true);
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'alice', password: 'password123' }),
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(200);
+    expect(updates).toEqual([['mock-hash', 'user-1']]);
+  });
+
+  it('does not re-hash when the stored hash is current', async () => {
+    const updates: unknown[][] = [];
+    const env = makeEnv({
+      'FROM users WHERE username': () => [
+        { ...DEFAULT_USER, password_hash: 'pbkdf2-sha256$600000$c2FsdA==$aGFzaA==' },
+      ],
+      'INSERT INTO sessions': () => ({ success: true }),
+      'UPDATE users SET password_hash': (_sql, params) => {
+        updates.push([...params]);
+        return { success: true };
+      },
+    });
+    vi.mocked(verifyPassword).mockResolvedValue(true);
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'alice', password: 'password123' }),
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(200);
+    expect(updates).toEqual([]);
+  });
+
   it('rejects login for banned user', async () => {
     const env = makeEnv({
       'FROM users WHERE username': () => [DEFAULT_USER],

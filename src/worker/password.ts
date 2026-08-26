@@ -1,6 +1,9 @@
 import { base64ToBytes, bytesToBase64, pbkdf2Hash } from './crypto.js';
 
-const PBKDF2_ITERATIONS = 100_000;
+// OWASP 2024+ guidance for PBKDF2-HMAC-SHA-256: 600,000 iterations.
+// The stored format embeds the iteration count, so hashes created with
+// older settings still verify and are upgraded on next login/change.
+export const PBKDF2_ITERATIONS = 600_000;
 const HASH_FORMAT = 'pbkdf2-sha256';
 
 export async function hashPassword(password: string): Promise<string> {
@@ -8,6 +11,21 @@ export async function hashPassword(password: string): Promise<string> {
   const derived = await pbkdf2Hash(password, salt, PBKDF2_ITERATIONS);
   const hash = bytesToBase64(new Uint8Array(derived));
   return `${HASH_FORMAT}$${PBKDF2_ITERATIONS}$${bytesToBase64(salt)}$${hash}`;
+}
+
+/**
+ * Returns true when a stored hash does not match the current cost
+ * parameters (legacy iteration count or unparseable format) and should
+ * be re-hashed after a successful verification.
+ */
+export function passwordNeedsRehash(storedHash: string): boolean {
+  const parts = storedHash.split('$');
+  if (parts.length !== 4 || parts[0] !== HASH_FORMAT) {
+    return true;
+  }
+
+  const iterations = parseInt(parts[1], 10);
+  return !Number.isFinite(iterations) || iterations < PBKDF2_ITERATIONS;
 }
 
 export async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
