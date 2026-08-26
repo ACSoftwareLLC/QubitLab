@@ -87,7 +87,9 @@ Breaks the stored-XSS chain and adds the currently-missing browser security cont
 - [x] Header assertions on API + asset responses
 - [x] Sanitizer unit tests (script/event-handler/`javascript:` URLs stripped)
 - [x] Avatar upload with mismatched magic bytes → 400
-- [ ] E2E smoke to confirm Turnstile + WASM still work under CSP
+- [x] E2E smoke to confirm Turnstile + WASM still work under CSP (`e2e/csp.spec.ts`;
+      also exposed that asset responses were missing security headers until
+      `run_worker_first` was enabled in `wrangler.jsonc`)
 
 ---
 
@@ -112,12 +114,12 @@ Closes the cost-exhaustion/DoS vectors and correctness bugs in security controls
 
 ## Phase 5 (PR 5) — Crypto, CI & process hygiene
 
-- [ ] `src/worker/password.ts`: PBKDF2 100k → 600k iterations (OWASP SHA-256 guidance; format embeds iteration count so old hashes still verify and upgrade on next login/change). Verify login latency impact
-- [ ] `src/worker/routes/auth.ts` login: dummy PBKDF2 verify when the user doesn't exist → closes the timing oracle
-- [ ] CI: pin third-party actions by commit SHA (`jetli/wasm-pack-action`, `actions-rust-lang/setup-rust-toolchain`, `cloudflare/wrangler-action`)
-- [ ] CI: delete duplicate `tests.yml` (identical to `ci.yml`); add `npm audit --audit-level=high` step + Dependabot config
-- [ ] Add `SECURITY.md` (reporting policy, threat-model summary, accepted risks)
-- [ ] Decide + document (accepted risk or fix): public exposure of `isAdmin`/`createdAt` on public profiles & marketplace payloads
+- [x] `src/worker/password.ts`: PBKDF2 100k → 600k iterations (OWASP SHA-256 guidance; format embeds iteration count so old hashes still verify and upgrade on next login/change). Verified login latency: ~92ms per hash locally at 600k
+- [x] `src/worker/routes/auth.ts` login: dummy PBKDF2 verify when the user doesn't exist → closes the timing oracle
+- [x] CI: pin third-party actions by commit SHA (`jetli/wasm-pack-action`, `actions-rust-lang/setup-rust-toolchain`, `cloudflare/wrangler-action`, plus `actions/checkout`, `actions/setup-node`); Dependabot keeps the SHAs updated
+- [x] CI: delete duplicate `tests.yml` (identical to `ci.yml`); add `npm audit --audit-level=high` step + Dependabot config (`npm audit fix` also cleared 14 outstanding vulns)
+- [x] Add `SECURITY.md` (reporting policy, threat-model summary, accepted risks)
+- [x] Decide + document public exposure of `isAdmin`/`createdAt`: public payloads now expose a presentational `badge: 'admin' | null` and year-granularity `memberSince` instead of the raw flag/exact timestamp; self endpoints keep exact values
 
 ---
 

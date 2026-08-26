@@ -29,7 +29,9 @@ test.describe('authentication smoke tests', () => {
   test('login rejects invalid credentials', async ({ request }) => {
     const response = await request.post('/auth/login', {
       data: {
-        username: 'nonexistent-user',
+        // Well-formed username (schema-valid) that does not exist, so the
+        // request reaches the credential check and gets a clean 401.
+        username: 'nonexistent_user',
         password: 'wrongpassword',
       },
     });

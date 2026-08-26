@@ -16,7 +16,7 @@ QubitLab is a quantum-circuit designer and statevector simulator. The stack is h
 | Environment | Branch | Worker name | D1 database | R2 buckets |
 |-------------|--------|-------------|-------------|------------|
 | local | any (not deployed) | `qubitlab` (wrangler dev --local) | local D1 file | local R2 files |
-| dev | `develop` | `qubitlab-dev` | `qubitlab-dev` | `qubitlab-avatars-dev`, `qubitlab-thumbnails-dev` |
+| dev | `dev` | `qubitlab-dev` | `qubitlab-dev` | `qubitlab-avatars-dev`, `qubitlab-thumbnails-dev` |
 | production | `main` | `qubitlab` | `qubitlab` | `qubitlab-avatars`, `qubitlab-thumbnails` |
 
 Configuration lives in `wrangler.jsonc`. The top-level configuration is used for `wrangler dev --local` and mirrors the dev environment for convenience.
@@ -108,6 +108,8 @@ wrangler d1 migrations apply DB --env dev
 npm run db:seed:dev -- --env dev
 
 # Seed the local dev database
+# (--local targets the top-level config's local D1 file, which is what
+# `wrangler dev --local` serves; do not pass --env for local seeding)
 npm run db:seed:dev -- --local
 
 # Dry-run the seed SQL
@@ -117,7 +119,7 @@ npm run db:seed:dev -- --dry-run
 ### Deploy
 
 ```bash
-# Deploy to dev (used by the develop branch workflow)
+# Deploy to dev (used by the dev branch workflow)
 npm run deploy
 
 # Deploy to production (used by the main branch workflow)
@@ -152,7 +154,7 @@ This validates that the configured D1 database and R2 buckets exist for the targ
 - **Admin privileges**: determined by `users.is_admin = 1` in D1, not by an env var.
 - **Rate limiting**: auth routes (`/auth/register`, `/auth/login`) are rate-limited by client IP. Set `DISABLE_RATE_LIMIT=true` to disable (e.g., for production load testing).
 - **CORS**: none — the app is same-origin, so frontend requests to `/auth/*` do not require CORS headers.
-- **Security headers**: `Content-Security-Policy`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, and `Cross-Origin-Opener-Policy` are applied by `src/worker/security-headers.ts` to both API responses and static asset responses served through the `ASSETS` binding.
+- **Security headers**: `Content-Security-Policy`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, and `Cross-Origin-Opener-Policy` are applied by `src/worker/security-headers.ts` to both API responses and static asset responses served through the `ASSETS` binding. Asset routing uses `run_worker_first` in `wrangler.jsonc` so every request passes through the Worker and receives these headers.
 - **Turnstile domains**: restrict the Turnstile widget to `localhost` and the deployed hostnames for each environment.
 - **Error logging**: unhandled Worker errors are logged with request method, path, timestamp, and optional `CF-Ray` request ID.
 
@@ -160,6 +162,7 @@ This validates that the configured D1 database and R2 buckets exist for the targ
 
 - Worker code is in `src/worker/` and compiled against `@cloudflare/workers-types` via `tsconfig.worker.json`.
 - Use `crypto.randomUUID()` for UUIDs, `crypto.subtle` for PBKDF2 and SHA-256, and `Uint8Array`/`atob`/`btoa` for binary data. No `Buffer` or Node-only crypto modules.
+- Passwords are hashed with PBKDF2-HMAC-SHA-256 at 600k iterations; legacy hashes verify via their embedded iteration count and upgrade transparently on next login.
 - Keep routes in `src/worker/routes/`; shared helpers in `src/worker/` root.
 - D1 booleans are stored as `INTEGER` (`0`/`1`); JSON as `TEXT`.
 - D1 timestamps are stored as ISO 8601 `TEXT` in UTC.

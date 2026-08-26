@@ -99,7 +99,7 @@ npm run deploy
 npm run deploy:production
 ```
 
-Dev deployments are triggered automatically on pushes to `develop` via `.github/workflows/deploy-dev.yml`. Production deployments are triggered on pushes to `main` via `.github/workflows/deploy-production.yml`.
+Dev deployments are triggered automatically on pushes to `dev` via `.github/workflows/deploy-dev.yml`. Production deployments are triggered on pushes to `main` via `.github/workflows/deploy-production.yml`.
 
 ### Database seeding
 
@@ -108,6 +108,9 @@ After applying migrations to a dev environment, seed it with sample data and dev
 ```bash
 # Seed the local dev database
 npm run db:seed:dev -- --local
+
+# The --local variant seeds the top-level config's local D1 file (the one
+# `wrangler dev --local` serves); do not combine it with --env.
 
 # Seed the remote dev database
 npm run db:seed:dev -- --env dev
