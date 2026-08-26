@@ -18,7 +18,7 @@ export default defineConfig({
         target: 'http://localhost:8787',
         // Preserve the browser's Host header (e.g. localhost:5173) so it
         // matches the Origin header and passes the Worker's origin validation.
-        configure: (proxy, _options) => {
+        configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq, req) => {
             const host = req.headers.host;
             if (host) {
