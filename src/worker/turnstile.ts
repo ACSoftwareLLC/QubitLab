@@ -1,14 +1,14 @@
-import type { HonoContext } from './types.js';
+import type { HonoContext } from "./types.js";
 
 type TurnstileVerifyResponse = {
   success: boolean;
-  'error-codes'?: string[];
+  "error-codes"?: string[];
   challenge_ts?: string;
   hostname?: string;
 };
 
 function isLocalhost(c: HonoContext): boolean {
-  const host = c.req.header('host') ?? '';
+  const host = c.req.header("host") ?? "";
   return /^(localhost|127\.0\.0\.1|::1)(:\d+)?$/i.test(host);
 }
 
@@ -16,7 +16,7 @@ function isLocalhost(c: HonoContext): boolean {
 // If no site key is present, verification is skipped only in local development;
 // production deployments without keys fail closed.
 export function shouldRequireTurnstile(c: HonoContext): boolean {
-  if (c.env.TURNSTILE_SKIP_VERIFICATION === 'true') {
+  if (c.env.TURNSTILE_SKIP_VERIFICATION === "true") {
     return false;
   }
   const siteKey = c.env.TURNSTILE_SITE_KEY?.trim();
@@ -28,10 +28,10 @@ export function shouldRequireTurnstile(c: HonoContext): boolean {
 
 export async function verifyTurnstileToken(
   c: HonoContext,
-  token: string
+  token: string,
 ): Promise<boolean> {
   // Explicitly skip verification if the bypass flag is set.
-  if (c.env.TURNSTILE_SKIP_VERIFICATION === 'true') {
+  if (c.env.TURNSTILE_SKIP_VERIFICATION === "true") {
     return true;
   }
 
@@ -42,15 +42,18 @@ export async function verifyTurnstileToken(
   }
 
   try {
-    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ secret: secretKey, response: token }),
-    });
+    const response = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ secret: secretKey, response: token }),
+      },
+    );
 
     if (!response.ok) {
       console.error(
-        `[turnstile] siteverify HTTP ${response.status} for ${c.req.path}`
+        `[turnstile] siteverify HTTP ${response.status} for ${c.req.path}`,
       );
       return false;
     }
@@ -61,7 +64,7 @@ export async function verifyTurnstileToken(
       // mismatch, bad hostname = widget allowlist missing the origin, etc.)
       console.error(
         `[turnstile] verification failed for ${c.req.path}:`,
-        JSON.stringify(data['error-codes'] ?? [])
+        JSON.stringify(data["error-codes"] ?? []),
       );
     }
     return data.success === true;
@@ -69,7 +72,7 @@ export async function verifyTurnstileToken(
     // Fail closed on network errors.
     console.error(
       `[turnstile] siteverify request threw for ${c.req.path}:`,
-      err instanceof Error ? err.message : err
+      err instanceof Error ? err.message : err,
     );
     return false;
   }
