@@ -29,6 +29,7 @@ CI log proof (run 32999550707):
 🌀 Executing on local database DB (36d2d85a…) from .wrangler/state/v3/d1:
 🌀 To execute on your remote database, add a --remote flag to your wrangler dev command.
 ```
+
 ## Why the 500 only hit old accounts... actually everyone
 
 `is_admin` is read for every login; before RC2's fix, **all** users 500'd remotely. The "old accounts" framing came from RC1's 401 masking RC2 — once bcrypt verification shipped, the schema bug surfaced as 500 for everyone. (Locally you saw the Vite placeholder because the stale workerd on :8787 was answering with old code.)
