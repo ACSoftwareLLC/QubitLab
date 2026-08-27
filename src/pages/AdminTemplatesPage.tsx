@@ -134,12 +134,20 @@ export function AdminTemplatesPage() {
 
   const remove = async (id: string) => {
     if (!window.confirm('Delete this template permanently?')) return;
-    await deleteTemplate(id);
+    try {
+      await deleteTemplate(id);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Action failed');
+    }
     refresh();
   };
 
   const togglePublish = async (t: TemplateSummary) => {
-    await updateTemplate(t.id, { published: !t.published });
+    try {
+      await updateTemplate(t.id, { published: !t.published });
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Action failed');
+    }
     refresh();
   };
 

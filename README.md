@@ -114,6 +114,9 @@ npm run db:seed:dev -- --local
 
 # Seed the remote dev database
 npm run db:seed:dev -- --env dev
+```
+
+> ⚠️ The seed script destroys all existing rows (users, circuits, blogs, templates) before inserting. Never run it against an environment with real users — for remote/dev content, create records through the app (e.g. /admin/templates) instead.
 
 # Dry-run the seed SQL without touching the database
 npm run db:seed:dev -- --dry-run

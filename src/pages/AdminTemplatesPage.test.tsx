@@ -110,4 +110,15 @@ describe('AdminTemplatesPage', () => {
     fireEvent.click(within(li).getByRole('button', { name: /delete/i }));
     await waitFor(() => expect(deleteTemplate).toHaveBeenCalledWith('t2'));
   });
+
+  it('surfaces an error banner when publishing fails', async () => {
+    mockAuthState.user = { isAdmin: true };
+    vi.mocked(listTemplates).mockResolvedValue(rows);
+    vi.mocked(updateTemplate).mockRejectedValue(new Error('Publish failed'));
+    render(<MemoryRouter><AdminTemplatesPage /></MemoryRouter>);
+    const li = (await screen.findByText('Bell State')).closest('li')!;
+    fireEvent.click(within(li).getByRole('button', { name: /unpublish/i }));
+    // The list-view loadError banner renders the failure message.
+    expect(await screen.findByText(/publish failed/i)).toBeTruthy();
+  });
 });

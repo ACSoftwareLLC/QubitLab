@@ -106,6 +106,7 @@ wrangler d1 migrations apply DB --env dev
 
 # Seed the dev environment (remote)
 npm run db:seed:dev -- --env dev
+# WARNING: db:seed:dev wipes all tables (users, circuits, blogs, templates) first — never run against an environment with real users.
 
 # Seed the local dev database
 # (--local targets the top-level config's local D1 file, which is what
