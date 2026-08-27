@@ -61,7 +61,7 @@ export async function verifyPassword(
     return false;
   }
 
-  let salt: Uint8Array;
+  let salt: Uint8Array<ArrayBuffer>;
   let expectedHash: Uint8Array;
   try {
     salt = base64ToBytes(parts[2]);
