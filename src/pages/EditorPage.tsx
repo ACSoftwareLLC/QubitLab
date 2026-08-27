@@ -129,14 +129,15 @@ export function EditorPage() {
   }, [location.state]);
 
   return (
-    <div className="builder-layout">
+    <div className="editor-root">
       {loadedTemplateName && (
         <TemplateBanner
           name={loadedTemplateName}
           onDismiss={() => setLoadedTemplateName(null)}
         />
       )}
-      <Toolbox
+      <div className="builder-layout">
+        <Toolbox
         gateConfigs={gateConfigs}
         selectedGate={selectedGate}
         numBits={numBits}
@@ -199,8 +200,9 @@ export function EditorPage() {
         snapshotHistory={sim.snapshotHistory}
         errors={sim.errors}
         unconnectedGateIds={sim.unconnectedGateIds}
-        numBits={numBits}
-      />
+          numBits={numBits}
+        />
+      </div>
     </div>
   );
 }
