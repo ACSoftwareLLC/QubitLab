@@ -21,6 +21,7 @@ import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { UserProfilePage } from './pages/UserProfilePage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { UserManagementPage } from './pages/UserManagementPage';
+import { AdminTemplatesPage } from './pages/AdminTemplatesPage';
 
 function HomeOrLanding() {
   const { user } = useAuth();
@@ -80,6 +81,7 @@ function App() {
           <Route path="/blog/:slug/edit" element={<BlogEditorPage />} />
           <Route path="/admin/analytics" element={<AnalyticsPage />} />
           <Route path="/admin/users" element={<UserManagementPage />} />
+          <Route path="/admin/templates" element={<AdminTemplatesPage />} />
         </Route>
 
         {/* Standalone auth screen. */}

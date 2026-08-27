@@ -59,6 +59,11 @@ export function AppLayout() {
                 Users
               </NavLink>
             )}
+            {user?.isAdmin && (
+              <NavLink to="/admin/templates" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
+                Templates
+              </NavLink>
+            )}
           </nav>
         </div>
         <div className="app-header-right">
