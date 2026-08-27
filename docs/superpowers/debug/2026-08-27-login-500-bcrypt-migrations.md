@@ -1,5 +1,11 @@
 # Login 500 Root-Cause & Fix — Evidence Log
 
+> **FINAL ROOT CAUSE (2026-08-27 20:49):** the deployed Workers runtime rejects
+> PBKDF2 above 100,000 iterations. The 600k `hashPassword()` used by the
+> rehash-on-login upgrade path threw `NotSupportedError` on every successful
+> remote login. Fixed in `1ad1760` (PBKDF2_ITERATIONS = 100_000). Everything
+> below documents the earlier, *stacked* causes that masked it.
+
 **Date:** 2026-08-27
 **Symptom:** Old accounts cannot log in on deployed dev (qubitlab-dev). Earlier same day: 401 "Invalid credentials"; after the bcrypt commit shipped, error became 500 "Internal server error". Locally: browser showed the Vite placeholder page "Run npm run dev:worker first, then npm run dev."
 
