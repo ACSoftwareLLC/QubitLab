@@ -115,14 +115,14 @@ export function AdminTemplatesPage() {
       category: form.category,
       difficulty: form.difficulty,
       published: form.published,
-      sortOrder: form.sortOrder,
       circuit,
       articleHtml: form.articleHtml,
     };
     try {
       if (editing === 'new') {
-        await createTemplate(base as Required<typeof base>);
+        await createTemplate({ ...base, sortOrder: form.sortOrder } as Parameters<typeof createTemplate>[0]);
       } else if (editing) {
+        // sortOrder omitted on update — PATCH preserves the stored value
         await updateTemplate(editing.id, base);
       }
       setEditing(null);
