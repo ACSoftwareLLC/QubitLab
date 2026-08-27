@@ -139,6 +139,34 @@
   background: var(--bg);
 }
 
+/* Dismissible banner shown when the editor loads a gallery template. */
+.template-loaded-banner {
+  position: sticky;
+  top: 0;
+  z-index: 30; /* above panels (10), below modals (1000) */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.template-loaded-banner button {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.template-loaded-banner button:hover {
+  color: var(--text);
+}
+
 /* --- Loading screen ------------------------------------------------------ */
 .app-loading {
   min-height: 100vh;

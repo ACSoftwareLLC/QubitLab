@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Toolbox } from '../components/toolbox';
 import { StatePanel } from '../components/StatePanel';
@@ -9,6 +9,8 @@ import { useSimulation } from '../hooks/useSimulation';
 import { useEditorActions } from '../context/EditorActionsContext';
 import { serializeCircuit } from '../api/serialize';
 import type { Circuit } from '../api/types';
+import { consumeTemplatePrefetch } from './templatePrefetch';
+import { TemplateBanner } from './TemplateBanner';
 import '../App.css';
 
 async function captureSvgThumbnail(svg: SVGSVGElement | null, scale = 0.35): Promise<string | undefined> {
@@ -96,6 +98,7 @@ export function EditorPage() {
   } = useCanvasState(fitScale);
 
   const sim = useSimulation(gates, gateLines, numBits);
+  const [loadedTemplateName, setLoadedTemplateName] = useState<string | null>(null);
 
   const selectedPlacedGate = gates.find(g => g.id === selectedPlacedGateId) ?? null;
 
@@ -108,12 +111,18 @@ export function EditorPage() {
     return () => registerActions(null);
   }, [registerActions, gates, gateLines, numBits]);
 
-  // Load a circuit handed over via navigation state (e.g. from My Circuits).
+  // Load a circuit handed over via navigation state (My Circuits) or a
+  // template prefetch from the gallery (sessionStorage contract).
   useEffect(() => {
-    const circuit = (location.state as { circuit?: Circuit } | null)?.circuit;
-    if (circuit) {
+    const handed = location.state as { circuit?: Circuit } | null;
+    const prefetched = consumeTemplatePrefetch();
+    if (prefetched) {
       sim.reset();
-      loadCircuit(circuit);
+      loadCircuit(prefetched.circuit);
+      setLoadedTemplateName(prefetched.title);
+    } else if (handed?.circuit) {
+      sim.reset();
+      loadCircuit(handed.circuit);
       window.history.replaceState({}, '');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -121,6 +130,12 @@ export function EditorPage() {
 
   return (
     <div className="builder-layout">
+      {loadedTemplateName && (
+        <TemplateBanner
+          name={loadedTemplateName}
+          onDismiss={() => setLoadedTemplateName(null)}
+        />
+      )}
       <Toolbox
         gateConfigs={gateConfigs}
         selectedGate={selectedGate}
