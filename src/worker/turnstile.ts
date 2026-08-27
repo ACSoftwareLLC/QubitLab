@@ -49,13 +49,28 @@ export async function verifyTurnstileToken(
     });
 
     if (!response.ok) {
+      console.error(
+        `[turnstile] siteverify HTTP ${response.status} for ${c.req.path}`
+      );
       return false;
     }
 
     const data = (await response.json()) as TurnstileVerifyResponse;
+    if (data.success !== true) {
+      // error-codes name the actual cause (invalid-input-secret = secret/widget
+      // mismatch, bad hostname = widget allowlist missing the origin, etc.)
+      console.error(
+        `[turnstile] verification failed for ${c.req.path}:`,
+        JSON.stringify(data['error-codes'] ?? [])
+      );
+    }
     return data.success === true;
-  } catch {
+  } catch (err) {
     // Fail closed on network errors.
+    console.error(
+      `[turnstile] siteverify request threw for ${c.req.path}:`,
+      err instanceof Error ? err.message : err
+    );
     return false;
   }
 }
