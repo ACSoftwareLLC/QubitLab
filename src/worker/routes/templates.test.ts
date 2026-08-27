@@ -255,3 +255,174 @@ describe('template routes — public', () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe('template routes — admin mutations', () => {
+  const createBody = {
+    slug: 'teleportation',
+    title: 'Quantum Teleportation',
+    description: 'Move a state with two classical bits.',
+    category: 'foundations',
+    difficulty: 2,
+    circuit: {
+      numBits: 3,
+      ops: [
+        { id: 1, type: 'H', segment: 0, targets: [1], controls: [], angle: null },
+        { id: 2, type: 'CX', segment: 1, targets: [2], controls: [1], angle: null },
+        { id: 3, type: 'M', segment: 3, targets: [2], controls: [], angle: null },
+      ],
+    },
+    articleHtml: '<p>Teleportation protocol</p>',
+  };
+
+  it('rejects anonymous creation with 401', async () => {
+    const res = await app.fetch(
+      new Request('http://localhost/auth/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(createBody),
+      }),
+      makeEnv({}),
+      mockExecutionCtx()
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects non-admin creation with 403', async () => {
+    const res = await app.fetch(
+      new Request('http://localhost/auth/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: USER_COOKIE },
+        body: JSON.stringify(createBody),
+      }),
+      makeEnv({}, NON_ADMIN_USER),
+      mockExecutionCtx()
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it('creates a template and returns its detail (201)', async () => {
+    const env = makeEnv({
+      // Re-fetch after INSERT — detail response source.
+      'FROM circuit_templates WHERE id': () => [
+        // Simulates the persisted row the INSERT wrote: carry createBody's
+        // circuit so the re-fetched detail reflects what was created.
+        makeTemplateRow({
+          id: 'uuid-1',
+          slug: 'teleportation',
+          title: 'Quantum Teleportation',
+          published: 0,
+          circuit: JSON.stringify(createBody.circuit),
+        }),
+      ],
+      // handlers that return arrays feed both first() and all(); runQuery's
+      // .run() dispatch is a no-op unless a fragment matches.
+      'INSERT INTO circuit_templates': () => undefined,
+    }, SESSION_USER);
+    const res = await app.fetch(
+      new Request('http://localhost/auth/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: ADMIN_COOKIE },
+        body: JSON.stringify(createBody),
+      }),
+      env,
+      mockExecutionCtx()
+    );
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.template).toMatchObject({ slug: 'teleportation', published: false });
+    expect(body.template.circuit.numBits).toBe(3);
+  });
+
+  it('maps duplicate-slug constraint errors to 409', async () => {
+    const env = makeEnv({
+      'INSERT INTO circuit_templates': () => {
+        throw Object.assign(new Error('UNIQUE constraint failed: circuit_templates.slug'), {
+          cause: { error: 2069 },
+        });
+      },
+    }, SESSION_USER);
+    const res = await app.fetch(
+      new Request('http://localhost/auth/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: ADMIN_COOKIE },
+        body: JSON.stringify(createBody),
+      }),
+      env,
+      mockExecutionCtx()
+    );
+    expect(res.status).toBe(409);
+  });
+
+  it('rejects invalid bodies with 400', async () => {
+    for (const bad of [
+      { ...createBody, category: 'quantum' },
+      { ...createBody, circuit: { numBits: 99, ops: [] } },
+      {},
+    ]) {
+      const res = await app.fetch(
+        new Request('http://localhost/auth/templates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Cookie: ADMIN_COOKIE },
+          body: JSON.stringify(bad),
+        }),
+        makeEnv({}, SESSION_USER),
+        mockExecutionCtx()
+      );
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it('patches partial fields and returns the updated detail', async () => {
+    const env = makeEnv({
+      'UPDATE circuit_templates SET': () => undefined,
+      'FROM circuit_templates WHERE id': () => [
+        makeTemplateRow({ title: 'Updated title', updated_at: '2026-08-27T00:00:00Z' }),
+      ],
+    }, SESSION_USER);
+    const res = await app.fetch(
+      new Request('http://localhost/auth/templates/tpl-1', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: ADMIN_COOKIE },
+        body: JSON.stringify({ title: 'Updated title' }),
+      }),
+      env,
+      mockExecutionCtx()
+    );
+    expect(res.status).toBe(200);
+    expect((await res.json()).template.title).toBe('Updated title');
+  });
+
+  it('rejects an empty patch with 400', async () => {
+    const res = await app.fetch(
+      new Request('http://localhost/auth/templates/tpl-1', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Cookie: ADMIN_COOKIE },
+        body: JSON.stringify({}),
+      }),
+      makeEnv({}, SESSION_USER),
+      mockExecutionCtx()
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it('deletes an existing template with 204 and misses missing ones with 404', async () => {
+    const okEnv = makeEnv({
+      'FROM circuit_templates WHERE id': () => [{ id: 'tpl-1' }],
+      'DELETE FROM circuit_templates': () => undefined,
+    }, SESSION_USER);
+    const ok = await app.fetch(
+      new Request('http://localhost/auth/templates/tpl-1', { method: 'DELETE', headers: { Cookie: ADMIN_COOKIE } }),
+      okEnv,
+      mockExecutionCtx()
+    );
+    expect(ok.status).toBe(204);
+
+    const missEnv = makeEnv({ 'FROM circuit_templates WHERE id': () => [] }, SESSION_USER);
+    const gone = await app.fetch(
+      new Request('http://localhost/auth/templates/nope', { method: 'DELETE', headers: { Cookie: ADMIN_COOKIE } }),
+      missEnv,
+      mockExecutionCtx()
+    );
+    expect(gone.status).toBe(404);
+  });
+});
