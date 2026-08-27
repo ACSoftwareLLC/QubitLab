@@ -150,3 +150,37 @@ export type AnalyticsDaysParam = z.infer<typeof analyticsDaysParamSchema>;
 export type AnalyticsLimitParam = z.infer<typeof analyticsLimitParamSchema>;
 export type AnalyticsTrackBody = z.infer<typeof analyticsTrackBodySchema>;
 export type BlogListParam = z.infer<typeof blogListParamSchema>;
+
+export const templateCategories = [
+  'foundations',
+  'algorithm',
+  'entanglement',
+  'games',
+] as const;
+
+export type TemplateCategory = (typeof templateCategories)[number];
+
+export const createTemplateSchema = z.object({
+  slug: z
+    .string()
+    .min(3)
+    .max(80)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  title: z.string().min(1).max(120),
+  description: z.string().min(1).max(200),
+  category: z.enum(templateCategories),
+  difficulty: z.number().int().min(1).max(3),
+  circuit: circuitSchema,
+  articleHtml: z.string().min(1).max(100_000),
+  published: z.boolean().optional().default(false),
+  sortOrder: z.number().int().min(0).optional().default(0),
+});
+
+export const updateTemplateSchema = createTemplateSchema.partial();
+
+export const templateListParamSchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(100),
+});
+
+export type CreateTemplateBody = z.infer<typeof createTemplateSchema>;
+export type UpdateTemplateBody = z.infer<typeof updateTemplateSchema>;
