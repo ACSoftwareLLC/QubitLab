@@ -641,3 +641,27 @@ textarea.auth-input {
 .circuit-author:hover {
   color: var(--auth-text);
 }
+
+/* ---------- Template gallery filters ---------- */
+
+.content-page .template-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.content-page .template-filter-chip {
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.content-page .template-filter-chip.active {
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.12);
+}

@@ -38,6 +38,9 @@ export function AppLayout() {
             <NavLink to="/blog" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
               Blog
             </NavLink>
+            <NavLink to="/templates" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
+              Templates
+            </NavLink>
             <NavLink to="/patch-notes" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
               Patch notes
             </NavLink>
