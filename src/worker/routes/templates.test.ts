@@ -373,8 +373,12 @@ describe('template routes — admin mutations', () => {
   });
 
   it('patches partial fields and returns the updated detail', async () => {
+    let capturedParams: unknown[] = [];
     const env = makeEnv({
-      'UPDATE circuit_templates SET': () => undefined,
+      'UPDATE circuit_templates SET': (_sql: string, params: unknown[]) => {
+        capturedParams = params;
+        return undefined;
+      },
       'FROM circuit_templates WHERE id': () => [
         makeTemplateRow({ title: 'Updated title', updated_at: '2026-08-27T00:00:00Z' }),
       ],
@@ -390,6 +394,12 @@ describe('template routes — admin mutations', () => {
     );
     expect(res.status).toBe(200);
     expect((await res.json()).template.title).toBe('Updated title');
+    // Arity regression guard: 2 placeholders (title + updated_at) + 1 id = 3 bindings
+    expect(capturedParams).toHaveLength(3);
+    expect(capturedParams[0]).toBe('Updated title');
+    // Second param should be an ISO timestamp for updated_at
+    expect(capturedParams[1]).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(capturedParams[2]).toBe('tpl-1');
   });
 
   it('rejects an empty patch with 400', async () => {

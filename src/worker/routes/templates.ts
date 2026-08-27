@@ -161,6 +161,7 @@ templates.patch('/:id', async (c) => {
     else values.push((data as Record<string, unknown>)[field]);
   }
   sets.push('updated_at = ?');
+  values.push(new Date().toISOString());
 
   try {
     await runQuery(
