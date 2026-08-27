@@ -7,7 +7,7 @@ QubitLab is a quantum-circuit designer and statevector simulator. The stack is h
 - **Frontend**: React + Vite, built into `dist/`, served as static assets from the Worker.
 - **Simulator**: Rust crate in `simulator/`, compiled to WASM with `wasm-pack` into `src/wasm/pkg` (gitignored, rebuilt on every deploy).
 - **Backend**: Single Cloudflare Worker using Hono (`src/worker/`).
-- **Database**: Cloudflare D1 (`users`, `sessions`, `circuits`, `blogs`, `analytics_events`).
+- **Database**: Cloudflare D1 (`users`, `sessions`, `circuits`, `circuit_templates`, `blogs`, `analytics_events`).
 - **Object storage**: Cloudflare R2 buckets for avatars (`AVATARS`) and circuit thumbnails (`THUMBNAILS`).
 - **Bot protection**: Cloudflare Turnstile on registration.
 

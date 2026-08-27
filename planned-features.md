@@ -5,7 +5,10 @@ design pass (brainstorm → approve → build) before implementation starts.
 
 ---
 
-## 1. Algorithm template gallery — *designing*
+## 1. Algorithm template gallery — *shipped*
+
+**Status:** shipped (2026-08-27) — gallery + rich articles + admin curation in D1;
+see `docs/superpowers/specs/2026-08-26-template-gallery-design.md`.
 
 Curated, ready-to-load quantum circuits (Grover, teleportation, Deutsch–Jozsa,
 QFT, Bell states…) shown as a browsable gallery. Clicking a template loads it

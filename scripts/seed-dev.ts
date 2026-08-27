@@ -229,6 +229,7 @@ async function buildSql(): Promise<string> {
     "",
     "DELETE FROM analytics_events;",
     "DELETE FROM blogs;",
+    "DELETE FROM circuit_templates;",
     "DELETE FROM circuits;",
     "DELETE FROM sessions;",
     "DELETE FROM users;",
@@ -319,6 +320,61 @@ async function buildSql(): Promise<string> {
     );
   });
   lines.push("");
+  const templatePosts = [
+    {
+      id: "tpl-seed-bell",
+      slug: "bell-state",
+      title: "Bell State",
+      description:
+        "Create and verify maximal entanglement between two qubits.",
+      category: "entanglement",
+      difficulty: 1,
+      circuit: {
+        numBits: 2,
+        ops: [
+          { id: 1, type: "H", segment: 0, targets: [0], controls: [], angle: null },
+          { id: 2, type: "CX", segment: 1, targets: [1], controls: [0], angle: null },
+        ],
+      },
+      articleHtml:
+        "<p>The Bell state is the simplest entangled state. Build H \u2297 CX and watch the statevector collapse onto (|00\u27e9 + |11\u27e9)/\u221a2.</p>",
+      published: 1,
+      sortOrder: 0,
+    },
+    {
+      id: "tpl-seed-grover",
+      slug: "grover-search",
+      title: "Grover Search",
+      description: "Find a marked item with amplitude amplification.",
+      category: "algorithm",
+      difficulty: 2,
+      circuit: {
+        numBits: 3,
+        ops: [
+          { id: 1, type: "H", segment: 0, targets: [0], controls: [], angle: null },
+          { id: 2, type: "H", segment: 0, targets: [1], controls: [], angle: null },
+          { id: 3, type: "H", segment: 0, targets: [2], controls: [], angle: null },
+          { id: 4, type: "CCX", segment: 1, targets: [2], controls: [0, 1], angle: null },
+        ],
+      },
+      articleHtml:
+        "<p>Grover's algorithm amplifies the amplitude of the marked state. This two-qubit-oracle demo shows one iteration; watch probabilities shift after each diffusion step.</p>",
+      published: 1,
+      sortOrder: 1,
+    },
+  ];
+
+  lines.push(
+    "INSERT INTO circuit_templates (id, slug, title, description, category, difficulty, circuit, article_html, published, sort_order, created_at, updated_at) VALUES",
+  );
+  templatePosts.forEach((template, index) => {
+    const suffix = index === templatePosts.length - 1 ? ";" : ",";
+    lines.push(
+      `  (${escapeSql(template.id)}, ${escapeSql(template.slug)}, ${escapeSql(template.title)}, ${escapeSql(template.description)}, ${escapeSql(template.category)}, ${template.difficulty}, ${escapeSql(JSON.stringify(template.circuit))}, ${escapeSql(template.articleHtml)}, ${template.published}, ${template.sortOrder}, ${escapeSql(now)}, ${escapeSql(now)})${suffix}`,
+    );
+  });
+  lines.push("");
+
   lines.push("PRAGMA foreign_keys = ON;");
 
   return lines.join("\n");
