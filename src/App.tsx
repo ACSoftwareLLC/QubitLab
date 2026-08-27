@@ -14,6 +14,7 @@ import { HomePage } from './pages/HomePage';
 import { BlogPage } from './pages/BlogPage';
 import { BlogPostPage } from './pages/BlogPostPage';
 import { TemplateGalleryPage } from './pages/TemplateGalleryPage';
+import { TemplateDetailPage } from './pages/TemplateDetailPage';
 import { BlogEditorPage } from './pages/BlogEditorPage';
 import { PatchNotesPage } from './pages/PatchNotesPage';
 import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
@@ -59,6 +60,7 @@ function App() {
           <Route path="/" element={<HomeOrLanding />} />
           <Route path="/community" element={<CommunityPage />} />
           <Route path="/templates" element={<TemplateGalleryPage />} />
+          <Route path="/templates/:slug" element={<TemplateDetailPage />} />
           <Route path="/marketplace" element={<Navigate to="/community" replace />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
