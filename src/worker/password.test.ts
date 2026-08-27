@@ -15,23 +15,25 @@ describe("password", () => {
     expect(await verifyPassword("wrong", hash)).toBe(false);
   });
 
-  it(`embeds ${PBKDF2_ITERATIONS} iterations in new hashes`, async () => {
+  it(`embeds the platform-capped ${PBKDF2_ITERATIONS} iterations in new hashes`, async () => {
     const hash = await hashPassword("password123");
     const [format, iterations] = hash.split("$");
     expect(format).toBe("pbkdf2-sha256");
     expect(iterations).toBe(String(PBKDF2_ITERATIONS));
-    expect(PBKDF2_ITERATIONS).toBe(600_000);
+    // The Workers runtime ceiling (100k) — see password.ts for why this is
+    // below the OWASP 600k guidance.
+    expect(PBKDF2_ITERATIONS).toBe(100_000);
   });
 
   it("still verifies hashes created by older versions", async () => {
-    // A hash produced by the previous 100k-iteration implementation.
-    const legacyHash = await pbkdf2Sha256("password123", 100_000);
+    // A hash produced by the previous 50k-iteration implementation.
+    const legacyHash = await pbkdf2Sha256("password123", 50_000);
     expect(await verifyPassword("password123", legacyHash)).toBe(true);
     expect(await verifyPassword("wrong", legacyHash)).toBe(false);
   });
 
   it("flags legacy and malformed hashes for rehash", async () => {
-    const legacyHash = await pbkdf2Sha256("password123", 100_000);
+    const legacyHash = await pbkdf2Sha256("password123", 50_000);
     const currentHash = await hashPassword("password123");
     expect(passwordNeedsRehash(legacyHash)).toBe(true);
     expect(passwordNeedsRehash(currentHash)).toBe(false);

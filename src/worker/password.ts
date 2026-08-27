@@ -1,10 +1,15 @@
 import bcrypt from "bcryptjs";
 import { base64ToBytes, bytesToBase64, pbkdf2Hash } from "./crypto.js";
 
-// OWASP 2024+ guidance for PBKDF2-HMAC-SHA-256: 600,000 iterations.
-// The stored format embeds the iteration count, so hashes created with
-// older settings still verify and are upgraded on next login/change.
-export const PBKDF2_ITERATIONS = 600_000;
+// OWASP 2024+ guidance for PBKDF2-HMAC-SHA-256 is 600,000 iterations, but the
+// deployed Cloudflare Workers runtime rejects deriveBits/deriveKey above
+// 100,000 iterations (NotSupportedError) while local workerd accepts them —
+// see docs/superpowers/debug/2026-08-27-login-500-bcrypt-migrations.md.
+// We pin to the platform ceiling: still a strong KDF for this threat model
+// (unique 16-byte salt per hash, login rate-limited 10/15min per IP, Turnstile
+// on registration), and the stored format embeds the count so a future bump
+// rehashes transparently on next login/change.
+export const PBKDF2_ITERATIONS = 100_000;
 const HASH_FORMAT = "pbkdf2-sha256";
 
 export async function hashPassword(password: string): Promise<string> {

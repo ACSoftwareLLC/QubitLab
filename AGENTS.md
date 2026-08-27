@@ -163,7 +163,7 @@ This validates that the configured D1 database and R2 buckets exist for the targ
 
 - Worker code is in `src/worker/` and compiled against `@cloudflare/workers-types` via `tsconfig.worker.json`.
 - Use `crypto.randomUUID()` for UUIDs, `crypto.subtle` for PBKDF2 and SHA-256, and `Uint8Array`/`atob`/`btoa` for binary data. No `Buffer` or Node-only crypto modules.
-- Passwords are hashed with PBKDF2-HMAC-SHA-256 at 600k iterations; legacy hashes (older PBKDF2 iteration counts, or bcrypt hashes inherited from the pre-Worker `auth-server`) verify and upgrade transparently to PBKDF2 on next login.
+- Passwords are hashed with PBKDF2-HMAC-SHA-256 at 100k iterations (the Cloudflare Workers runtime ceiling — see `src/worker/password.ts`; local workerd accepts more, deployed workerd does not); legacy hashes (older PBKDF2 iteration counts, or bcrypt hashes inherited from the pre-Worker `auth-server`) verify and upgrade transparently to PBKDF2 on next login.
 - Keep routes in `src/worker/routes/`; shared helpers in `src/worker/` root.
 - D1 booleans are stored as `INTEGER` (`0`/`1`); JSON as `TEXT`.
 - D1 timestamps are stored as ISO 8601 `TEXT` in UTC.

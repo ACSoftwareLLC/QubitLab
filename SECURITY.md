@@ -26,7 +26,7 @@ static frontend and the `/auth/*` API. There is no CORS surface. Key properties:
 
 - **Auth**: session cookies are `HttpOnly`, `Secure`, `SameSite=Strict`, 7-day expiry;
   session tokens are stored SHA-256-hashed in D1; passwords use PBKDF2-HMAC-SHA-256
-  (600k iterations) and legacy hashes upgrade transparently at login.
+  (100k iterations — the Cloudflare Workers runtime ceiling; OWASP recommends 600k but workerd rejects >100k) and legacy hashes (older PBKDF2 counts, bcrypt from the pre-Worker auth-server) upgrade transparently at login.
 - **Authorization**: admin capability is a database column (`users.is_admin`); blog
   writes and analytics reads require it.
 - **Input handling**: zod validation on request bodies; parameterized SQL throughout;

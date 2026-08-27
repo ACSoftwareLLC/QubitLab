@@ -7,6 +7,7 @@ import {
   USER_COOKIE,
   DEFAULT_USER,
 } from "../test-helpers.js";
+import { PBKDF2_ITERATIONS } from "../password.js";
 
 vi.mock("../password.js", async () => {
   const actual = await import("../password.js");
@@ -383,7 +384,7 @@ describe("auth routes", () => {
       "FROM users WHERE username": () => [
         {
           ...DEFAULT_USER,
-          password_hash: "pbkdf2-sha256$100000$c2FsdA==$aGFzaA==",
+          password_hash: "pbkdf2-sha256$50000$c2FsdA==$aGFzaA==",
         },
       ],
       "INSERT INTO sessions": () => ({ success: true }),
@@ -414,7 +415,8 @@ describe("auth routes", () => {
       "FROM users WHERE username": () => [
         {
           ...DEFAULT_USER,
-          password_hash: "pbkdf2-sha256$600000$c2FsdA==$aGFzaA==",
+          // Exactly the current iteration count — no upgrade needed.
+          password_hash: `pbkdf2-sha256$${PBKDF2_ITERATIONS}$c2FsdA==$aGFzaA==`,
         },
       ],
       "INSERT INTO sessions": () => ({ success: true }),
