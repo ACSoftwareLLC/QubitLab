@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 description = "Quantum-Dnd statevector simulator, compiled to WASM for in-browser execution"
 
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = false
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 

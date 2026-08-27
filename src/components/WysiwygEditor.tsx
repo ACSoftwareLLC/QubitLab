@@ -1,9 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
+import { sanitizeHtml } from '../utils/sanitize';
 
 interface WysiwygEditorProps {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
+}
+
+function isAllowedLink(url: string): boolean {
+  try {
+    if (url.startsWith('mailto:')) return true;
+    const parsed = new URL(url, window.location.href);
+    return parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function isAllowedImageUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url, window.location.href);
+    return parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
 export function WysiwygEditor({ value, onChange, placeholder }: WysiwygEditorProps) {
@@ -14,7 +34,7 @@ export function WysiwygEditor({ value, onChange, placeholder }: WysiwygEditorPro
 
   useEffect(() => {
     if (editorRef.current && !initializedRef.current) {
-      editorRef.current.innerHTML = value;
+      editorRef.current.innerHTML = sanitizeHtml(value);
       initializedRef.current = true;
     }
   }, [value]);
@@ -35,7 +55,11 @@ export function WysiwygEditor({ value, onChange, placeholder }: WysiwygEditorPro
   };
 
   const insertLink = () => {
-    if (!linkUrl) return;
+    if (!linkUrl || !isAllowedLink(linkUrl)) {
+      setLinkUrl('');
+      setShowLinkInput(false);
+      return;
+    }
     exec('createLink', linkUrl);
     setLinkUrl('');
     setShowLinkInput(false);
@@ -43,7 +67,7 @@ export function WysiwygEditor({ value, onChange, placeholder }: WysiwygEditorPro
 
   const insertImage = () => {
     const url = window.prompt('Image URL');
-    if (url) {
+    if (url && isAllowedImageUrl(url)) {
       exec('insertImage', url);
     }
   };

@@ -1,6 +1,3 @@
-import type { KonvaEventObject } from 'konva/lib/Node';
-import { Fragment } from 'react';
-import { Group, Rect, Circle, Line, Text } from 'react-konva';
 import { GATE_WIDTH, GATE_HEIGHT } from '../../constants/canvas';
 import { GATE_CONFIGS, getGateOrigins } from '../../constants/gates';
 import type { CanvasGate } from '../../types';
@@ -8,40 +5,114 @@ import type { CanvasGate } from '../../types';
 interface GateProps {
   gate: CanvasGate;
   selected?: boolean;
-  onDragEnd: (gateId: number, e: KonvaEventObject<DragEvent>) => void;
+  onDragStart: (gateId: number, pointerX: number) => void;
   onLineStart: (gateId: number, originIndex: number, originX: number, startX: number, startY: number) => void;
   onDelete: (gateId: number) => void;
   onSelect?: (gateId: number) => void;
 }
 
-export function Gate({ gate, selected, onDragEnd, onLineStart, onDelete, onSelect }: GateProps) {
+export function Gate({ gate, selected, onDragStart, onLineStart, onDelete, onSelect }: GateProps) {
   const gateWidth = gate.width || GATE_WIDTH;
   const gateHeight = gate.height || GATE_HEIGHT;
   const origins = getGateOrigins(GATE_CONFIGS[gate.type], gateWidth);
+  const gradientId = `gate-grad-${gate.id}`;
+  const glowFilterId = `gate-glow-${gate.id}`;
 
   return (
-    <Group
-      key={gate.id}
-      x={gate.x}
-      y={gate.y}
-      draggable
-      // Free dragging in both axes; the fixed-row snap happens on drag end.
-      onDragEnd={e => onDragEnd(gate.id, e)}
-    >
-      <Rect
+    <g transform={`translate(${gate.x}, ${gate.y})`}>
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.22" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0.18" />
+        </linearGradient>
+        <filter id={glowFilterId} x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="2" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      {/* selection ring */}
+      {selected && (
+        <rect
+          x={-4}
+          y={-4}
+          width={gateWidth + 8}
+          height={gateHeight + 8}
+          rx={12}
+          ry={12}
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth={2}
+          strokeOpacity={0.9}
+          filter={`url(#${glowFilterId})`}
+          pointerEvents="none"
+        />
+      )}
+
+      {/* gate body */}
+      <rect
         x={0}
         y={0}
         width={gateWidth}
         height={gateHeight}
+        rx={10}
+        ry={10}
         fill={gate.color}
-        opacity={0.95}
-        draggable={false}
-        shadowBlur={6}
-        cornerRadius={8}
-        stroke={selected ? '#38bdf8' : undefined}
-        strokeWidth={selected ? 3 : 0}
+        stroke="rgba(255, 255, 255, 0.18)"
+        strokeWidth={1}
+        style={{ cursor: 'grab', filter: selected ? `url(#${glowFilterId})` : undefined }}
+        onMouseDown={e => {
+          e.stopPropagation();
+          onDragStart(gate.id, gate.x + e.nativeEvent.offsetX);
+        }}
         onClick={() => onSelect?.(gate.id)}
       />
+
+      {/* glossy gradient overlay */}
+      <rect
+        x={0}
+        y={0}
+        width={gateWidth}
+        height={gateHeight}
+        rx={10}
+        ry={10}
+        fill={`url(#${gradientId})`}
+        pointerEvents="none"
+      />
+
+      {/* Gate label */}
+      <text
+        x={gateWidth / 2}
+        y={gateHeight / 2}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize={14}
+        fontWeight={700}
+        fill="#fff"
+        pointerEvents="none"
+        style={{ userSelect: 'none', textShadow: '0 1px 2px rgba(0,0,0,0.35)' }}
+      >
+        {GATE_CONFIGS[gate.type].symbol}
+      </text>
+
+      {gate.angle != null && (
+        <text
+          x={gateWidth / 2}
+          y={gateHeight - 7}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize={9}
+          fontWeight={600}
+          fill="rgba(255, 255, 255, 0.92)"
+          pointerEvents="none"
+          style={{ userSelect: 'none', textShadow: '0 1px 2px rgba(0,0,0,0.35)' }}
+        >
+          {`${Math.round((gate.angle * 180) / Math.PI)}°`}
+        </text>
+      )}
 
       {/* Line origins: one per connection the gate accepts.
           Filled white = target, hollow = control. Each has an invisible larger
@@ -49,16 +120,16 @@ export function Gate({ gate, selected, onDragEnd, onLineStart, onDelete, onSelec
       {origins.map(origin => {
         const isTarget = origin.role === 'target';
         return (
-          <Fragment key={origin.index}>
-            <Circle
-              x={origin.offsetX}
-              y={gateHeight}
-              radius={15}
-              fill='#000'
+          <g key={origin.index}>
+            <circle
+              cx={origin.offsetX}
+              cy={gateHeight}
+              r={15}
+              fill="#000"
               opacity={0}
-              draggable={false}
+              style={{ cursor: 'crosshair' }}
               onMouseDown={e => {
-                e.cancelBubble = true;
+                e.stopPropagation();
                 onLineStart(
                   gate.id,
                   origin.index,
@@ -67,87 +138,64 @@ export function Gate({ gate, selected, onDragEnd, onLineStart, onDelete, onSelec
                   gate.y + gateHeight,
                 );
               }}
-              listening={true}
             />
-            <Circle
+            <circle
+              cx={origin.offsetX}
+              cy={gateHeight}
+              r={7}
+              fill={isTarget ? '#fff' : 'transparent'}
+              stroke="#fff"
+              strokeWidth={2.5}
+              pointerEvents="none"
+            />
+            <text
               x={origin.offsetX}
               y={gateHeight}
-              radius={7}
-              fill={isTarget ? '#fff' : 'transparent'}
-              stroke='#fff'
-              strokeWidth={2.5}
-              draggable={false}
-              listening={false}
-            />
-            <Text
-              x={origin.offsetX - 7}
-              y={gateHeight - 7}
-              width={14}
-              height={14}
-              text={isTarget ? 'T' : 'C'}
+              textAnchor="middle"
+              dominantBaseline="middle"
               fontSize={7}
-              fontStyle='bold'
+              fontWeight={700}
               fill={isTarget ? '#0b1220' : '#fff'}
-              align='center'
-              verticalAlign='middle'
-              listening={false}
-              draggable={false}
-            />
-          </Fragment>
+              pointerEvents="none"
+              style={{ userSelect: 'none' }}
+            >
+              {isTarget ? 'T' : 'C'}
+            </text>
+          </g>
         );
       })}
 
       {/* delete handle */}
-      <Circle
-        x={gateWidth}
-        y={0}
-        radius={10}
-        fill={gate.color}
-        shadowBlur={2}
-        onClick={() => onDelete(gate.id)}
-        listening={true}
-      />
-      <Line
-        points={[gateWidth - 6, -6, gateWidth + 6, 6]}
-        stroke='#fff'
-        strokeWidth={2}
-        lineCap='round'
-        listening={false}
-      />
-      <Line
-        points={[gateWidth + 6, -6, gateWidth - 6, 6]}
-        stroke='#fff'
-        strokeWidth={2}
-        lineCap='round'
-        listening={false}
-      />
-
-      <Text
-        text={gate.type}
-        fontSize={14}
-        fill='#fff'
-        align='center'
-        verticalAlign='middle'
-        listening={false}
-        draggable={false}
-        x={0}
-        y={0}
-        width={gateWidth}
-        height={gateHeight}
-      />
-      {gate.angle != null && (
-        <Text
-          text={`${Math.round((gate.angle * 180) / Math.PI)}°`}
-          fontSize={9}
-          fill='#fff'
-          align='center'
-          listening={false}
-          draggable={false}
-          x={0}
-          y={gateHeight - 11}
-          width={gateWidth}
+      <g
+        style={{ cursor: 'pointer' }}
+        onMouseDown={e => {
+          e.stopPropagation();
+          onDelete(gate.id);
+        }}
+        className="gate-delete-handle"
+      >
+        <circle
+          cx={gateWidth}
+          cy={0}
+          r={9}
+          fill="#0f172a"
+          stroke="rgba(255, 255, 255, 0.35)"
+          strokeWidth={1}
         />
-      )}
-    </Group>
+        <text
+          x={gateWidth}
+          y={1}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize={12}
+          fontWeight={700}
+          fill="#f87171"
+          pointerEvents="none"
+          style={{ userSelect: 'none' }}
+        >
+          ×
+        </text>
+      </g>
+    </g>
   );
 }

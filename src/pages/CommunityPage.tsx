@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { listCommunity, type SavedCircuit } from '../api/circuits';
-import { CircuitThumbnail } from '../components/CircuitThumbnail';
-import { AuthorChip } from '../components/AuthorChip';
-import '../components/AuthPage.css';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { listCommunity, type SavedCircuit } from "../api/circuits";
+import { CircuitThumbnail } from "../components/CircuitThumbnail";
+import { AuthorChip } from "../components/AuthorChip";
+import "../components/AuthPage.css";
 
 export function CommunityPage() {
   const navigate = useNavigate();
@@ -13,25 +13,33 @@ export function CommunityPage() {
   useEffect(() => {
     listCommunity()
       .then(setCircuits)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load community'));
+      .catch((err) =>
+        setError(
+          err instanceof Error ? err.message : "Failed to load community",
+        ),
+      );
   }, []);
 
   const handleOpen = (circuit: SavedCircuit) => {
-    navigate('/editor', { state: { circuit: circuit.circuit } });
+    navigate("/editor", { state: { circuit: circuit.circuit } });
   };
 
   return (
     <div className="page-container">
       <div className="page-content">
         <h1 className="page-title">Community</h1>
-        <p className="auth-subtitle">Discover public circuits shared by the community.</p>
+        <p className="auth-subtitle">
+          Discover public circuits shared by the community.
+        </p>
 
         {error && <div className="auth-message error">{error}</div>}
 
         {circuits === null && !error && <p className="page-muted">Loading…</p>}
 
         {circuits !== null && circuits.length === 0 && (
-          <p className="page-muted">No shared circuits yet — be the first to share one from My Circuits.</p>
+          <p className="page-muted">
+            No shared circuits yet — be the first to share one from My Circuits.
+          </p>
         )}
 
         <div className="circuit-grid">
@@ -42,7 +50,7 @@ export function CommunityPage() {
               role="button"
               tabIndex={0}
               onClick={() => handleOpen(circuit)}
-              onKeyDown={(e) => e.key === 'Enter' && handleOpen(circuit)}
+              onKeyDown={(e) => e.key === "Enter" && handleOpen(circuit)}
             >
               <div className="circuit-thumb">
                 {circuit.thumbnailUrl ? (
@@ -56,7 +64,7 @@ export function CommunityPage() {
                 <AuthorChip
                   username={circuit.username}
                   pfpUrl={circuit.pfpUrl}
-                  isAdmin={circuit.isAdmin}
+                  badge={circuit.badge}
                   className="circuit-author"
                 />
                 <span className="circuit-detail">

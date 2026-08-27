@@ -69,4 +69,24 @@ describe('deserializeCircuit', () => {
     expect(gates).toHaveLength(1);
     expect(gateLines).toHaveLength(0);
   });
+
+  it('clamps numBits to a maximum of 16', () => {
+    const circuit: Circuit = {
+      numBits: 30,
+      ops: [{ id: 2, type: 'H', segment: 0, targets: [15], controls: [], angle: null }],
+    };
+    const result = deserializeCircuit(circuit);
+    expect(result.numBits).toBe(16);
+    expect(result.gates).toHaveLength(1);
+    expect(result.gateLines).toHaveLength(1);
+  });
+
+  it('clamps numBits to a minimum of 1', () => {
+    const circuit: Circuit = {
+      numBits: 0,
+      ops: [{ id: 2, type: 'H', segment: 0, targets: [0], controls: [], angle: null }],
+    };
+    const result = deserializeCircuit(circuit);
+    expect(result.numBits).toBe(1);
+  });
 });

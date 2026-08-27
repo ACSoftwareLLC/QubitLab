@@ -1,6 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import type Konva from 'konva';
 import { Toolbox } from '../components/toolbox';
 import { StatePanel } from '../components/StatePanel';
 import { QuantumCanvas } from '../components/canvas';
@@ -10,10 +9,52 @@ import { useSimulation } from '../hooks/useSimulation';
 import { useEditorActions } from '../context/EditorActionsContext';
 import { serializeCircuit } from '../api/serialize';
 import type { Circuit } from '../api/types';
+import { consumeTemplatePrefetch } from './templatePrefetch';
+import { TemplateBanner } from './TemplateBanner';
 import '../App.css';
 
+async function captureSvgThumbnail(svg: SVGSVGElement | null, scale = 0.35): Promise<string | undefined> {
+  if (!svg) return undefined;
+
+  const serializer = new XMLSerializer();
+  const source = serializer.serializeToString(svg);
+  const svgBlob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(svgBlob);
+
+  const rect = svg.getBoundingClientRect();
+  const width = Math.max(1, Math.floor(rect.width * scale));
+  const height = Math.max(1, Math.floor(rect.height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    URL.revokeObjectURL(url);
+    return undefined;
+  }
+
+  // Fill with the canvas background color so thumbnails are not transparent.
+  ctx.fillStyle = '#0b1220';
+  ctx.fillRect(0, 0, width, height);
+
+  const img = new Image();
+  return new Promise((resolve) => {
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, width, height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(undefined);
+    };
+    img.src = url;
+  });
+}
+
 export function EditorPage() {
-  const stageRef = useRef<Konva.Stage>(null);
+  const canvasRef = useRef<SVGSVGElement>(null);
   const { registerActions } = useEditorActions();
   const location = useLocation();
   const { ref: canvasRegionRef, fitScale } = useFitScale();
@@ -28,13 +69,20 @@ export function EditorPage() {
     selectedPlacedGateId,
     stageScale,
     gateConfigs,
+    gateDrag,
+    lineDrag,
     handleDragStart,
     handleDrop,
     handleDragOver,
     handleDragLeave,
     handleTotalDragEnd,
+    handleGateDragStart,
+    handleGateDragMove,
     handleGateDragEnd,
     handleGateLineStart,
+    handleLineDragStart,
+    handleLineDragMove,
+    handleLineDragEnd,
     handleDeleteGate,
     handleSelectGate,
     handleGateAngleChange,
@@ -50,6 +98,7 @@ export function EditorPage() {
   } = useCanvasState(fitScale);
 
   const sim = useSimulation(gates, gateLines, numBits);
+  const [loadedTemplateName, setLoadedTemplateName] = useState<string | null>(null);
 
   const selectedPlacedGate = gates.find(g => g.id === selectedPlacedGateId) ?? null;
 
@@ -57,26 +106,38 @@ export function EditorPage() {
   useEffect(() => {
     registerActions({
       serialize: () => serializeCircuit(gates, gateLines, numBits),
-      captureThumbnail: () =>
-        stageRef.current?.toDataURL({ pixelRatio: 0.35, mimeType: 'image/png' }),
+      captureThumbnail: () => captureSvgThumbnail(canvasRef.current),
     });
     return () => registerActions(null);
   }, [registerActions, gates, gateLines, numBits]);
 
-  // Load a circuit handed over via navigation state (e.g. from My Circuits).
+  // Load a circuit handed over via navigation state (My Circuits) or a
+  // template prefetch from the gallery (sessionStorage contract).
   useEffect(() => {
-    const circuit = (location.state as { circuit?: Circuit } | null)?.circuit;
-    if (circuit) {
+    const handed = location.state as { circuit?: Circuit } | null;
+    const prefetched = consumeTemplatePrefetch();
+    if (prefetched) {
       sim.reset();
-      loadCircuit(circuit);
+      loadCircuit(prefetched.circuit);
+      setLoadedTemplateName(prefetched.title);
+    } else if (handed?.circuit) {
+      sim.reset();
+      loadCircuit(handed.circuit);
       window.history.replaceState({}, '');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
 
   return (
-    <div className="builder-layout">
-      <Toolbox
+    <div className="editor-root">
+      {loadedTemplateName && (
+        <TemplateBanner
+          name={loadedTemplateName}
+          onDismiss={() => setLoadedTemplateName(null)}
+        />
+      )}
+      <div className="builder-layout">
+        <Toolbox
         gateConfigs={gateConfigs}
         selectedGate={selectedGate}
         numBits={numBits}
@@ -101,11 +162,18 @@ export function EditorPage() {
           simStatus={sim.status}
           currentSegment={sim.currentSegment}
           numSteps={sim.numSteps}
+          gateDrag={gateDrag}
+          lineDrag={lineDrag}
           handleDrop={handleDrop}
           handleDragOver={handleDragOver}
           handleDragLeave={handleDragLeave}
+          handleGateDragStart={handleGateDragStart}
+          handleGateDragMove={handleGateDragMove}
           handleGateDragEnd={handleGateDragEnd}
           handleGateLineStart={handleGateLineStart}
+          handleLineDragStart={handleLineDragStart}
+          handleLineDragMove={handleLineDragMove}
+          handleLineDragEnd={handleLineDragEnd}
           handleDeleteGate={handleDeleteGate}
           handleSelectGate={handleSelectGate}
           handleStageMouseMove={handleStageMouseMove}
@@ -121,19 +189,20 @@ export function EditorPage() {
           zoomIn={zoomIn}
           zoomOut={zoomOut}
           resetZoom={resetZoom}
-          stageRef={stageRef}
+          stageRef={canvasRef}
         />
       </div>
 
-        <StatePanel
-          status={sim.status}
-          snapshot={sim.snapshot}
-          peekSnapshot={sim.peekSnapshot}
-          snapshotHistory={sim.snapshotHistory}
-          errors={sim.errors}
-          unconnectedGateIds={sim.unconnectedGateIds}
+      <StatePanel
+        status={sim.status}
+        snapshot={sim.snapshot}
+        peekSnapshot={sim.peekSnapshot}
+        snapshotHistory={sim.snapshotHistory}
+        errors={sim.errors}
+        unconnectedGateIds={sim.unconnectedGateIds}
           numBits={numBits}
         />
+      </div>
     </div>
   );
 }

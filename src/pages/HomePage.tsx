@@ -7,6 +7,7 @@ import { fetchStats, type SiteStats } from '../api/stats';
 import type { BlogPost } from '../types/blog';
 import { CircuitThumbnail } from '../components/CircuitThumbnail';
 import { QuantumField } from '../components/QuantumField';
+import { sanitizeHtmlForExcerpt } from '../utils/sanitize';
 
 const quickLinks = [
   { to: '/editor', icon: 'bi-pencil-square', label: 'Open editor', color: '#38bdf8' },
@@ -127,7 +128,7 @@ export function HomePage() {
                   <p
                     className="home-blog-excerpt"
                     dangerouslySetInnerHTML={{
-                      __html: post.content.slice(0, 140) + (post.content.length > 140 ? '…' : ''),
+                      __html: sanitizeHtmlForExcerpt(post.content, 140),
                     }}
                   />
                 </Link>

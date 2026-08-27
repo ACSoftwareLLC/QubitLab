@@ -16,7 +16,7 @@ export function SaveCircuitModal({ onClose }: { onClose: () => void }) {
     setSaving(true);
     try {
       const { circuit } = actions.serialize();
-      const thumbnail = actions.captureThumbnail();
+      const thumbnail = await actions.captureThumbnail();
       // Unconnected gates are simply not part of the serialized circuit.
       await createCircuit({ name: name.trim(), circuit, ...(thumbnail ? { thumbnail } : {}) });
       onClose();

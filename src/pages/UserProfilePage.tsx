@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { getUserProfile, type PublicUserProfile } from '../api/users';
-import { AdminBadge } from '../components/AdminBadge';
-import { QuantumField } from '../components/QuantumField';
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { getUserProfile, type PublicUserProfile } from "../api/users";
+import { AdminBadge } from "../components/AdminBadge";
+import { QuantumField } from "../components/QuantumField";
 
 export function UserProfilePage() {
   const { username } = useParams<{ username: string }>();
@@ -20,7 +20,9 @@ export function UserProfilePage() {
         if (!cancelled) setProfile(p);
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to load profile');
+          setError(
+            err instanceof Error ? err.message : "Failed to load profile",
+          );
         }
       }
     };
@@ -51,11 +53,13 @@ export function UserProfilePage() {
               <div className="profile-titles">
                 <h1 className="profile-name">
                   {profile.displayName}
-                  {profile.isAdmin && <AdminBadge className="profile-admin-badge" />}
+                  {profile.badge === "admin" && (
+                    <AdminBadge className="profile-admin-badge" />
+                  )}
                 </h1>
                 <p className="profile-username">@{profile.username}</p>
                 <p className="profile-joined">
-                  Member since {new Date(profile.createdAt).toLocaleDateString()}
+                  Member since {profile.memberSince ?? "—"}
                 </p>
               </div>
             </div>

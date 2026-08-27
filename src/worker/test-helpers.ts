@@ -131,6 +131,7 @@ export const DEFAULT_USER = {
   first_name: null,
   last_name: null,
   bio: null,
+  is_admin: 0,
   created_at: '2026-07-01T00:00:00Z',
 };
 
@@ -143,11 +144,11 @@ export function makeEnv(
   overrides: Partial<{
     AVATARS: R2Bucket;
     THUMBNAILS: R2Bucket;
+    ASSETS: Fetcher;
     SESSION_SECRET: string;
     TURNSTILE_SECRET_KEY: string;
     TURNSTILE_SITE_KEY: string;
     TURNSTILE_SKIP_VERIFICATION: string;
-    ADMINS: string;
     DISABLE_RATE_LIMIT: string;
     DISABLE_ORIGIN_VALIDATION: string;
   }> = {}
@@ -160,11 +161,11 @@ export function makeEnv(
     }),
     AVATARS: overrides.AVATARS ?? mockR2(),
     THUMBNAILS: overrides.THUMBNAILS ?? mockR2(),
+    ASSETS: overrides.ASSETS,
     SESSION_SECRET: overrides.SESSION_SECRET ?? 'test-secret',
     TURNSTILE_SECRET_KEY: overrides.TURNSTILE_SECRET_KEY ?? '',
     TURNSTILE_SITE_KEY: overrides.TURNSTILE_SITE_KEY ?? '',
     TURNSTILE_SKIP_VERIFICATION: overrides.TURNSTILE_SKIP_VERIFICATION ?? '',
-    ADMINS: overrides.ADMINS ?? 'alice',
     DISABLE_RATE_LIMIT: overrides.DISABLE_RATE_LIMIT ?? 'true',
     DISABLE_ORIGIN_VALIDATION: overrides.DISABLE_ORIGIN_VALIDATION ?? '',
   };
@@ -176,7 +177,7 @@ export function makeAdminEnv(
 ) {
   return makeEnv(
     d1Handlers,
-    { ...DEFAULT_USER, username: 'alex' },
-    { ADMINS: 'alex', ...overrides }
+    { ...DEFAULT_USER, username: 'alex', is_admin: 1 },
+    overrides
   );
 }

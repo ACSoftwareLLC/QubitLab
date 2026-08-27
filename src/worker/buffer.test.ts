@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { dataUrlToBytes, dataUrlContentType, bytesToString, stringToBytes, bytesToBase64, parsePngDataUrl } from './buffer.js';
+import {
+  dataUrlToBytes,
+  dataUrlContentType,
+  bytesToString,
+  stringToBytes,
+  bytesToBase64,
+  parsePngDataUrl,
+  sniffImageType,
+} from './buffer.js';
 
 describe('buffer', () => {
   it('round-trips string to bytes', () => {
@@ -31,5 +39,22 @@ describe('buffer', () => {
 
   it('rejects a non-PNG data URL', () => {
     expect(() => parsePngDataUrl('data:image/jpeg;base64,/9j/')).toThrow('Expected a PNG data URL');
+  });
+
+  it('sniffs PNG, JPEG, and WebP magic bytes', () => {
+    expect(sniffImageType(new Uint8Array([0x89, 0x50, 0x4e, 0x47]))).toBe('png');
+    expect(sniffImageType(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]))).toBe('jpg');
+    expect(
+      sniffImageType(
+        new Uint8Array([
+          0x52, 0x49, 0x46, 0x46, 0x20, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50,
+        ])
+      )
+    ).toBe('webp');
+  });
+
+  it('returns null for unknown magic bytes', () => {
+    expect(sniffImageType(new Uint8Array([0x00, 0x00, 0x00, 0x00]))).toBeNull();
+    expect(sniffImageType(new Uint8Array([]))).toBeNull();
   });
 });

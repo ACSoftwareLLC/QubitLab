@@ -23,6 +23,7 @@ export function deserializeCircuit(circuit: Circuit): {
 } {
   const gates: CanvasGate[] = [];
   const gateLines: GateLine[] = [];
+  const numBits = Math.min(16, Math.max(1, circuit.numBits));
   let idCounter = 0;
   const nextId = () => Date.now() + idCounter++;
 
@@ -53,7 +54,7 @@ export function deserializeCircuit(circuit: Circuit): {
     ];
 
     connections.forEach(({ bitIndex, role }, originIndex) => {
-      if (bitIndex < 0 || bitIndex >= circuit.numBits) return;
+      if (bitIndex < 0 || bitIndex >= numBits) return;
       const origin = origins[originIndex];
       gateLines.push({
         id: nextId(),
@@ -67,5 +68,5 @@ export function deserializeCircuit(circuit: Circuit): {
     });
   }
 
-  return { gates, gateLines, numBits: circuit.numBits };
+  return { gates, gateLines, numBits };
 }

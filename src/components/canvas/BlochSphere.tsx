@@ -127,11 +127,11 @@ export const BlochSphere: React.FC<BlochSphereProps> = ({
   }, [snapshotHistory, qubitIndex]);
 
   return (
-    <div style={{ width: '100%', height: '100%', minHeight: '300px', background: '#111', borderRadius: '8px', overflow: 'hidden', position: 'relative' }}>
+    <div style={{ width: '100%', height: '100%', minHeight: '300px', background: 'var(--bg-deep)', borderRadius: '8px', overflow: 'hidden', position: 'relative' }}>
       <Canvas camera={{ position: [3, 3, 3], fov: 45 }}>
         <BlochSphereScene vector={currentVector} historyVectors={historyVectors} />
       </Canvas>
-      <div style={{ position: 'absolute', bottom: 10, left: 10, color: '#888', fontSize: '12px', pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', bottom: 10, left: 10, color: 'var(--muted)', fontSize: '12px', pointerEvents: 'none' }}>
         Qubit {qubitIndex} Bloch Sphere
       </div>
     </div>

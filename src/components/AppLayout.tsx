@@ -38,6 +38,9 @@ export function AppLayout() {
             <NavLink to="/blog" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
               Blog
             </NavLink>
+            <NavLink to="/templates" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
+              Templates
+            </NavLink>
             <NavLink to="/patch-notes" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
               Patch notes
             </NavLink>
@@ -54,6 +57,11 @@ export function AppLayout() {
             {user?.isAdmin && (
               <NavLink to="/admin/users" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
                 Users
+              </NavLink>
+            )}
+            {user?.isAdmin && (
+              <NavLink to="/admin/templates" className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}>
+                Templates
               </NavLink>
             )}
           </nav>
@@ -90,6 +98,13 @@ export function AppLayout() {
       </header>
 
       <Outlet />
+
+      <footer className="app-footer">
+        <span>© {new Date().getFullYear()} QubitLab</span>
+        <div className="app-footer-links">
+          <Link to="/privacy">Privacy Policy</Link>
+        </div>
+      </footer>
 
       {saveOpen && actions && <SaveCircuitModal onClose={() => setSaveOpen(false)} />}
     </div>

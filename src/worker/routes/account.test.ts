@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import app from '../index.js';
 import { mockExecutionCtx, makeEnv, ADMIN_COOKIE, DEFAULT_USER } from '../test-helpers.js';
@@ -225,6 +226,32 @@ describe('account routes', () => {
     expect(res.status).toBe(429);
     expect((await res.json()) as { error: string }).toEqual({
       error: 'Avatar change limit reached (5 per hour)',
+    });
+  });
+
+  it('rejects avatars whose magic bytes do not match the declared MIME type', async () => {
+    const env = makeEnv();
+    // Send WebP magic bytes declared as a PNG so the magic-byte check fails.
+    // Use only ASCII-safe bytes so the test FormData parses reliably.
+    const fileBytes = new Uint8Array([
+      0x52, 0x49, 0x46, 0x46, 0x20, 0x20, 0x20, 0x20, 0x57, 0x45, 0x42, 0x50,
+    ]);
+    const formData = new FormData();
+    formData.append('file', new File([fileBytes], 'avatar.png', { type: 'image/png' }));
+
+    const res = await app.fetch(
+      new Request('http://localhost/auth/account/avatar', {
+        method: 'POST',
+        headers: { Cookie: ADMIN_COOKIE },
+        body: formData,
+      }),
+      env as unknown as Record<string, unknown>,
+      mockExecutionCtx()
+    );
+
+    expect(res.status).toBe(400);
+    expect((await res.json()) as { error: string }).toEqual({
+      error: 'Avatar file content does not match its extension',
     });
   });
 });

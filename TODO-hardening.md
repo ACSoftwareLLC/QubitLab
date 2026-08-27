@@ -4,6 +4,7 @@ Security hardening roadmap based on a full-platform audit (Worker routes, fronte
 Approach: 5 small, independently shippable PRs, ordered so each phase reduces the risk the next one assumes.
 
 **Locked-in decisions:**
+
 - Admin privileges: DB `is_admin` column (replaces `ADMINS` env-var matching)
 - Rate limiting: D1-backed limiter (replaces per-isolate in-memory Map)
 - Sequencing: small phased PRs
@@ -25,9 +26,11 @@ Approach: 5 small, independently shippable PRs, ordered so each phase reduces th
 Fixes the two actively-open production holes: unlimited login/register attempts and unlimited unauthenticated D1 writes.
 
 ### Migration `0002_rate_limits.sql`
+
 - [x] `rate_limits(key TEXT PRIMARY KEY, count INTEGER NOT NULL, reset_at TEXT NOT NULL)` + index on `reset_at`
 
 ### Code
+
 - [x] `src/worker/rate-limit.ts` — rewrite as async D1-backed fixed-window limiter (UPSERT … `ON CONFLICT DO UPDATE` comparing `reset_at`; reset when expired). Keep `DISABLE_RATE_LIMIT` escape hatch for local/tests only. On D1 error: fail open + `console.error` (avoid self-DoS)
 - [x] `wrangler.jsonc` — remove `DISABLE_RATE_LIMIT: "true"` from production
 - [x] `src/worker/turnstile.ts` + `src/worker/routes/auth.ts` — fail closed when keys are configured but verification errors; make "verification skipped" an explicit local-only path
@@ -37,6 +40,7 @@ Fixes the two actively-open production holes: unlimited login/register attempts 
 - [x] `scripts/seed-dev.ts` — hard-refuse `--env production` / `--remote` against production
 
 ### Tests
+
 - [x] New `src/worker/rate-limit.test.ts` (window expiry, per-key isolation, disabled flag)
 - [x] Turnstile fail-closed tests
 - [x] `/track` 429 test
@@ -48,21 +52,24 @@ Fixes the two actively-open production holes: unlimited login/register attempts 
 
 Removes the privilege-escalation design flaw; limits blast radius of a DB read.
 
-### Migration `0003_admin_and_session_hardening.sql`
-- [ ] `ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0 CHECK (is_admin IN (0,1))`
-- [ ] Optional: case-insensitive username uniqueness via UNIQUE index on `username COLLATE NOCASE` (pre-check for existing conflicts first) — kills `Alex`/`alex` impersonation
+### Migration `0005_admin_and_session_hardening.sql`
+
+- [x] `ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0 CHECK (is_admin IN (0,1))`
+- [x] Optional: case-insensitive username uniqueness via UNIQUE index on `username COLLATE NOCASE` (pre-check for existing conflicts first) — kills `Alex`/`alex` impersonation
 
 ### Code
-- [ ] `src/worker/session.ts` — `getSessionUser` selects `u.is_admin` from the JOIN; drop `ADMINS` env parsing
-- [ ] `src/worker/routes/auth.ts` (`requireAdmin`), `src/worker/routes/blogs.ts` (`isAdminRequest`), `src/worker/types.ts` (`publicUser`) — read `is_admin` from the user row
-- [ ] Session tokens hashed at rest: login/register store `SHA-256(sessionId)` in `sessions.id`; `getSessionUser` hashes the cookie value before lookup. Existing sessions invalidate → one-time forced re-login (acceptable). No schema change needed
-- [ ] `scripts/seed-dev.ts` — set `is_admin = 1` for `devadmin`
-- [ ] Docs: `AGENTS.md` + `README.md` — replace `ADMINS` var docs with the `wrangler d1 execute … UPDATE users SET is_admin = 1` grant procedure
+
+- [x] `src/worker/session.ts` — `getSessionUser` selects `u.is_admin` from the JOIN; drop `ADMINS` env parsing
+- [x] `src/worker/routes/auth.ts` (`requireAdmin`), `src/worker/routes/blogs.ts` (`isAdminRequest`), `src/worker/types.ts` (`publicUser`) — read `is_admin` from the user row
+- [x] Session tokens hashed at rest: login/register store `SHA-256(sessionId)` in `sessions.id`; `getSessionUser` hashes the cookie value before lookup. Existing sessions invalidate → one-time forced re-login (acceptable). No schema change needed
+- [x] `scripts/seed-dev.ts` — set `is_admin = 1` for `devadmin`
+- [x] Docs: `AGENTS.md` + `README.md` — replace `ADMINS` var docs with the `wrangler d1 execute … UPDATE users SET is_admin = 1` grant procedure
 
 ### Tests
-- [ ] Non-admin → 403 on blog CRUD/analytics; admin via DB flag → 200
-- [ ] Username in `ADMINS` env no longer grants anything
-- [ ] Session lookup works with hashed IDs; old plaintext session IDs rejected
+
+- [x] Non-admin → 403 on blog CRUD/analytics; admin via DB flag → 200
+- [x] Username in `ADMINS` env no longer grants anything
+- [x] Session lookup works with hashed IDs; old plaintext session IDs rejected
 
 ---
 
@@ -71,23 +78,28 @@ Removes the privilege-escalation design flaw; limits blast radius of a DB read.
 Breaks the stored-XSS chain and adds the currently-missing browser security controls.
 
 ### Frontend
-- [ ] Add `dompurify` dependency; sanitize at all three sinks (`src/pages/BlogPostPage.tsx:68`, `src/pages/BlogPage.tsx:99`, `src/pages/HomePage.tsx:124`) and before loading HTML into `src/components/WysiwygEditor.tsx:17`
-- [ ] Fix excerpt slicing to sanitize then truncate safely
-- [ ] `WysiwygEditor.tsx` — allowlist `https:`/`mailto:` on `insertLink`; validate `insertImage` URLs
+
+- [x] Add `dompurify` dependency; sanitize at all three sinks (`src/pages/BlogPostPage.tsx:68`, `src/pages/BlogPage.tsx:99`, `src/pages/HomePage.tsx:124`) and before loading HTML into `src/components/WysiwygEditor.tsx:17`
+- [x] Fix excerpt slicing to sanitize then truncate safely
+- [x] `WysiwygEditor.tsx` — allowlist `https:`/`mailto:` on `insertLink`; validate `insertImage` URLs
 
 ### Worker
-- [ ] Security-headers middleware in `src/worker/index.ts` (use `hono/secure-headers` or hand-roll), applied to API and asset responses:
+
+- [x] Security-headers middleware in `src/worker/index.ts` (use `hono/secure-headers` or hand-roll), applied to API and asset responses:
   - `Content-Security-Policy`: `default-src 'self'; script-src 'self' https://challenges.cloudflare.com 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`
   - `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`, `Cross-Origin-Opener-Policy: same-origin`
-- [ ] `src/worker/r2.ts` — add `nosniff` + `Content-Disposition: inline` and `Cache-Control` on avatar serves; reflect only allowlisted content types
-- [ ] `src/worker/routes/account.ts` — avatar magic-byte validation (reuse the PNG/JPEG/WEBP sniffing in `src/worker/buffer.ts`), reject mismatches
-- [ ] `AGENTS.md` — fix the false "CSP enforced" claim to describe the real middleware
+- [x] `src/worker/r2.ts` — add `nosniff` + `Content-Disposition: inline` and `Cache-Control` on avatar serves; reflect only allowlisted content types
+- [x] `src/worker/routes/account.ts` — avatar magic-byte validation (reuse the PNG/JPEG/WEBP sniffing in `src/worker/buffer.ts`), reject mismatches
+- [x] `AGENTS.md` — fix the false "CSP enforced" claim to describe the real middleware
 
 ### Tests
-- [ ] Header assertions on API + asset responses
-- [ ] Sanitizer unit tests (script/event-handler/`javascript:` URLs stripped)
-- [ ] Avatar upload with mismatched magic bytes → 400
-- [ ] E2E smoke to confirm Turnstile + WASM still work under CSP
+
+- [x] Header assertions on API + asset responses
+- [x] Sanitizer unit tests (script/event-handler/`javascript:` URLs stripped)
+- [x] Avatar upload with mismatched magic bytes → 400
+- [x] E2E smoke to confirm Turnstile + WASM still work under CSP (`e2e/csp.spec.ts`;
+      also exposed that asset responses were missing security headers until
+      `run_worker_first` was enabled in `wrangler.jsonc`)
 
 ---
 
@@ -95,29 +107,30 @@ Breaks the stored-XSS chain and adds the currently-missing browser security cont
 
 Closes the cost-exhaustion/DoS vectors and correctness bugs in security controls.
 
-- [ ] `src/worker/schemas.ts`: password `.max(128)`; cap `ops` array length, `targets`/`controls` lengths, gate `type` length; blog list/query caps
-- [ ] `src/worker/routes/circuits.ts`: per-user circuit count quota (e.g. 100) → 403/413 with clear error
-- [ ] `src/worker/routes/blogs.ts`: `LIMIT` on list endpoint + server-side excerpt (stop shipping full `content` for every post)
-- [ ] `src/worker/routes/blogs.ts`: fix `VISIBILITY_FILTER` datetime bug — compare against an ISO `?` param instead of `datetime('now')`
-- [ ] `src/worker/routes/blogs.ts`: guard empty slugs after `slugify`
-- [ ] `src/worker/index.ts` / `errors.ts`: body-size guard via `Content-Length` check on JSON routes (e.g. 1 MB); malformed JSON → 400 instead of 500
-- [ ] Frontend: clamp `numBits <= 16` in `src/api/deserialize.ts` / `src/hooks/useCanvasState.ts` when loading marketplace circuits
+- [x] `src/worker/schemas.ts`: password `.max(128)`; cap `ops` array length, `targets`/`controls` lengths, gate `type` length; blog list/query caps
+- [x] `src/worker/routes/circuits.ts`: per-user circuit count quota (e.g. 100) → 403/413 with clear error
+- [x] `src/worker/routes/blogs.ts`: `LIMIT` on list endpoint + server-side excerpt (stop shipping full `content` for every post)
+- [x] `src/worker/routes/blogs.ts`: fix `VISIBILITY_FILTER` datetime bug — compare against an ISO `?` param instead of `datetime('now')`
+- [x] `src/worker/routes/blogs.ts`: guard empty slugs after `slugify`
+- [x] `src/worker/index.ts` / `errors.ts`: body-size guard via `Content-Length` check on JSON routes (e.g. 1 MB); malformed JSON → 400 instead of 500
+- [x] Frontend: clamp `numBits <= 16` in `src/api/deserialize.ts` / `src/hooks/useCanvasState.ts` when loading marketplace circuits
 
 ### Tests
-- [ ] Quota exhaustion → 4xx; oversized bodies → 413; malformed JSON → 400
-- [ ] Scheduled post publishes same-day (visibility filter fix)
-- [ ] Crafted 30-bit marketplace circuit clamps to 16
+
+- [x] Quota exhaustion → 4xx; oversized bodies → 413; malformed JSON → 400
+- [x] Scheduled post publishes same-day (visibility filter fix)
+- [x] Crafted 30-bit marketplace circuit clamps to 16
 
 ---
 
 ## Phase 5 (PR 5) — Crypto, CI & process hygiene
 
-- [ ] `src/worker/password.ts`: PBKDF2 100k → 600k iterations (OWASP SHA-256 guidance; format embeds iteration count so old hashes still verify and upgrade on next login/change). Verify login latency impact
-- [ ] `src/worker/routes/auth.ts` login: dummy PBKDF2 verify when the user doesn't exist → closes the timing oracle
-- [ ] CI: pin third-party actions by commit SHA (`jetli/wasm-pack-action`, `actions-rust-lang/setup-rust-toolchain`, `cloudflare/wrangler-action`)
-- [ ] CI: delete duplicate `tests.yml` (identical to `ci.yml`); add `npm audit --audit-level=high` step + Dependabot config
-- [ ] Add `SECURITY.md` (reporting policy, threat-model summary, accepted risks)
-- [ ] Decide + document (accepted risk or fix): public exposure of `isAdmin`/`createdAt` on public profiles & marketplace payloads
+- [x] `src/worker/password.ts`: PBKDF2 100k → 600k iterations (OWASP SHA-256 guidance; format embeds iteration count so old hashes still verify and upgrade on next login/change). Verified login latency: ~92ms per hash locally at 600k
+- [x] `src/worker/routes/auth.ts` login: dummy PBKDF2 verify when the user doesn't exist → closes the timing oracle
+- [x] CI: pin third-party actions by commit SHA (`jetli/wasm-pack-action`, `actions-rust-lang/setup-rust-toolchain`, `cloudflare/wrangler-action`, plus `actions/checkout`, `actions/setup-node`); Dependabot keeps the SHAs updated
+- [x] CI: delete duplicate `tests.yml` (identical to `ci.yml`); add `npm audit --audit-level=high` step + Dependabot config (`npm audit fix` also cleared 14 outstanding vulns)
+- [x] Add `SECURITY.md` (reporting policy, threat-model summary, accepted risks)
+- [x] Decide + document public exposure of `isAdmin`/`createdAt`: public payloads now expose a presentational `badge: 'admin' | null` and year-granularity `memberSince` instead of the raw flag/exact timestamp; self endpoints keep exact values
 
 ---
 
@@ -139,7 +152,7 @@ npm run check:deployment -- --env dev   # before any remote deploy
 ## Audit findings reference (what each phase fixes)
 
 | Severity | Finding | Phase |
-|---|---|---|
+| --- | --- | --- |
 | High | Rate limiting disabled in production (`wrangler.jsonc`) + per-isolate limiter | 1 |
 | High | Turnstile dummy key in production + fail-open verification | 1 |
 | High | `POST /auth/analytics/track` unauthenticated + unrate-limited | 1 |

@@ -1,71 +1,92 @@
-import { Group, Line, Circle, Text } from 'react-konva';
 import { GATE_HEIGHT } from '../../constants/canvas';
-import { getClosestBitLine } from '../../utils/geometry';
 import type { CanvasGate, GateLine } from '../../types';
 
 interface GateLineConnectionProps {
   line: GateLine;
   gates: CanvasGate[];
   numBits: number;
+  barY: number;
   onUpdateBarY: (lineId: number, barY: number) => void;
   onToggleRole: (lineId: number) => void;
+  onDragStart: (lineId: number) => void;
 }
 
-export function GateLineConnection({ line, gates, numBits, onUpdateBarY, onToggleRole }: GateLineConnectionProps) {
+export function GateLineConnection({
+  line,
+  gates,
+  barY,
+  onToggleRole,
+  onDragStart,
+}: GateLineConnectionProps) {
   const gate = gates.find(g => g.id === line.gateId);
   if (!gate) return null;
 
   const originAbsX = gate.x + line.originX;
   const gateCenterY = gate.y + (gate.height || GATE_HEIGHT) / 2;
   const isControl = line.role === 'control';
+  const glowFilterId = `line-glow-${line.id}`;
 
   return (
-    <Group key={`line-group-${line.id}`}>
-      <Line
-        points={[originAbsX, gateCenterY, originAbsX, line.barY]}
-        stroke='#cbd5e1'
+    <g key={`line-group-${line.id}`}>
+      <defs>
+        <filter id={glowFilterId} x="-60%" y="-20%" width="220%" height="140%">
+          <feGaussianBlur stdDeviation="1.5" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      <line
+        x1={originAbsX}
+        y1={gateCenterY}
+        x2={originAbsX}
+        y2={barY}
+        stroke="#cbd5e1"
         strokeWidth={2.5}
-        lineCap='round'
-        lineJoin='round'
-        listening={false}
+        strokeLinecap="round"
+        filter={`url(#${glowFilterId})`}
+        pointerEvents="none"
       />
-      {/* double-click toggles target (filled) ↔ control (open) */}
-      <Circle
-        x={originAbsX}
-        y={line.barY}
-        radius={8}
+
+      {/* drag + double-click toggles target (filled) ↔ control (open) */}
+      <circle
+        cx={originAbsX}
+        cy={barY}
+        r={12}
+        fill="#fff"
+        className="line-drag-hit"
+        style={{ cursor: 'ns-resize' }}
+        onMouseDown={e => {
+          e.stopPropagation();
+          onDragStart(line.id);
+        }}
+        onDoubleClick={() => onToggleRole(line.id)}
+      />
+      <circle
+        cx={originAbsX}
+        cy={barY}
+        r={8}
         fill={isControl ? 'transparent' : '#e2e8f0'}
-        stroke='#e2e8f0'
+        stroke="#e2e8f0"
         strokeWidth={2.5}
-        draggable={true}
-        dragBoundFunc={pos => ({ x: originAbsX, y: pos.y })}
-        onDblClick={() => onToggleRole(line.id)}
-        onDragMove={e => {
-          const y = e.target.y();
-          const nearestY = getClosestBitLine(y, numBits);
-          e.target.y(nearestY);
-          onUpdateBarY(line.id, nearestY);
-        }}
-        onDragEnd={e => {
-          const y = e.target.y();
-          const nearestY = getClosestBitLine(y, numBits);
-          onUpdateBarY(line.id, nearestY);
-        }}
+        filter={`url(#${glowFilterId})`}
+        pointerEvents="none"
       />
-      <Text
-        x={originAbsX - 8}
-        y={line.barY - 8}
-        width={16}
-        height={16}
-        text={isControl ? 'C' : 'T'}
+      <text
+        x={originAbsX}
+        y={barY}
+        textAnchor="middle"
+        dominantBaseline="middle"
         fontSize={8}
-        fontStyle='bold'
+        fontWeight={700}
         fill={isControl ? '#e2e8f0' : '#0b1220'}
-        align='center'
-        verticalAlign='middle'
-        listening={false}
-        draggable={false}
-      />
-    </Group>
+        pointerEvents="none"
+        style={{ userSelect: 'none' }}
+      >
+        {isControl ? 'C' : 'T'}
+      </text>
+    </g>
   );
 }

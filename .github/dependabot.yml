@@ -1,0 +1,17 @@
+# Dependabot keeps GitHub Actions and npm dependencies up to date.
+# Third-party Actions are pinned by commit SHA in workflows; Dependabot
+# updates the pinned SHAs and keeps the version comment in sync.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 3
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 3

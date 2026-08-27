@@ -83,7 +83,7 @@ Terminal 2 — run the Vite dev server with HMR (proxies `/auth` to the Worker):
 npm run dev
 ```
 
-Then open http://localhost:5173.
+Then open <http://localhost:5173>.
 
 ### Deploy
 
@@ -99,7 +99,7 @@ npm run deploy
 npm run deploy:production
 ```
 
-Dev deployments are triggered automatically on pushes to `develop` via `.github/workflows/deploy-dev.yml`. Production deployments are triggered on pushes to `main` via `.github/workflows/deploy-production.yml`.
+Dev deployments are triggered automatically on pushes to `dev` via `.github/workflows/deploy-dev.yml`. Production deployments are triggered on pushes to `main` via `.github/workflows/deploy-production.yml`.
 
 ### Database seeding
 
@@ -109,8 +109,14 @@ After applying migrations to a dev environment, seed it with sample data and dev
 # Seed the local dev database
 npm run db:seed:dev -- --local
 
+# The --local variant seeds the top-level config's local D1 file (the one
+# `wrangler dev --local` serves); do not combine it with --env.
+
 # Seed the remote dev database
 npm run db:seed:dev -- --env dev
+```
+
+> ⚠️ The seed script destroys all existing rows (users, circuits, blogs, templates) before inserting. Never run it against an environment with real users — for remote/dev content, create records through the app (e.g. /admin/templates) instead.
 
 # Dry-run the seed SQL without touching the database
 npm run db:seed:dev -- --dry-run
@@ -120,6 +126,19 @@ Seeded dev accounts:
 
 - `devadmin` / `devpassword` — admin user (blog editor).
 - `devuser` / `devpassword` — regular user.
+
+Admin privileges are controlled by the `users.is_admin` column, not by an env var. After applying migrations, grant admin rights with a D1 command:
+
+```bash
+# Local
+wrangler d1 execute DB --local --command "UPDATE users SET is_admin = 1 WHERE username IN ('alex')"
+
+# Dev
+wrangler d1 execute DB --env dev --command "UPDATE users SET is_admin = 1 WHERE username IN ('alex')"
+
+# Production
+wrangler d1 execute DB --env production --command "UPDATE users SET is_admin = 1 WHERE username IN ('alex')"
+```
 
 ### Deployment checks
 

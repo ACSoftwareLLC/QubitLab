@@ -13,6 +13,7 @@ export type UserRow = {
   last_name: string | null;
   bio: string | null;
   created_at: string;
+  is_admin: number;
 };
 
 const users = new Hono<HonoEnv>();
@@ -21,7 +22,7 @@ users.get('/:username', async (c) => {
   const username = c.req.param('username');
   const row = await queryFirst<UserRow>(
     c,
-    `SELECT id, username, pfp_key, first_name, last_name, bio, created_at
+    `SELECT id, username, pfp_key, first_name, last_name, bio, created_at, is_admin
      FROM users WHERE username = ?`,
     [username]
   );
@@ -30,7 +31,7 @@ users.get('/:username', async (c) => {
     return jsonError(c, 'User not found', 404);
   }
 
-  return c.json({ user: publicUser(row, c.env.ADMINS) });
+  return c.json({ user: publicUser(row) });
 });
 
 users.get('/:id/avatar', async (c) => {

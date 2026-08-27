@@ -2,6 +2,15 @@
 
 All notable changes to the QubitLab Cloudflare-native migration are documented in this file. Each minor version corresponds to a phase in the migration plan.
 
+## [0.13.0] — 2026-08-27 Template gallery
+
+- Added the algorithm template gallery: a new `circuit_templates` D1 table (migration `0006`) storing admin-curated circuits with rich article explanations.
+- Added public Worker endpoints `GET /auth/templates` and `GET /auth/templates/:slug` plus admin CRUD (`POST`, `PATCH`, `DELETE`) behind `requireAdmin`.
+- Added the guest-visible `/templates` gallery page with category filter chips and a `/templates/:slug` article page with circuit preview.
+- Added "Open in editor" handoff via a sessionStorage prefetch that loads the circuit into the editor with a dismissible banner.
+- Added an admin management UI at `/admin/templates` (create, edit, publish, delete) with a rich-text article editor and circuit-JSON import.
+- Added template seeding to `scripts/seed-dev.ts` (Bell State beginner template, Grover Search intermediate template) and e2e coverage in `e2e/templates.spec.ts`.
+
 ## [0.12.0] — Cleanup
 
 - Removed the legacy Docker/Fastify `auth-server` directory and `docker-compose.yml`.

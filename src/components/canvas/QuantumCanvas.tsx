@@ -1,7 +1,4 @@
-import type { KonvaEventObject } from 'konva/lib/Node';
-import type Konva from 'konva';
-import type { Ref } from 'react';
-import { Stage, Layer } from 'react-konva';
+import { useRef, type Ref } from 'react';
 import { WORKSPACE_WIDTH, WORKSPACE_HEIGHT } from '../../constants/canvas';
 import type { CanvasGate, GateLine, DragPreview, DraggingGateLine, GateType, GateConfig } from '../../types';
 import type { SimStatus } from '../../hooks/useSimulation';
@@ -29,17 +26,26 @@ interface QuantumCanvasProps {
   simStatus: SimStatus;
   currentSegment: number;
   numSteps: number;
+  /** Currently dragged gate overlay, if any. */
+  gateDrag: { gateId: number; x: number; y: number } | null;
+  /** Currently dragged line endpoint overlay, if any. */
+  lineDrag: { lineId: number; barY: number } | null;
   handleDrop: (e: React.DragEvent) => void;
   handleDragOver: (e: React.DragEvent) => void;
   handleDragLeave: (e: React.DragEvent) => void;
-  handleGateDragEnd: (gateId: number, e: KonvaEventObject<DragEvent>) => void;
+  handleGateDragStart: (gateId: number, pointerX: number) => void;
+  handleGateDragMove: (pointerX: number) => void;
+  handleGateDragEnd: () => void;
   handleGateLineStart: (gateId: number, originIndex: number, originX: number, startX: number, startY: number) => void;
+  handleLineDragStart: (lineId: number) => void;
+  handleLineDragMove: (pointerY: number) => void;
+  handleLineDragEnd: () => void;
   handleDeleteGate: (gateId: number) => void;
   handleSelectGate: (gateId: number) => void;
-  handleStageMouseMove: (e: KonvaEventObject<MouseEvent>) => void;
+  handleStageMouseMove: (pos: { x: number; y: number }) => void;
   handleStageMouseUp: () => void;
-  updateGateLineBarY: (lineId: number, barY: number) => void;
   toggleGateLineRole: (lineId: number) => void;
+  updateGateLineBarY: (lineId: number, barY: number) => void;
   onSimStart: () => void;
   onSimStep: () => void;
   onSimRun: () => void;
@@ -49,7 +55,18 @@ interface QuantumCanvasProps {
   zoomIn: () => void;
   zoomOut: () => void;
   resetZoom: () => void;
-  stageRef?: Ref<Konva.Stage>;
+  stageRef?: Ref<SVGSVGElement>;
+}
+
+function logicalCoordsFromRect(
+  clientX: number,
+  clientY: number,
+  rect: DOMRect,
+): { x: number; y: number } {
+  return {
+    x: ((clientX - rect.left) / rect.width) * WORKSPACE_WIDTH,
+    y: ((clientY - rect.top) / rect.height) * WORKSPACE_HEIGHT,
+  };
 }
 
 const STATUS_LABELS: Record<SimStatus, string> = {
@@ -74,17 +91,24 @@ export function QuantumCanvas({
   simStatus,
   currentSegment,
   numSteps,
+  gateDrag,
+  lineDrag,
   handleDrop,
   handleDragOver,
   handleDragLeave,
+  handleGateDragStart,
+  handleGateDragMove,
   handleGateDragEnd,
   handleGateLineStart,
+  handleLineDragStart,
+  handleLineDragMove,
+  handleLineDragEnd,
   handleDeleteGate,
   handleSelectGate,
   handleStageMouseMove,
   handleStageMouseUp,
-  updateGateLineBarY,
   toggleGateLineRole,
+  updateGateLineBarY,
   onSimStart,
   onSimStep,
   onSimRun,
@@ -96,9 +120,10 @@ export function QuantumCanvas({
   resetZoom,
   stageRef,
 }: QuantumCanvasProps) {
+  const holderRef = useRef<HTMLDivElement>(null);
   const executing = simStatus === 'ready' || simStatus === 'running' || simStatus === 'done';
   const canInteract = simStatus === 'ready' || simStatus === 'running';
-  const idle = !draggingGateLine;
+  const idle = !draggingGateLine && !gateDrag && !lineDrag;
 
   // The stage viewport is sized to the *displayed* pixels so the whole
   // workspace is always visible and never clipped; content is drawn at
@@ -113,13 +138,59 @@ export function QuantumCanvas({
   const layoutRight = getSegmentLayout(segmentWidths).right;
   const linesWidth = Math.max(WORKSPACE_WIDTH, layoutRight);
 
+  const toLogicalCoords = (e: React.MouseEvent<HTMLDivElement>): { x: number; y: number } => {
+    const rect = holderRef.current?.getBoundingClientRect() ?? e.currentTarget.getBoundingClientRect();
+    return logicalCoordsFromRect(e.clientX, e.clientY, rect);
+  };
+
+  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (gateDrag) {
+      const pos = toLogicalCoords(e);
+      handleGateDragMove(pos.x);
+      return;
+    }
+    if (lineDrag) {
+      const pos = toLogicalCoords(e);
+      handleLineDragMove(pos.y);
+      return;
+    }
+    handleStageMouseMove(toLogicalCoords(e));
+  };
+
+  const onMouseUp = () => {
+    if (gateDrag) {
+      handleGateDragEnd();
+      return;
+    }
+    if (lineDrag) {
+      handleLineDragEnd();
+      return;
+    }
+    handleStageMouseUp();
+  };
+
+  const gateWithDrag = (gate: CanvasGate): CanvasGate => {
+    if (gateDrag?.gateId === gate.id) {
+      return { ...gate, x: gateDrag.x, y: gateDrag.y };
+    }
+    return gate;
+  };
+
+  const lineWithDrag = (line: GateLine): GateLine => {
+    if (lineDrag?.lineId === line.id) {
+      return { ...line, barY: lineDrag.barY };
+    }
+    return line;
+  };
+
   return (
     <div
       className="quantum-canvas"
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
-      onMouseUp={handleStageMouseUp}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
     >
       {/* Simulation controls */}
       <div className="canvas-toolbar canvas-toolbar-sim">
@@ -166,12 +237,14 @@ export function QuantumCanvas({
       {/* Empty-state hint */}
       {gates.length === 0 && (
         <div className="canvas-empty-hint">
-          <i className="bi bi-box-arrow-in-left" />
-          <span className="canvas-empty-hint-title">Drag gates from the toolbox onto the canvas</span>
-          <span className="canvas-empty-hint-sub">
-            Drop a gate on a segment, drag lines from the dots below it to bit lines,
-            then press Start. Filled dots are targets; open dots are controls.
-          </span>
+          <div className="canvas-empty-hint-card">
+            <i className="bi bi-box-arrow-in-left" />
+            <span className="canvas-empty-hint-title">Drag gates from the toolbox onto the canvas</span>
+            <span className="canvas-empty-hint-sub">
+              Drop a gate on a segment, drag lines from the dots below it to bit lines,
+              then press Start. Filled dots are targets; open dots are controls.
+            </span>
+          </div>
         </div>
       )}
 
@@ -189,53 +262,51 @@ export function QuantumCanvas({
         </div>
       )}
 
-      <div id="stage-holder" className="canvas-stage-holder" style={{ width: stageW, height: stageH }}>
-        <Stage
+      <div id="stage-holder" ref={holderRef} className="canvas-stage-holder" style={{ width: stageW, height: stageH }}>
+        <svg
           ref={stageRef}
           width={stageW}
           height={stageH}
-          scaleX={effectiveScale}
-          scaleY={effectiveScale}
-          onMouseMove={handleStageMouseMove}
-          onMouseUp={handleStageMouseUp}
+          viewBox={`0 0 ${WORKSPACE_WIDTH} ${WORKSPACE_HEIGHT}`}
+          className="canvas-svg"
         >
-          <Layer>
-            <BitLines numBits={numBits} workspaceWidth={linesWidth} />
+          <BitLines numBits={numBits} workspaceWidth={linesWidth} />
 
-            <SegmentGrid
+          <SegmentGrid
+            numBits={numBits}
+            widths={segmentWidths}
+            currentSegment={executing ? currentSegment : -1}
+            onPeekSegment={idle && executing ? onPeekSegment : undefined}
+            onPeekEnd={onPeekEnd}
+          />
+
+          {draggingGateLine && <GateLinePreview draggingGateLine={draggingGateLine} />}
+
+          {gateLines.map(line => (
+            <GateLineConnection
+              key={line.id}
+              line={line}
+              gates={gates}
               numBits={numBits}
-              widths={segmentWidths}
-              currentSegment={executing ? currentSegment : -1}
-              onPeekSegment={idle && executing ? onPeekSegment : undefined}
-              onPeekEnd={onPeekEnd}
+              barY={lineWithDrag(line).barY}
+              onUpdateBarY={updateGateLineBarY}
+              onToggleRole={toggleGateLineRole}
+              onDragStart={handleLineDragStart}
             />
+          ))}
 
-            {draggingGateLine && <GateLinePreview draggingGateLine={draggingGateLine} />}
-
-            {gateLines.map(line => (
-              <GateLineConnection
-                key={line.id}
-                line={line}
-                gates={gates}
-                numBits={numBits}
-                onUpdateBarY={updateGateLineBarY}
-                onToggleRole={toggleGateLineRole}
-              />
-            ))}
-
-            {gates.map(gate => (
-              <Gate
-                key={gate.id}
-                gate={gate}
-                selected={gate.id === selectedPlacedGateId}
-                onDragEnd={handleGateDragEnd}
-                onLineStart={handleGateLineStart}
-                onDelete={handleDeleteGate}
-                onSelect={handleSelectGate}
-              />
-            ))}
-          </Layer>
-        </Stage>
+          {gates.map(gate => (
+            <Gate
+              key={gate.id}
+              gate={gateWithDrag(gate)}
+              selected={gate.id === selectedPlacedGateId}
+              onDragStart={handleGateDragStart}
+              onLineStart={handleGateLineStart}
+              onDelete={handleDeleteGate}
+              onSelect={handleSelectGate}
+            />
+          ))}
+        </svg>
       </div>
     </div>
   );

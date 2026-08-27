@@ -1,6 +1,7 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import type { HonoContext, SessionUser } from './types.js';
 import { queryFirst } from './db.js';
+import { sha256Hex } from './crypto.js';
 
 export function getSessionId(c: HonoContext): string | null {
   const cookie = c.req.header('Cookie') ?? '';
@@ -8,10 +9,15 @@ export function getSessionId(c: HonoContext): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+export async function hashSessionId(sessionId: string): Promise<string> {
+  return sha256Hex(sessionId);
+}
+
 export async function getSessionUser(c: HonoContext): Promise<SessionUser | null> {
   const sessionId = getSessionId(c);
   if (!sessionId) return null;
 
+  const sessionHash = await hashSessionId(sessionId);
   const now = new Date().toISOString();
   const row = await queryFirst<
     {
@@ -21,19 +27,19 @@ export async function getSessionUser(c: HonoContext): Promise<SessionUser | null
       first_name: string | null;
       last_name: string | null;
       bio: string | null;
+      is_admin: number;
     }
   >(
     c,
-    `SELECT u.id, u.username, u.pfp_key, u.first_name, u.last_name, u.bio
+    `SELECT u.id, u.username, u.pfp_key, u.first_name, u.last_name, u.bio, u.is_admin
      FROM sessions s
      JOIN users u ON s.user_id = u.id
      WHERE s.id = ? AND s.expires_at > ?`,
-    [sessionId, now]
+    [sessionHash, now]
   );
 
   if (!row) return null;
 
-  const adminList = c.env.ADMINS.split(',').map((s) => s.trim()).filter(Boolean);
   return {
     id: row.id,
     username: row.username,
@@ -41,7 +47,7 @@ export async function getSessionUser(c: HonoContext): Promise<SessionUser | null
     first_name: row.first_name,
     last_name: row.last_name,
     bio: row.bio,
-    isAdmin: adminList.includes(row.username),
+    isAdmin: row.is_admin === 1,
   };
 }
 

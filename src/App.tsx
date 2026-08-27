@@ -13,11 +13,15 @@ import { LandingPage } from './pages/LandingPage';
 import { HomePage } from './pages/HomePage';
 import { BlogPage } from './pages/BlogPage';
 import { BlogPostPage } from './pages/BlogPostPage';
+import { TemplateGalleryPage } from './pages/TemplateGalleryPage';
+import { TemplateDetailPage } from './pages/TemplateDetailPage';
 import { BlogEditorPage } from './pages/BlogEditorPage';
 import { PatchNotesPage } from './pages/PatchNotesPage';
+import { PrivacyPolicyPage } from './pages/PrivacyPolicyPage';
 import { UserProfilePage } from './pages/UserProfilePage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { UserManagementPage } from './pages/UserManagementPage';
+import { AdminTemplatesPage } from './pages/AdminTemplatesPage';
 
 function HomeOrLanding() {
   const { user } = useAuth();
@@ -25,7 +29,7 @@ function HomeOrLanding() {
 }
 
 function App() {
-  const { loading } = useAuth();
+  const { loading, error } = useAuth();
   useAnalytics();
 
   if (loading) {
@@ -37,6 +41,18 @@ function App() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="app-loading" style={{ flexDirection: 'column', gap: '0.75rem' }}>
+        <i className="bi bi-wifi-off" style={{ fontSize: '1.5rem', color: 'var(--danger)' }} />
+        <span style={{ color: 'var(--danger)', fontWeight: 600 }}>{error}</span>
+        <span style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>
+          Run <code>npm run dev:worker</code> first, then <code>npm run dev</code>.
+        </span>
+      </div>
+    );
+  }
+
   return (
     <EditorActionsProvider>
       <Routes>
@@ -44,10 +60,13 @@ function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<HomeOrLanding />} />
           <Route path="/community" element={<CommunityPage />} />
+          <Route path="/templates" element={<TemplateGalleryPage />} />
+          <Route path="/templates/:slug" element={<TemplateDetailPage />} />
           <Route path="/marketplace" element={<Navigate to="/community" replace />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
           <Route path="/patch-notes" element={<PatchNotesPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/user/:username" element={<UserProfilePage />} />
         </Route>
         {/* Admin-only routes. */}
@@ -62,6 +81,7 @@ function App() {
           <Route path="/blog/:slug/edit" element={<BlogEditorPage />} />
           <Route path="/admin/analytics" element={<AnalyticsPage />} />
           <Route path="/admin/users" element={<UserManagementPage />} />
+          <Route path="/admin/templates" element={<AdminTemplatesPage />} />
         </Route>
 
         {/* Standalone auth screen. */}

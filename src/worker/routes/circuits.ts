@@ -12,6 +12,8 @@ import { recordAnalyticsEvent } from '../analytics.js';
 
 const circuits = new Hono<HonoEnv>();
 
+const MAX_CIRCUITS_PER_USER = 100;
+
 export type CircuitRow = {
   id: string;
   user_id: string;
@@ -73,6 +75,20 @@ circuits.post('/', rateLimitUser('circuit_create', 10, 60 * 1000), async (c) => 
 
   const { name, circuit, thumbnail } = result.data;
   const user = c.get('user')!;
+
+  const countRow = await queryFirst<{ count: number }>(
+    c,
+    `SELECT COUNT(*) as count FROM circuits WHERE user_id = ?`,
+    [user.id]
+  );
+  if ((countRow?.count ?? 0) >= MAX_CIRCUITS_PER_USER) {
+    return jsonError(
+      c,
+      `Circuit quota exceeded: you may store up to ${MAX_CIRCUITS_PER_USER} circuits`,
+      403
+    );
+  }
+
   const circuitId = randomUUID();
   const now = new Date().toISOString();
 

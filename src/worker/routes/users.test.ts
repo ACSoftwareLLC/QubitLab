@@ -1,11 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
-import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
-import app from '../index.js';
+import { describe, it, expect, vi } from "vitest";
+import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
+import app from "../index.js";
 
 function mockD1(
-  handlers: Record<string, (sql: string, params: unknown[]) => unknown>
+  handlers: Record<string, (sql: string, params: unknown[]) => unknown>,
 ): D1Database {
-  let currentSql = '';
+  let currentSql = "";
   let currentParams: unknown[] = [];
 
   const prepared = {
@@ -76,57 +76,60 @@ function mockExecutionCtx(): ExecutionContext {
 
 function makeEnv(
   d1Handlers: Record<string, (sql: string, params: unknown[]) => unknown> = {},
-  admins = 'alice'
 ) {
   return {
     DB: mockD1(d1Handlers),
     AVATARS: mockR2(),
     THUMBNAILS: mockR2(),
-    SESSION_SECRET: 'test-secret',
-    TURNSTILE_SECRET_KEY: '',
-    TURNSTILE_SITE_KEY: '',
-    ADMINS: admins,
+    SESSION_SECRET: "test-secret",
+    TURNSTILE_SECRET_KEY: "",
+    TURNSTILE_SITE_KEY: "",
   };
 }
 
-describe('user profile route', () => {
-  it('returns a public user profile', async () => {
+describe("user profile route", () => {
+  it("returns a public user profile", async () => {
     const env = makeEnv({
-      'FROM users WHERE username': () => [
+      "FROM users WHERE username": () => [
         {
-          id: 'user-1',
-          username: 'alice',
-          pfp_key: 'avatars/alice.png',
-          first_name: 'Alice',
-          last_name: 'Admin',
-          bio: 'Hello',
-          created_at: '2026-07-01T00:00:00Z',
+          id: "user-1",
+          username: "alice",
+          pfp_key: "avatars/alice.png",
+          first_name: "Alice",
+          last_name: "Admin",
+          bio: "Hello",
+          created_at: "2026-07-01T00:00:00Z",
+          is_admin: 1,
         },
       ],
     });
 
     const res = await app.fetch(
-      new Request('http://localhost/auth/users/alice'),
+      new Request("http://localhost/auth/users/alice"),
       env as unknown as Record<string, unknown>,
-      mockExecutionCtx()
+      mockExecutionCtx(),
     );
 
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { user: { username: string; isAdmin: boolean; pfpUrl: string | null } };
-    expect(body.user.username).toBe('alice');
-    expect(body.user.isAdmin).toBe(true);
-    expect(body.user.pfpUrl).toBe('/auth/users/user-1/avatar');
+    const body = (await res.json()) as { user: Record<string, unknown> };
+    expect(body.user.username).toBe("alice");
+    // Public profile: presentational badge + year granularity only.
+    expect(body.user.badge).toBe("admin");
+    expect(body.user.memberSince).toBe(2026);
+    expect(body.user).not.toHaveProperty("isAdmin");
+    expect(body.user).not.toHaveProperty("createdAt");
+    expect(body.user.pfpUrl).toBe("/auth/users/user-1/avatar");
   });
 
-  it('returns 404 for unknown user', async () => {
+  it("returns 404 for unknown user", async () => {
     const env = makeEnv({
-      'FROM users WHERE username': () => [],
+      "FROM users WHERE username": () => [],
     });
 
     const res = await app.fetch(
-      new Request('http://localhost/auth/users/unknown'),
+      new Request("http://localhost/auth/users/unknown"),
       env as unknown as Record<string, unknown>,
-      mockExecutionCtx()
+      mockExecutionCtx(),
     );
 
     expect(res.status).toBe(404);

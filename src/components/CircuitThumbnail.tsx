@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { Stage, Layer, Line, Circle, Rect, Text, Group } from 'react-konva';
 import {
   WORKSPACE_WIDTH,
   WORKSPACE_HEIGHT,
@@ -24,68 +23,74 @@ interface CircuitThumbnailProps {
  */
 export function CircuitThumbnail({ circuit, width }: CircuitThumbnailProps) {
   const height = (width * WORKSPACE_HEIGHT) / WORKSPACE_WIDTH;
-  const scale = width / WORKSPACE_WIDTH;
 
   const { gates, gateLines, numBits } = useMemo(() => deserializeCircuit(circuit), [circuit]);
 
   return (
-    <Stage width={width} height={height} scaleX={scale} scaleY={scale} listening={false}>
-      <Layer listening={false}>
-        <Rect x={0} y={0} width={WORKSPACE_WIDTH} height={WORKSPACE_HEIGHT} fill="#f9f9f9" />
-        <BitLines numBits={numBits} workspaceWidth={WORKSPACE_WIDTH} />
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${WORKSPACE_WIDTH} ${WORKSPACE_HEIGHT}`}
+      style={{ display: 'block', background: '#f9f9f9' }}
+    >
+      <BitLines numBits={numBits} workspaceWidth={WORKSPACE_WIDTH} />
 
-        {gateLines.map((line) => {
-          const gate = gates.find((g) => g.id === line.gateId);
-          if (!gate) return null;
-          const originAbsX = gate.x + line.originX;
-          const gateCenterY = gate.y + GATE_HEIGHT / 2;
-          const isControl = line.role === 'control';
-          return (
-            <Group key={`thumb-line-${line.id}`} listening={false}>
-              <Line
-                points={[originAbsX, gateCenterY, originAbsX, line.barY]}
-                stroke="#000"
-                strokeWidth={3}
-                lineCap="round"
-                lineJoin="round"
-                listening={false}
-              />
-              <Circle
-                x={originAbsX}
-                y={line.barY}
-                radius={7}
-                fill={isControl ? '#fff' : '#000'}
-                stroke="#000"
-                strokeWidth={2}
-                listening={false}
-              />
-            </Group>
-          );
-        })}
+      {gateLines.map((line) => {
+        const gate = gates.find((g) => g.id === line.gateId);
+        if (!gate) return null;
+        const originAbsX = gate.x + line.originX;
+        const gateCenterY = gate.y + GATE_HEIGHT / 2;
+        const isControl = line.role === 'control';
+        return (
+          <g key={`thumb-line-${line.id}`}>
+            <line
+              x1={originAbsX}
+              y1={gateCenterY}
+              x2={originAbsX}
+              y2={line.barY}
+              stroke="#000"
+              strokeWidth={3}
+              strokeLinecap="round"
+              pointerEvents="none"
+            />
+            <circle
+              cx={originAbsX}
+              cy={line.barY}
+              r={7}
+              fill={isControl ? '#fff' : '#000'}
+              stroke="#000"
+              strokeWidth={2}
+              pointerEvents="none"
+            />
+          </g>
+        );
+      })}
 
-        {gates.map((gate) => (
-          <Group key={`thumb-gate-${gate.id}`} x={gate.x} y={gate.y} listening={false}>
-            <Rect
-              width={GATE_WIDTH}
-              height={GATE_HEIGHT}
-              fill={gate.color}
-              cornerRadius={8}
-              listening={false}
-            />
-            <Text
-              width={GATE_WIDTH}
-              height={GATE_HEIGHT}
-              text={GATE_CONFIGS[gate.type]?.symbol ?? gate.type}
-              fontSize={14}
-              fontStyle="bold"
-              fill="#fff"
-              align="center"
-              verticalAlign="middle"
-              listening={false}
-            />
-          </Group>
-        ))}
-      </Layer>
-    </Stage>
+      {gates.map((gate) => (
+        <g key={`thumb-gate-${gate.id}`} transform={`translate(${gate.x}, ${gate.y})`}>
+          <rect
+            width={GATE_WIDTH}
+            height={GATE_HEIGHT}
+            rx={8}
+            ry={8}
+            fill={gate.color}
+            pointerEvents="none"
+          />
+          <text
+            x={GATE_WIDTH / 2}
+            y={GATE_HEIGHT / 2}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={14}
+            fontWeight="bold"
+            fill="#fff"
+            pointerEvents="none"
+            style={{ userSelect: 'none' }}
+          >
+            {GATE_CONFIGS[gate.type]?.symbol ?? gate.type}
+          </text>
+        </g>
+      ))}
+    </svg>
   );
 }

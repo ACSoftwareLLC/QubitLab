@@ -3,17 +3,15 @@
 	"compatibility_date": "2026-08-06",
 	"main": "src/worker/index.ts",
 	"triggers": {
-		"crons": ["0 */6 * * *"]
-	},
-	"assets": {
-		"directory": "./dist",
-		"not_found_handling": "single-page-application"
+		"crons": [
+			"0 */6 * * *"
+		]
 	},
 	"d1_databases": [
 		{
 			"binding": "DB",
 			"database_name": "qubitlab",
-			"database_id": "834ec542-b730-4946-9489-5786ea7c737e"
+			"database_id": "8d7d9bbc-d150-40ca-90d8-eb0e950ed5b4"
 		}
 	],
 	"r2_buckets": [
@@ -26,9 +24,14 @@
 			"bucket_name": "qubitlab-thumbnails"
 		}
 	],
+	"assets": {
+		"binding": "ASSETS",
+		"directory": "./dist",
+		"not_found_handling": "single-page-application",
+		"run_worker_first": true
+	},
 	"vars": {
-		"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv",
-		"ADMINS": "alex,devadmin"
+		"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv"
 	},
 	"env": {
 		"dev": {
@@ -50,9 +53,14 @@
 					"bucket_name": "qubitlab-thumbnails-dev"
 				}
 			],
+			"assets": {
+				"binding": "ASSETS",
+				"directory": "./dist",
+				"not_found_handling": "single-page-application",
+				"run_worker_first": true
+			},
 			"vars": {
-				"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv",
-				"ADMINS": "alex,devadmin"
+				"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv"
 			}
 		},
 		"production": {
@@ -74,10 +82,15 @@
 					"bucket_name": "qubitlab-thumbnails"
 				}
 			],
-		"vars": {
-			"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv",
-			"ADMINS": "alex"
-		}
+			"assets": {
+				"binding": "ASSETS",
+				"directory": "./dist",
+				"not_found_handling": "single-page-application",
+				"run_worker_first": true
+			},
+			"vars": {
+				"TURNSTILE_SITE_KEY": "0x4AAAAAAEHsNDvRBYawUTDv"
+			}
 		}
 	}
 }

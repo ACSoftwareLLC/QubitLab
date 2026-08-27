@@ -10,7 +10,7 @@ import type { Circuit } from '../api/types';
  */
 export interface EditorActions {
   serialize: () => { circuit: Circuit; unconnectedGateIds: number[] };
-  captureThumbnail: () => string | undefined;
+  captureThumbnail: () => Promise<string | undefined>;
 }
 
 interface EditorActionsContextValue {

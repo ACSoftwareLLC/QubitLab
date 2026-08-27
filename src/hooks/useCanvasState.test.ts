@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type * as React from 'react';
-import type { KonvaEventObject } from 'konva/lib/Node';
 import { useCanvasState } from './useCanvasState';
 import type { GateType } from '../types';
 import {
@@ -33,22 +32,6 @@ const makeDropEvent = (clientX: number, gateType: GateType | '' = 'H') =>
     relatedTarget: null,
   }) as unknown as React.DragEvent;
 
-/** Minimal stand-in for a Konva drag-end event at an absolute position. */
-const makeKonvaDragEndEvent = (x: number, y: number) => {
-  let pos = { x, y };
-  return {
-    event: {
-      currentTarget: {
-        position: (newPos?: { x: number; y: number }) => {
-          if (newPos) pos = newPos;
-          return pos;
-        },
-      },
-    } as unknown as KonvaEventObject<DragEvent>,
-    getPos: () => pos,
-  };
-};
-
 const dropGate = (
   result: { current: ReturnType<typeof useCanvasState> },
   clientX: number,
@@ -56,6 +39,20 @@ const dropGate = (
 ) => {
   act(() => result.current.handleDrop(makeDropEvent(clientX, gateType)));
   return result.current.gates[result.current.gates.length - 1];
+};
+
+const dragGateTo = (
+  result: { current: ReturnType<typeof useCanvasState> },
+  gateId: number,
+  targetX: number,
+) => {
+  const gate = result.current.gates.find(g => g.id === gateId);
+  if (!gate) throw new Error('gate not found');
+  // Start the drag at the gate's top-left corner so offset is zero and the
+  // move coordinates directly reflect the desired gate position.
+  act(() => result.current.handleGateDragStart(gateId, gate.x));
+  act(() => result.current.handleGateDragMove(targetX));
+  act(() => result.current.handleGateDragEnd());
 };
 
 describe('useCanvasState', () => {
@@ -78,6 +75,8 @@ describe('useCanvasState', () => {
     expect(result.current.selectedPlacedGateId).toBeNull();
     expect(result.current.dragPreview).toBeNull();
     expect(result.current.draggingGateLine).toBeNull();
+    expect(result.current.gateDrag).toBeNull();
+    expect(result.current.lineDrag).toBeNull();
   });
 
   describe('handleDrop', () => {
@@ -129,22 +128,18 @@ describe('useCanvasState', () => {
       const { result } = renderHook(() => useCanvasState());
       const gate = dropGate(result, SEGMENT0_CENTER);
 
-      const oneSegmentRight = SEGMENT0_CENTER + SEGMENT_WIDTH - GATE_WIDTH / 2;
-      const { event, getPos } = makeKonvaDragEndEvent(oneSegmentRight, 123);
-      act(() => result.current.handleGateDragEnd(gate.id, event));
+      const oneSegmentRight = SEGMENT0_CENTER + SEGMENT_WIDTH;
+      dragGateTo(result, gate.id, oneSegmentRight - GATE_WIDTH / 2);
 
       const expectedX = SEGMENT0_CENTER + SEGMENT_WIDTH - GATE_WIDTH / 2;
       expect(result.current.gates[0]).toMatchObject({ x: expectedX, y: SNAPPED_ABS_Y });
-      // Konva node is snapped imperatively too
-      expect(getPos()).toEqual({ x: expectedX, y: SNAPPED_ABS_Y });
     });
 
     it('deletes the gate when dropped left of the segment area', () => {
       const { result } = renderHook(() => useCanvasState());
       const gate = dropGate(result, SEGMENT0_CENTER);
 
-      const { event } = makeKonvaDragEndEvent(-500, 0);
-      act(() => result.current.handleGateDragEnd(gate.id, event));
+      dragGateTo(result, gate.id, -500);
 
       expect(result.current.gates).toEqual([]);
     });
@@ -170,12 +165,9 @@ describe('useCanvasState', () => {
       const ccx = dropGate(result, SEGMENT0_CENTER, 'CCX'); // x = START, cell 120 wide
 
       // Drag around inside widened segment 0 ([START, START + 120)).
-      const { event, getPos } = makeKonvaDragEndEvent(SEGMENTS_START_X + 40, 0);
-      act(() => result.current.handleGateDragEnd(ccx.id, event));
+      dragGateTo(result, ccx.id, SEGMENTS_START_X + 40);
 
       expect(result.current.gates[0]).toMatchObject({ x: SEGMENTS_START_X, segment: 0 });
-      // Konva node is snapped back to the unchanged layout position.
-      expect(getPos()).toEqual({ x: SEGMENTS_START_X, y: SNAPPED_ABS_Y });
     });
 
     it('snaps a wide gate using its own width and re-flows both cells', () => {
@@ -185,14 +177,12 @@ describe('useCanvasState', () => {
       // Segment 0 is widened to 120, so segment 1 currently starts at START + 120.
       const segment1Center = SEGMENTS_START_X + 120 + SEGMENT_WIDTH / 2;
       // Node position is the top-left corner; center must land in segment 1.
-      const { event, getPos } = makeKonvaDragEndEvent(segment1Center - 60 + 3, 0);
-      act(() => result.current.handleGateDragEnd(gate.id, event));
+      dragGateTo(result, gate.id, segment1Center - 60 + 3);
 
       // After the move, segment 0 shrinks back to 84 and segment 1 widens
       // to 120: x = START + 84 + 60 (center) − 60 (half gate).
       const expectedX = SEGMENTS_START_X + SEGMENT_WIDTH;
       expect(result.current.gates[0]).toMatchObject({ x: expectedX, y: SNAPPED_ABS_Y, segment: 1 });
-      expect(getPos()).toEqual({ x: expectedX, y: SNAPPED_ABS_Y });
     });
   });
 
@@ -204,6 +194,7 @@ describe('useCanvasState', () => {
       endY: number,
     ) => {
       act(() => result.current.handleGateLineStart(gateId, originIndex, 20, 400, endY));
+      act(() => result.current.handleStageMouseMove({ x: 400, y: endY }));
       act(() => result.current.handleStageMouseUp());
     };
 
@@ -283,6 +274,19 @@ describe('useCanvasState', () => {
       act(() => result.current.updateGateLineBarY(lineId, FIRST_BIT_LINE_Y + BIT_LINE_SPACING));
       expect(result.current.gateLines[0].barY).toBe(FIRST_BIT_LINE_Y + BIT_LINE_SPACING);
     });
+
+    it('drags a line endpoint to another bit line', () => {
+      const { result } = renderHook(() => useCanvasState());
+      const gate = dropGate(result, SEGMENT0_CENTER);
+      connectLine(result, gate.id, 0, FIRST_BIT_LINE_Y);
+      const lineId = result.current.gateLines[0].id;
+
+      act(() => result.current.handleLineDragStart(lineId));
+      act(() => result.current.handleLineDragMove(FIRST_BIT_LINE_Y + BIT_LINE_SPACING));
+      act(() => result.current.handleLineDragEnd());
+
+      expect(result.current.gateLines[0].barY).toBe(FIRST_BIT_LINE_Y + BIT_LINE_SPACING);
+    });
   });
 
   describe('handleDeleteGate', () => {
@@ -310,6 +314,14 @@ describe('useCanvasState', () => {
       expect(result.current.selectedPlacedGateId).toBe(gate.id);
       act(() => result.current.handleSelectGate(gate.id));
       expect(result.current.selectedPlacedGateId).toBeNull();
+    });
+
+    it('selects a gate when a drag starts', () => {
+      const { result } = renderHook(() => useCanvasState());
+      const gate = dropGate(result, SEGMENT0_CENTER);
+
+      act(() => result.current.handleGateDragStart(gate.id, gate.x));
+      expect(result.current.selectedPlacedGateId).toBe(gate.id);
     });
   });
 
@@ -354,6 +366,25 @@ describe('useCanvasState', () => {
       const { result } = renderHook(() => useCanvasState());
       act(() => result.current.setNumBits(7));
       expect(result.current.numBits).toBe(7);
+    });
+  });
+
+  describe('loadCircuit', () => {
+    it('clamps an oversized numBits to 16', () => {
+      const { result } = renderHook(() => useCanvasState());
+      act(() =>
+        result.current.loadCircuit({
+          numBits: 30,
+          ops: [{ id: 1, type: 'H', segment: 0, targets: [0], controls: [], angle: null }],
+        })
+      );
+      expect(result.current.numBits).toBe(16);
+    });
+
+    it('clamps an undersized numBits to 1', () => {
+      const { result } = renderHook(() => useCanvasState());
+      act(() => result.current.loadCircuit({ numBits: 0, ops: [] }));
+      expect(result.current.numBits).toBe(1);
     });
   });
 
