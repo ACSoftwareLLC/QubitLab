@@ -5,1085 +5,1109 @@
  * ------------------------------------------------------------------------- */
 
 .ev2-root {
-  --gate-single: #38bdf8;
-  --gate-param: #34d399;
-  --gate-multi: #c084fc;
-  --gate-measure: #94a3b8;
+ --gate-single: #38bdf8;
+ --gate-param: #34d399;
+ --gate-multi: #c084fc;
+ --gate-measure: #94a3b8;
 
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  background: var(--bg);
+ position: absolute;
+ inset: 0;
+ display: flex;
+ flex-direction: column;
+ min-width: 0;
+ background: var(--bg);
 }
 
 .ev2-top {
-  display: flex;
-  flex: 1;
-  min-height: 0;
+ display: flex;
+ flex: 1;
+ min-height: 0;
 }
 
 .ev2-left {
-  display: flex;
-  flex: 0 0 auto;
-  min-height: 0;
+ display: flex;
+ flex: 0 0 auto;
+ min-height: 0;
 }
 
 /* --- Toolbox -------------------------------------------------------------- */
 .ev2-toolbox {
-  display: flex;
-  flex-direction: column;
-  width: 208px;
-  flex: 0 0 auto;
-  background: var(--panel);
-  border-right: 1px solid var(--border);
-  min-height: 0;
+ display: flex;
+ flex-direction: column;
+ width: 208px;
+ flex: 0 0 auto;
+ background: var(--panel);
+ border-right: 1px solid var(--border);
+ min-height: 0;
 }
 
 .ev2-toolbox-header {
-  padding: 0.75rem 0.9rem 0.5rem;
-  border-bottom: 1px solid var(--border);
+ padding: 0.75rem 0.9rem 0.5rem;
+ border-bottom: 1px solid var(--border);
 }
 
 .ev2-toolbox-title {
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
+ font-size: 0.8rem;
+ font-weight: 700;
+ text-transform: uppercase;
+ letter-spacing: 0.06em;
+ color: var(--muted);
 }
 
 .ev2-toolbox-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0.75rem 0.9rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-height: 0;
+ flex: 1;
+ overflow-y: auto;
+ padding: 0.75rem 0.9rem;
+ display: flex;
+ flex-direction: column;
+ gap: 1rem;
+ min-height: 0;
 }
 
 .ev2-toolbox-category-label {
-  font-size: 0.7rem;
-  font-direction: ltr;
-  font-weight: 650;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--faint);
-  margin-bottom: 0.45rem;
+ font-size: 0.7rem;
+ font-direction: ltr;
+ font-weight: 650;
+ text-transform: uppercase;
+ letter-spacing: 0.05em;
+ color: var(--faint);
+ margin-bottom: 0.45rem;
 }
 
 .ev2-toolbox-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
+ display: grid;
+ grid-template-columns: repeat(3, 1fr);
+ gap: 6px;
 }
 
 .ev2-toolbox-item {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 4px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  cursor: grab;
-  touch-action: none;
-  transition: background 0.12s, border-color 0.12s;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ padding: 6px 4px;
+ background: transparent;
+ border: 1px solid transparent;
+ border-radius: 8px;
+ cursor: grab;
+ touch-action: none;
+ transition:
+  background 0.12s,
+  border-color 0.12s;
 }
 
 .ev2-toolbox-item:hover {
-  background: var(--panel-2);
+ background: var(--panel-2);
 }
 
 .ev2-toolbox-item.armed {
-  border-color: var(--accent);
-  background: rgba(56, 189, 248, 0.1);
+ border-color: var(--accent);
+ background: rgba(56, 189, 248, 0.1);
 }
 
 .ev2-toolbox-item:active {
-  cursor: grabbing;
+ cursor: grabbing;
 }
 
 .ev2-toolbox-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  padding: 4px 7px;
-  border: 1.5px solid;
-  border-radius: 7px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  background: var(--bg-deep);
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ min-width: 44px;
+ padding: 4px 7px;
+ border: 1.5px solid;
+ border-radius: 7px;
+ font-size: 0.78rem;
+ font-weight: 700;
+ background: var(--bg-deep);
 }
 
 .ev2-toolbox-section {
-  padding: 0.75rem 0.9rem;
-  border-top: 1px solid var(--border);
+ padding: 0.75rem 0.9rem;
+ border-top: 1px solid var(--border);
 }
 
 .ev2-toolbox-section-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin-bottom: 0.4rem;
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ font-size: 0.8rem;
+ color: var(--muted);
+ margin-bottom: 0.4rem;
 }
 
 .ev2-toolbox-bits-value {
-  color: var(--text);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+ color: var(--text);
+ font-weight: 700;
+ font-variant-numeric: tabular-nums;
 }
 
 .ev2-toolbox-range {
-  flex: 1;
-  min-width: 0;
-  accent-color: var(--accent);
+ flex: 1;
+ min-width: 0;
+ accent-color: var(--accent);
 }
 
 .ev2-bits-stepper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+ display: flex;
+ align-items: center;
+ gap: 8px;
 }
 
 .ev2-bits-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  border: 1px solid var(--border-strong);
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  flex: 0 0 auto;
-  transition: background 0.12s, color 0.12s;
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ width: 26px;
+ height: 26px;
+ border-radius: 7px;
+ border: 1px solid var(--border-strong);
+ background: transparent;
+ color: var(--muted);
+ cursor: pointer;
+ flex: 0 0 auto;
+ transition:
+  background 0.12s,
+  color 0.12s;
 }
 
 .ev2-bits-btn:hover:not(:disabled) {
-  background: var(--panel-2);
-  color: var(--text);
+ background: var(--panel-2);
+ color: var(--text);
 }
 
 .ev2-bits-btn:disabled {
-  opacity: 0.35;
-  cursor: default;
+ opacity: 0.35;
+ cursor: default;
 }
 
 /* --- Center column --------------------------------------------------------- */
 .ev2-center {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
+ flex: 1;
+ display: flex;
+ flex-direction: column;
+ min-width: 0;
+ min-height: 0;
 }
 
 .ev2-canvas-region {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.07) 1px, transparent 1px),
-    var(--bg-deep);
-  background-size: 22px 22px;
+ position: relative;
+ flex: 1;
+ min-height: 0;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ overflow: hidden;
+ background:
+  radial-gradient(
+   circle at 1px 1px,
+   rgba(148, 163, 184, 0.07) 1px,
+   transparent 1px
+  ),
+  var(--bg-deep);
+ background-size: 22px 22px;
 }
 
 /* Horizontal scroll lane for the dynamic-column grid: the grid keeps its
    fit-to-height scale; columns overflow to the right with a thin
    scrollbar. Left-aligned when everything fits. */
 .ev2-grid-scrollwrap {
-  max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  display: flex;
-  justify-content: flex-start;
+ max-width: 100%;
+ overflow-x: auto;
+ overflow-y: hidden;
+ display: flex;
+ justify-content: flex-start;
 }
 
 .ev2-grid-root {
-  position: relative;
-  flex: 0 0 auto;
+ position: relative;
+ flex: 0 0 auto;
 }
 
 .ev2-grid {
-  display: block;
-  touch-action: none;
-  user-select: none;
+ display: block;
+ touch-action: none;
+ user-select: none;
 }
 
 .ev2-grid-armed {
-  cursor: crosshair;
+ cursor: crosshair;
 }
 
 /* --- Marquee rubber-band ------------------------------------------------ */
 .ev2-grid:has(.ev2-marquee) {
-  cursor: crosshair;
+ cursor: crosshair;
 }
 
 .ev2-marquee {
-  fill: rgba(56, 189, 248, 0.08);
-  stroke: var(--accent, #38bdf8);
-  stroke-width: 1;
-  stroke-dasharray: 4 3;
+ fill: rgba(56, 189, 248, 0.08);
+ stroke: var(--accent, #38bdf8);
+ stroke-width: 1;
+ stroke-dasharray: 4 3;
 }
 
 .ev2-ruler-label {
-  fill: var(--faint);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
+ fill: var(--faint);
+ font-size: 10px;
+ font-variant-numeric: tabular-nums;
 }
 
 .ev2-ruler-label.current {
-  fill: var(--accent);
-  font-weight: 700;
+ fill: var(--accent);
+ font-weight: 700;
 }
 
 .ev2-ruler-hit.current {
-  fill: rgba(56, 189, 248, 0.06);
+ fill: rgba(56, 189, 248, 0.06);
 }
 
 .ev2-wire {
-  stroke: #334155;
-  stroke-width: 1.5;
+ stroke: #334155;
+ stroke-width: 1.5;
 }
 
 .ev2-wire-label {
-  fill: var(--muted);
-  font-size: 11px;
-  font-weight: 600;
+ fill: var(--muted);
+ font-size: 11px;
+ font-weight: 600;
 }
 
 .ev2-classical-bit {
-  fill: var(--bg-deep);
-  stroke: var(--gate-measure);
-  stroke-width: 1.2;
+ fill: var(--bg-deep);
+ stroke: var(--gate-measure);
+ stroke-width: 1.2;
 }
 
 .ev2-classical-bit-text {
-  fill: var(--text);
-  font-size: 10px;
-  font-weight: 700;
+ fill: var(--text);
+ font-size: 10px;
+ font-weight: 700;
 }
 
 /* --- Per-wire P(1) probability readout --------------------------------------- */
 .ev2-wire-prob {
-  pointer-events: none;
+ pointer-events: none;
 }
 
 .ev2-wire-prob-track {
-  fill: rgba(100, 116, 139, 0.35);
+ fill: rgba(100, 116, 139, 0.35);
 }
 
 .ev2-wire-prob-fill {
-  fill: var(--accent);
+ fill: var(--accent);
 }
 
 .ev2-wire-prob-text {
-  fill: var(--muted);
-  font-size: 9px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+ fill: var(--muted);
+ font-size: 9px;
+ font-weight: 600;
+ font-variant-numeric: tabular-nums;
 }
 
 /* --- Ops & interaction ------------------------------------------------------ */
 .ev2-op {
-  cursor: grab;
+ cursor: grab;
 }
 
 .ev2-op.dragging {
-  cursor: grabbing;
-  opacity: 0.85;
+ cursor: grabbing;
+ opacity: 0.85;
 }
 
 /* Op dragged off-grid: releasing deletes it. */
 .ev2-op.dragging-danger {
-  cursor: not-allowed;
-  opacity: 0.4;
+ cursor: not-allowed;
+ opacity: 0.4;
 }
 
 .ev2-op.dragging-danger .op-glyph {
-  filter: drop-shadow(0 0 6px rgba(248, 113, 113, 0.75));
+ filter: drop-shadow(0 0 6px rgba(248, 113, 113, 0.75));
 }
 
 .ev2-op.selected .op-glyph {
-  filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.55));
+ filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.55));
 }
 
 /* The notation itself is the interaction surface: boxes and connectors
    grab-move the op; control dots / ⊕ / ✕ re-wire their connection. */
 .op-part-body {
-  cursor: grab;
+ cursor: grab;
 }
 
 .op-part-slot {
-  cursor: ns-resize;
+ cursor: ns-resize;
 }
 
 .ev2-op.dragging .op-part-slot,
 .ev2-op.dragging .op-part-body {
-  cursor: grabbing;
+ cursor: grabbing;
 }
 
 .ev2-empty-hint {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  pointer-events: none;
-  text-align: center;
-  color: var(--faint);
+ position: absolute;
+ inset: 0;
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ justify-content: center;
+ gap: 0.5rem;
+ pointer-events: none;
+ text-align: center;
+ color: var(--faint);
 }
 
 .ev2-empty-hint i {
-  font-size: 2rem;
-  color: var(--accent);
-  opacity: 0.7;
+ font-size: 2rem;
+ color: var(--accent);
+ opacity: 0.7;
 }
 
 .ev2-empty-title {
-  font-size: 1rem;
-  font-weight: 650;
-  color: var(--text);
+ font-size: 1rem;
+ font-weight: 650;
+ color: var(--text);
 }
 
 .ev2-empty-sub {
-  font-size: 0.8rem;
-  color: var(--muted);
-  max-width: 360px;
-  line-height: 1.45;
+ font-size: 0.8rem;
+ color: var(--muted);
+ max-width: 360px;
+ line-height: 1.45;
 }
 
 .ev2-empty-examples-label {
-  font-size: 0.72rem;
-  font-weight: 650;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--faint);
-  margin-top: 0.35rem;
+ font-size: 0.72rem;
+ font-weight: 650;
+ text-transform: uppercase;
+ letter-spacing: 0.05em;
+ color: var(--faint);
+ margin-top: 0.35rem;
 }
 
 .ev2-example-row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-  max-width: 420px;
+ display: flex;
+ flex-wrap: wrap;
+ justify-content: center;
+ gap: 6px;
+ max-width: 420px;
 }
 
 .ev2-example-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  background: transparent;
-  border: 1px solid var(--border);
-  /* The empty-hint overlay is pointer-events:none; chips opt back in. */
-  pointer-events: auto;
-  border-radius: 8px;
-  cursor: pointer;
-  color: var(--text);
-  font-size: 0.78rem;
-  font-weight: 500;
-  transition: background 0.12s, border-color 0.12s;
+ display: inline-flex;
+ align-items: center;
+ gap: 6px;
+ padding: 6px 10px;
+ background: transparent;
+ border: 1px solid var(--border);
+ /* The empty-hint overlay is pointer-events:none; chips opt back in. */
+ pointer-events: auto;
+ border-radius: 8px;
+ cursor: pointer;
+ color: var(--text);
+ font-size: 0.78rem;
+ font-weight: 500;
+ transition:
+  background 0.12s,
+  border-color 0.12s;
 }
 
 .ev2-example-chip:hover {
-  background: var(--panel-2);
-  border-color: var(--faint);
+ background: var(--panel-2);
+ border-color: var(--faint);
 }
 
 .ev2-example-chip i {
-  color: var(--accent);
-  font-size: 0.85rem;
+ color: var(--accent);
+ font-size: 0.85rem;
 }
 
 /* --- Gate hover tooltip ------------------------------------------------------ */
 .ev2-gate-tip-float {
-  pointer-events: none;
+ pointer-events: none;
 }
 
 .ev2-gate-tip {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 224px;
-  padding: 8px 10px;
-  background: var(--panel, #10192e);
-  border: 1px solid var(--border-strong, #334155);
-  border-radius: 8px;
- box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
-  font-size: 11px;
-  line-height: 1.4;
-  color: var(--text, #e2e8f0);
-  pointer-events: none;
+ position: fixed;
+ z-index: 1000;
+ display: flex;
+ flex-direction: column;
+ gap: 2px;
+ width: 166px;
+ padding: 4px 7px;
+ background: var(--panel, #10192e);
+ border: 1px solid var(--border-strong, #334155);
+ border-radius: 6px;
+ box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+ font-size: 9px;
+ line-height: 1.3;
+ color: var(--text, #e2e8f0);
+ white-space: nowrap;
+ overflow: hidden;
+ pointer-events: none;
 }
 
 .ev2-gate-tip-title {
-  font-weight: 700;
-  font-size: 12px;
-  color: var(--text, #e2e8f0);
+ font-weight: 700;
+ font-size: 9.5px;
+ color: var(--text, #e2e8f0);
 }
 
 .ev2-gate-tip-desc {
-  color: var(--muted, #94a3b8);
+ display: none;
 }
 
 .ev2-gate-tip-matrix {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: var(--accent, #38bdf8);
-  word-break: break-word;
+ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+ color: var(--accent, #38bdf8);
+ font-size: 8.5px;
+ overflow: hidden;
+ text-overflow: ellipsis;
 }
 
 .ev2-gate-tip-angle {
-  color: var(--muted, #94a3b8);
-  font-variant-numeric: tabular-nums;
+ color: var(--muted, #94a3b8);
+ font-weight: 500;
+ font-variant-numeric: tabular-nums;
 }
 
 /* --- Inspector -------------------------------------------------------------- */
 .ev2-inspector {
-  width: 264px;
-  flex: 0 0 auto;
-  background: var(--panel);
-  border-left: 1px solid var(--border);
-  padding: 0.9rem;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-height: 0;
+ width: 264px;
+ flex: 0 0 auto;
+ background: var(--panel);
+ border-left: 1px solid var(--border);
+ padding: 0.9rem;
+ overflow-y: auto;
+ display: flex;
+ flex-direction: column;
+ gap: 1rem;
+ min-height: 0;
 }
 
 .ev2-inspector-empty {
-  align-items: center;
-  justify-content: center;
-  color: var(--faint);
-  font-size: 0.8rem;
-  text-align: center;
-  gap: 0.6rem;
+ align-items: center;
+ justify-content: center;
+ color: var(--faint);
+ font-size: 0.8rem;
+ text-align: center;
+ gap: 0.6rem;
 }
 
 .ev2-inspector-empty i {
-  font-size: 1.4rem;
-  color: var(--muted);
+ font-size: 1.4rem;
+ color: var(--muted);
 }
 
 .ev2-inspector-header {
-  display: flex;
-  gap: 0.7rem;
-  align-items: flex-start;
+ display: flex;
+ gap: 0.7rem;
+ align-items: flex-start;
 }
 
 .ev2-inspector-glyph {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 38px;
-  height: 38px;
-  padding: 0 6px;
-  border: 1.5px solid;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 0.85rem;
-  background: var(--bg-deep);
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ min-width: 38px;
+ height: 38px;
+ padding: 0 6px;
+ border: 1.5px solid;
+ border-radius: 8px;
+ font-weight: 700;
+ font-size: 0.85rem;
+ background: var(--bg-deep);
 }
 
 .ev2-inspector-title-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+ display: flex;
+ flex-direction: column;
+ gap: 0.15rem;
 }
 
 .ev2-inspector-title {
-  font-weight: 700;
-  font-size: 0.9rem;
+ font-weight: 700;
+ font-size: 0.9rem;
 }
 
 .ev2-inspector-desc {
-  font-size: 0.75rem;
-  color: var(--muted);
-  line-height: 1.4;
+ font-size: 0.75rem;
+ color: var(--muted);
+ line-height: 1.4;
 }
 
 .ev2-inspector-section-label {
-  font-size: 0.7rem;
-  font-weight: 650;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--faint);
-  margin-bottom: 0.45rem;
+ font-size: 0.7rem;
+ font-weight: 650;
+ text-transform: uppercase;
+ letter-spacing: 0.05em;
+ color: var(--faint);
+ margin-bottom: 0.45rem;
 }
 
 .ev2-inspector-quick-angles {
-  display: flex;
-  gap: 6px;
-  justify-content: center;
-  margin-top: 0.5rem;
+ display: flex;
+ gap: 6px;
+ justify-content: center;
+ margin-top: 0.5rem;
 }
 
 .ev2-inspector-connections {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  font-size: 0.8rem;
-  color: var(--text);
+ list-style: none;
+ margin: 0;
+ padding: 0;
+ display: flex;
+ flex-direction: column;
+ gap: 0.3rem;
+ font-size: 0.8rem;
+ color: var(--text);
 }
 
 .ev2-conn-dot {
-  display: inline-block;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  margin-right: 6px;
+ display: inline-block;
+ width: 9px;
+ height: 9px;
+ border-radius: 50%;
+ margin-right: 6px;
 }
 
 .ev2-conn-dot.target {
-  background: var(--accent);
+ background: var(--accent);
 }
 
 .ev2-conn-dot.control {
-  background: transparent;
-  border: 2px solid var(--gate-multi);
+ background: transparent;
+ border: 2px solid var(--gate-multi);
 }
 
 .ev2-inspector-hint {
-  margin: 0.5rem 0 0;
-  font-size: 0.72rem;
-  color: var(--faint);
+ margin: 0.5rem 0 0;
+ font-size: 0.72rem;
+ color: var(--faint);
 }
 
 .ev2-inspector-actions {
-  display: flex;
-  gap: 6px;
+ display: flex;
+ gap: 6px;
 }
 
 .ev2-inspector-meta {
-  margin-top: auto;
-  font-size: 0.72rem;
-  color: var(--faint);
-  font-variant-numeric: tabular-nums;
+ margin-top: auto;
+ font-size: 0.72rem;
+ color: var(--faint);
+ font-variant-numeric: tabular-nums;
 }
 
 /* --- Transport bar ---------------------------------------------------------- */
 .ev2-transport {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.5rem 0.9rem;
-  border-top: 1px solid var(--border);
-  background: var(--panel);
-  flex: 0 0 auto;
+ display: flex;
+ align-items: center;
+ gap: 1rem;
+ padding: 0.5rem 0.9rem;
+ border-top: 1px solid var(--border);
+ background: var(--panel);
+ flex: 0 0 auto;
 }
 
 .ev2-transport-controls {
-  display: flex;
-  gap: 6px;
+ display: flex;
+ gap: 6px;
 }
 
 .ev2-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  border: 1px solid var(--border-strong);
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ width: 34px;
+ height: 34px;
+ border-radius: 8px;
+ border: 1px solid var(--border-strong);
+ background: transparent;
+ color: var(--muted);
+ cursor: pointer;
+ transition:
+  background 0.12s,
+  color 0.12s,
+  border-color 0.12s;
 }
 
 .ev2-btn:hover:not(:disabled) {
-  background: var(--panel-2);
-  color: var(--text);
+ background: var(--panel-2);
+ color: var(--text);
 }
 
 .ev2-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
+ opacity: 0.4;
+ cursor: default;
 }
 
 .ev2-btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-contrast, #04121d);
+ background: var(--accent);
+ border-color: var(--accent);
+ color: var(--accent-contrast, #04121d);
 }
 
 .ev2-btn-primary:hover:not(:disabled) {
-  background: var(--accent-hover, #0ea5e9);
-  color: var(--accent-contrast, #04121d);
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+ background: var(--accent-hover, #0ea5e9);
+ color: var(--accent-contrast, #04121d);
+ box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
 }
 
 /* Live toggle (pressed) — accent-tinted like the armed palette chips. */
 .ev2-btn-live {
-  background: rgba(56, 189, 248, 0.12);
-  border-color: var(--accent);
-  color: var(--accent);
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+ background: rgba(56, 189, 248, 0.12);
+ border-color: var(--accent);
+ color: var(--accent);
+ box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
 }
 
 .ev2-transport-progress {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-width: 0;
+ flex: 1;
+ display: flex;
+ align-items: center;
+ gap: 0.75rem;
+ min-width: 0;
 }
 
 .ev2-status-pill {
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  border: 1px solid var(--border-strong);
-  color: var(--muted);
-  white-space: nowrap;
+ font-size: 0.68rem;
+ font-weight: 700;
+ text-transform: uppercase;
+ letter-spacing: 0.05em;
+ padding: 0.15rem 0.55rem;
+ border-radius: 999px;
+ border: 1px solid var(--border-strong);
+ color: var(--muted);
+ white-space: nowrap;
 }
 
 .ev2-status-ready,
 .ev2-status-running {
-  color: var(--accent);
-  border-color: rgba(56, 189, 248, 0.4);
-  background: rgba(56, 189, 248, 0.12);
+ color: var(--accent);
+ border-color: rgba(56, 189, 248, 0.4);
+ background: rgba(56, 189, 248, 0.12);
 }
 
 .ev2-status-done {
-  color: var(--success);
-  border-color: rgba(52, 211, 153, 0.4);
-  background: rgba(52, 211, 153, 0.1);
+ color: var(--success);
+ border-color: rgba(52, 211, 153, 0.4);
+ background: rgba(52, 211, 153, 0.1);
 }
 
 .ev2-status-invalid,
 .ev2-status-offline {
-  color: var(--danger);
-  border-color: rgba(248, 113, 113, 0.4);
-  background: rgba(248, 113, 113, 0.1);
+ color: var(--danger);
+ border-color: rgba(248, 113, 113, 0.4);
+ background: rgba(248, 113, 113, 0.1);
 }
 
 .ev2-segment-readout {
-  font-size: 0.75rem;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+ font-size: 0.75rem;
+ color: var(--muted);
+ font-variant-numeric: tabular-nums;
+ white-space: nowrap;
 }
 
 .ev2-scrubber {
-  display: flex;
-  gap: 4px;
-  flex: 1;
-  max-width: 340px;
+ display: flex;
+ gap: 4px;
+ flex: 1;
+ max-width: 340px;
 }
 
 .ev2-scrub-tick {
-  flex: 1;
-  height: 18px;
-  border-radius: 3px;
-  border: 1px solid var(--border);
-  background: var(--bg-deep);
-  cursor: pointer;
-  padding: 0;
-  transition: background 0.12s, border-color 0.12s;
+ flex: 1;
+ height: 18px;
+ border-radius: 3px;
+ border: 1px solid var(--border);
+ background: var(--bg-deep);
+ cursor: pointer;
+ padding: 0;
+ transition:
+  background 0.12s,
+  border-color 0.12s;
 }
 
 .ev2-scrub-tick:not(:disabled):hover {
-  border-color: var(--accent);
+ border-color: var(--accent);
 }
 
 .ev2-scrub-tick.active {
-  background: rgba(56, 189, 248, 0.25);
-  border-color: rgba(56, 189, 248, 0.4);
+ background: rgba(56, 189, 248, 0.25);
+ border-color: rgba(56, 189, 248, 0.4);
 }
 
 .ev2-scrub-tick.current {
-  background: var(--accent);
-  border-color: var(--accent);
+ background: var(--accent);
+ border-color: var(--accent);
 }
 
 .ev2-scrub-tick:disabled {
-  cursor: default;
-  opacity: 0.55;
+ cursor: default;
+ opacity: 0.55;
 }
 
 .ev2-transport-edit {
-  display: flex;
-  gap: 6px;
+ display: flex;
+ gap: 6px;
 }
 
 /* --- Chips ------------------------------------------------------------------- */
 .ev2-chip-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 0.3rem 0.6rem;
-  border-radius: 999px;
-  border: 1px solid var(--border-strong);
-  background: transparent;
-  color: var(--muted);
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s;
+ display: inline-flex;
+ align-items: center;
+ gap: 5px;
+ padding: 0.3rem 0.6rem;
+ border-radius: 999px;
+ border: 1px solid var(--border-strong);
+ background: transparent;
+ color: var(--muted);
+ font-size: 0.75rem;
+ cursor: pointer;
+ transition:
+  background 0.12s,
+  color 0.12s;
 }
 
 .ev2-chip-btn:hover {
-  background: var(--panel-2);
-  color: var(--text);
+ background: var(--panel-2);
+ color: var(--text);
 }
 
 .ev2-chip-danger:hover {
-  border-color: rgba(248, 113, 113, 0.5);
-  color: var(--danger);
+ border-color: rgba(248, 113, 113, 0.5);
+ color: var(--danger);
 }
 
 /* --- Template banner (prototype) -------------------------------------------- */
 .ev2-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.45rem 0.9rem;
-  background: rgba(56, 189, 248, 0.08);
-  border-bottom: 1px solid rgba(56, 189, 248, 0.25);
-  font-size: 0.8rem;
-  color: var(--text);
-  flex: 0 0 auto;
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ gap: 0.75rem;
+ padding: 0.45rem 0.9rem;
+ background: rgba(56, 189, 248, 0.08);
+ border-bottom: 1px solid rgba(56, 189, 248, 0.25);
+ font-size: 0.8rem;
+ color: var(--text);
+ flex: 0 0 auto;
 }
 
 .ev2-banner button {
-  background: transparent;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 6px;
+ background: transparent;
+ border: none;
+ color: var(--muted);
+ cursor: pointer;
+ padding: 2px 6px;
+ border-radius: 6px;
 }
 
 .ev2-banner button:hover {
-  color: var(--text);
-  background: var(--panel-2);
+ color: var(--text);
+ background: var(--panel-2);
 }
 
 /* --- Shots panel -------------------------------------------------------------- */
 .ev2-shots {
-  flex: 0 0 auto;
-  border-top: 1px solid var(--border);
-  background: var(--panel);
-  max-height: 34vh;
-  display: flex;
-  flex-direction: column;
+ flex: 0 0 auto;
+ border-top: 1px solid var(--border);
+ background: var(--panel);
+ max-height: 34vh;
+ display: flex;
+ flex-direction: column;
 }
 
 .ev2-shots-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.45rem 0.9rem;
-  background: transparent;
-  border: none;
-  color: var(--muted);
-  font-size: 0.8rem;
-  font-weight: 650;
-  cursor: pointer;
-  transition: color 0.12s;
+ display: flex;
+ align-items: center;
+ gap: 0.5rem;
+ width: 100%;
+ padding: 0.45rem 0.9rem;
+ background: transparent;
+ border: none;
+ color: var(--muted);
+ font-size: 0.8rem;
+ font-weight: 650;
+ cursor: pointer;
+ transition: color 0.12s;
 }
 
 .ev2-shots-header:hover {
-  color: var(--text);
+ color: var(--text);
 }
 
 .ev2-shots-title {
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+ text-transform: uppercase;
+ letter-spacing: 0.05em;
 }
 
 .ev2-shots-chev {
-  margin-left: auto;
+ margin-left: auto;
 }
 
 .ev2-shots-body {
-  padding: 0 0.9rem 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  overflow-y: auto;
+ padding: 0 0.9rem 0.75rem;
+ display: flex;
+ flex-direction: column;
+ gap: 0.6rem;
+ overflow-y: auto;
 }
 
 .ev2-shots-hint {
-  color: var(--faint);
-  font-size: 0.78rem;
-  padding: 0.25rem 0;
+ color: var(--faint);
+ font-size: 0.78rem;
+ padding: 0.25rem 0;
 }
 
 .ev2-shots-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
+ display: flex;
+ align-items: center;
+ gap: 0.6rem;
+ flex-wrap: wrap;
 }
 
 .ev2-shots-choices {
-  display: flex;
-  gap: 6px;
+ display: flex;
+ gap: 6px;
 }
 
 .ev2-shots-choices .ev2-chip-btn.active {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: rgba(56, 189, 248, 0.1);
+ border-color: var(--accent);
+ color: var(--accent);
+ background: rgba(56, 189, 248, 0.1);
 }
 
 .ev2-shots-run {
-  width: auto;
-  padding: 0.3rem 0.8rem;
-  font-size: 0.78rem;
-  gap: 0.35rem;
+ width: auto;
+ padding: 0.3rem 0.8rem;
+ font-size: 0.78rem;
+ gap: 0.35rem;
 }
 
 .ev2-spin {
-  animation: ev2-spin-kf 0.9s linear infinite;
+ animation: ev2-spin-kf 0.9s linear infinite;
 }
 
 @keyframes ev2-spin-kf {
-  to {
-    transform: rotate(360deg);
-  }
+ to {
+  transform: rotate(360deg);
+ }
 }
 
 .ev2-shots-error {
-  color: var(--danger);
-  font-size: 0.78rem;
+ color: var(--danger);
+ font-size: 0.78rem;
 }
 
 .ev2-shots-results {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
+ display: flex;
+ flex-direction: column;
+ gap: 0.45rem;
 }
 
 .ev2-shots-wire,
 .ev2-shots-joint-row {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 0.78rem;
-  color: var(--text);
+ display: flex;
+ align-items: center;
+ gap: 0.6rem;
+ font-size: 0.78rem;
+ color: var(--text);
 }
 
 .ev2-shots-wire-label,
 .ev2-shots-joint-bits {
-  min-width: 32px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: var(--muted);
+ min-width: 32px;
+ font-variant-numeric: tabular-nums;
+ font-weight: 600;
+ color: var(--muted);
 }
 
 .ev2-shots-joint-bits {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  letter-spacing: 0.08em;
+ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+ letter-spacing: 0.08em;
 }
 
 .ev2-shots-bar-track {
-  flex: 1;
-  height: 6px;
-  background: var(--panel-3, rgba(148, 163, 184, 0.15));
-  border-radius: 3px;
-  overflow: hidden;
+ flex: 1;
+ height: 6px;
+ background: var(--panel-3, rgba(148, 163, 184, 0.15));
+ border-radius: 3px;
+ overflow: hidden;
 }
 
 .ev2-shots-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent-hover), var(--accent));
-  border-radius: 3px;
-  transition: width 0.2s ease;
+ height: 100%;
+ background: linear-gradient(90deg, var(--accent-hover), var(--accent));
+ border-radius: 3px;
+ transition: width 0.2s ease;
 }
 
 .ev2-shots-wire-counts,
 .ev2-shots-joint-count {
-  min-width: 150px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
+ min-width: 150px;
+ text-align: right;
+ font-variant-numeric: tabular-nums;
+ color: var(--muted);
 }
 
 .ev2-shots-joint {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin-top: 0.35rem;
+ display: flex;
+ flex-direction: column;
+ gap: 0.35rem;
+ margin-top: 0.35rem;
 }
 
 .ev2-shots-joint-label {
-  font-size: 0.7rem;
-  font-weight: 650;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--faint);
+ font-size: 0.7rem;
+ font-weight: 650;
+ text-transform: uppercase;
+ letter-spacing: 0.05em;
+ color: var(--faint);
 }
 
 /* --- QASM dialog ------------------------------------------------------------- */
 .ev2-qasm-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
+ position: fixed;
+ inset: 0;
+ background: rgba(0, 0, 0, 0.6);
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ z-index: 100;
 }
 
 .ev2-qasm-card {
-  width: min(560px, calc(100vw - 2rem));
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-lg);
-  padding: 1rem 1.25rem 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+ width: min(560px, calc(100vw - 2rem));
+ background: var(--panel);
+ border: 1px solid var(--border);
+ border-radius: var(--radius-lg, 12px);
+ box-shadow: var(--shadow-lg);
+ padding: 1rem 1.25rem 1.25rem;
+ display: flex;
+ flex-direction: column;
+ gap: 0.75rem;
 }
 
 .ev2-qasm-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+ display: flex;
+ align-items: center;
+ gap: 0.75rem;
 }
 
 .ev2-qasm-title {
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
+ font-size: 0.8rem;
+ font-weight: 700;
+ text-transform: uppercase;
+ letter-spacing: 0.06em;
+ color: var(--muted);
 }
 
 .ev2-qasm-tabs {
-  display: flex;
-  gap: 4px;
-  margin-left: auto;
+ display: flex;
+ gap: 4px;
+ margin-left: auto;
 }
 
 .ev2-qasm-tab {
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--muted);
-  font-size: 0.78rem;
-  padding: 0.25rem 0.7rem;
-  border-radius: 7px;
-  cursor: pointer;
+ border: 1px solid var(--border);
+ background: transparent;
+ color: var(--muted);
+ font-size: 0.78rem;
+ padding: 0.25rem 0.7rem;
+ border-radius: 7px;
+ cursor: pointer;
 }
 
 .ev2-qasm-tab.active {
-  color: var(--accent);
-  border-color: rgba(56, 189, 248, 0.45);
-  background: rgba(56, 189, 248, 0.1);
+ color: var(--accent);
+ border-color: rgba(56, 189, 248, 0.45);
+ background: rgba(56, 189, 248, 0.1);
 }
 
 .ev2-qasm-close {
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 6px;
+ border: none;
+ background: transparent;
+ color: var(--muted);
+ cursor: pointer;
+ padding: 2px 6px;
+ border-radius: 6px;
 }
 
 .ev2-qasm-close:hover {
-  color: var(--text);
-  background: var(--panel-2);
+ color: var(--text);
+ background: var(--panel-2);
 }
 
 .ev2-qasm-textarea {
-  width: 100%;
-  min-height: 220px;
-  resize: vertical;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.78rem;
-  line-height: 1.5;
-  color: var(--text);
-  background: var(--bg-deep);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.6rem 0.7rem;
-  box-sizing: border-box;
+ width: 100%;
+ min-height: 220px;
+ resize: vertical;
+ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+ font-size: 0.78rem;
+ line-height: 1.5;
+ color: var(--text);
+ background: var(--bg-deep);
+ border: 1px solid var(--border);
+ border-radius: 8px;
+ padding: 0.6rem 0.7rem;
+ box-sizing: border-box;
 }
 
 .ev2-qasm-warnings {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  padding: 0.5rem 0.7rem;
-  border: 1px solid rgba(251, 191, 36, 0.4);
-  border-radius: 8px;
-  background: rgba(251, 191, 36, 0.08);
-  color: #fbbf24;
-  font-size: 0.78rem;
+ display: flex;
+ flex-direction: column;
+ gap: 0.4rem;
+ padding: 0.5rem 0.7rem;
+ border: 1px solid rgba(251, 191, 36, 0.4);
+ border-radius: 8px;
+ background: rgba(251, 191, 36, 0.08);
+ color: #fbbf24;
+ font-size: 0.78rem;
 }
 
 .ev2-qasm-warning-title {
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
+ font-weight: 700;
+ display: flex;
+ align-items: center;
+ gap: 0.4rem;
 }
 
 .ev2-qasm-warnings ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+ list-style: none;
+ margin: 0;
+ padding: 0;
 }
 
 .ev2-qasm-errors {
-  list-style: none;
-  margin: 0;
-  padding: 0.5rem 0.7rem;
-  border: 1px solid rgba(248, 113, 113, 0.4);
-  border-radius: 8px;
-  background: rgba(248, 113, 113, 0.08);
-  color: var(--danger);
-  font-size: 0.78rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  max-height: 110px;
-  overflow-y: auto;
+ list-style: none;
+ margin: 0;
+ padding: 0.5rem 0.7rem;
+ border: 1px solid rgba(248, 113, 113, 0.4);
+ border-radius: 8px;
+ background: rgba(248, 113, 113, 0.08);
+ color: var(--danger);
+ font-size: 0.78rem;
+ display: flex;
+ flex-direction: column;
+ gap: 0.25rem;
+ max-height: 110px;
+ overflow-y: auto;
 }
 
 .ev2-qasm-actions {
-  display: flex;
-  gap: 8px;
+ display: flex;
+ gap: 8px;
 }
 
 .ev2-qasm-trigger {
-  width: 100%;
-  justify-content: center;
+ width: 100%;
+ justify-content: center;
 }
 
 .ev2-chip-primary {
-  color: var(--accent);
-  border-color: rgba(56, 189, 248, 0.45);
+ color: var(--accent);
+ border-color: rgba(56, 189, 248, 0.45);
 }
 
 .ev2-chip-primary:hover {
-  background: rgba(56, 189, 248, 0.12);
-  color: var(--accent);
+ background: rgba(56, 189, 248, 0.12);
+ color: var(--accent);
 }
