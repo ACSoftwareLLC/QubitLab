@@ -17,6 +17,11 @@ import {
   docToCircuit,
   useEditorState,
 } from "../components/editor/useEditorState";
+import {
+  readDraft,
+  shouldRestoreDraft,
+  useCircuitDraft,
+} from "../components/editor/useCircuitDraft";
 import type { WireSlot } from "../components/editor/useEditorState";
 import {
   gridSize,
@@ -139,6 +144,7 @@ export function EditorV2Page() {
   const [loadedTemplateName, setLoadedTemplateName] = useState<string | null>(
     null,
   );
+  const [restoredDraft, setRestoredDraft] = useState(false);
 
   const registerHandle = useCallback((handle: GridHandle | null) => {
     gridHandleRef.current = handle;
@@ -360,27 +366,46 @@ export function EditorV2Page() {
   }, [editor, selectedOp, activeOps, drag, pending, armedType]);
 
   // --- Save-button bridge -------------------------------------------------------
+  // Saving also clears any restored draft so it stops reappearing on
+  // refresh.
+  const { clear: clearDraft } = useCircuitDraft(doc);
   useEffect(() => {
     registerActions({
-      serialize: () => ({ circuit: docToCircuit(doc), unconnectedGateIds: [] }),
+      serialize: () => {
+        clearDraft();
+        return { circuit: docToCircuit(doc), unconnectedGateIds: [] };
+      },
       captureThumbnail: () =>
         captureSvgThumbnail(gridElRef.current?.querySelector("svg") ?? null),
     });
     return () => registerActions(null);
-  }, [registerActions, doc]);
+  }, [registerActions, doc, clearDraft]);
 
   // --- Circuit handoff (My Circuits / template gallery) --------------------------
+  // Priority: template prefetch > navigation-state handoff > saved draft.
+  // A draft is restored only when the user didn't arrive with an explicit
+  // circuit in hand.
   useEffect(() => {
     const handed = location.state as { circuit?: Circuit } | null;
     const prefetched = consumeTemplatePrefetch();
+    // Captured before branching so shouldRestoreDraft sees unnarrowed
+    // values (the branch tests themselves narrow `prefetched`).
+    const handoffCircuit: Circuit | null = handed?.circuit ?? null;
+    const prefetchCircuit: Circuit | null = prefetched?.circuit ?? null;
     if (prefetched) {
       sim.reset();
       editor.loadCircuit(prefetched.circuit);
       setLoadedTemplateName(prefetched.title);
-    } else if (handed?.circuit) {
+    } else if (handoffCircuit) {
       sim.reset();
-      editor.loadCircuit(handed.circuit);
+      editor.loadCircuit(handoffCircuit);
       window.history.replaceState({}, "");
+    } else {
+      const draft = readDraft();
+      if (draft && shouldRestoreDraft(handoffCircuit, prefetchCircuit)) {
+        editor.loadCircuit(draft.circuit);
+        setRestoredDraft(true);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
@@ -405,6 +430,17 @@ export function EditorV2Page() {
           </span>
           <button
             onClick={() => setLoadedTemplateName(null)}
+            aria-label="Dismiss"
+          >
+            <i className="bi bi-x" />
+          </button>
+        </div>
+      )}
+      {restoredDraft && !loadedTemplateName && (
+        <div className="ev2-banner">
+          <span>Restored unsaved draft</span>
+          <button
+            onClick={() => setRestoredDraft(false)}
             aria-label="Dismiss"
           >
             <i className="bi bi-x" />
