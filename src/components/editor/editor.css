@@ -261,6 +261,16 @@
   opacity: 0.85;
 }
 
+/* Op dragged off-grid: releasing deletes it. */
+.ev2-op.dragging-danger {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.ev2-op.dragging-danger .op-glyph {
+  filter: drop-shadow(0 0 6px rgba(248, 113, 113, 0.75));
+}
+
 .ev2-op.selected .op-glyph {
   filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.55));
 }

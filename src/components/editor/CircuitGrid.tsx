@@ -19,11 +19,12 @@ import { defaultConnections } from "./useEditorState";
 /** Bridge between the page-level window-pointer drag logic and the SVG
  *  stage: converts client coordinates into grid cells. */
 export type GridHandle = {
-  /** Nearest cell for a client coordinate; null when outside the stage. */
+  /** Nearest cell for a client coordinate (with logical y, used for
+   *  drop-between-wires span detection); null when outside the stage. */
   clientToCell(
     clientX: number,
     clientY: number,
-  ): { column: number; wire: number } | null;
+  ): { column: number; wire: number; y: number } | null;
 };
 
 export type GhostPreview = {
@@ -31,6 +32,9 @@ export type GhostPreview = {
   column: number;
   wire: number;
   invalid: boolean;
+  /** Explicit connections (drop-between-wires spans); null → default
+   *  on-wire connections via defaultConnections. */
+  connections?: { targets: number[]; controls: number[] } | null;
 };
 
 interface CircuitGridProps {
@@ -43,6 +47,8 @@ interface CircuitGridProps {
   movePreview: { opId: number; column: number; wire?: number } | null;
   /** In-progress slot drag: the dragged connection renders on this wire. */
   slotPreview: { opId: number; slot: WireSlot; wire: number } | null;
+  /** Op whose move drag is currently off-grid — releasing deletes it. */
+  dangerOpId?: number | null;
   executing: boolean;
   currentSegment: number;
   measurements: Record<string, 0 | 1>;
@@ -69,6 +75,7 @@ export function CircuitGrid({
   armedType,
   movePreview,
   slotPreview,
+  dangerOpId = null,
   executing,
   currentSegment,
   measurements,
@@ -102,6 +109,7 @@ export function CircuitGrid({
       return {
         column: snapColumn(x),
         wire: snapWire(y, doc.numBits),
+        y,
       };
     },
     [width, height, doc.numBits],
@@ -160,13 +168,11 @@ export function CircuitGrid({
   }
 
   // Full connection layout for the ghost so multi-wire gates preview
-  // completely (⊕ + dots), not as a lone circle.
+  // completely (⊕ + dots), not as a lone circle. Drop-between-wires
+  // drags pass explicit spanned connections; otherwise on-wire defaults.
   const ghostOp = (g: GhostPreview): PlacedOp => {
-    const { targets, controls } = defaultConnections(
-      g.type,
-      g.wire,
-      doc.numBits,
-    );
+    const { targets, controls } =
+      g.connections ?? defaultConnections(g.type, g.wire, doc.numBits);
     return {
       id: -1,
       type: g.type,
@@ -278,7 +284,7 @@ export function CircuitGrid({
               movePreview?.opId === op.id || slotPreview?.opId === op.id
                 ? " dragging"
                 : ""
-            }`}
+            }${dangerOpId === op.id ? " dragging-danger" : ""}`}
           >
             <OpGlyph
               op={displayOp(op)}

@@ -5,6 +5,10 @@ import {
   defaultConnections,
   docToCircuit,
   circuitToDoc,
+  spannedConnections,
+  spannedDropConnections,
+  spanBracket,
+  SPAN_TOLERANCE_PX,
 } from "./useEditorState";
 import type { Circuit } from "../../api/types";
 
@@ -44,6 +48,116 @@ describe("defaultConnections", () => {
       targets: [2, 3],
       controls: [],
     });
+  });
+});
+
+describe("spannedConnections", () => {
+  it("CX between wires targets the lower wire with the upper as control", () => {
+    expect(spannedConnections("CX", 1, 2, 4)).toEqual({
+      targets: [2],
+      controls: [1],
+    });
+  });
+
+  it("SWAP between wires takes both bracketing wires", () => {
+    expect(spannedConnections("SWAP", 0, 1, 4)).toEqual({
+      targets: [0, 1],
+      controls: [],
+    });
+  });
+
+  it("CCX hugs the target from above and below", () => {
+    expect(spannedConnections("CCX", 1, 2, 4)).toEqual({
+      targets: [2],
+      controls: [1, 3],
+    });
+  });
+
+  it("CCX at the bottom edge falls back to two controls above", () => {
+    // Target q2 is the last wire; below it is out of range.
+    expect(spannedConnections("CCX", 1, 2, 3)).toEqual({
+      targets: [2],
+      controls: [1, 0],
+    });
+  });
+
+  it("CCX in a 2-wire document falls back to on-wire defaults", () => {
+    // No room for target + 2 distinct controls.
+    expect(spannedConnections("CCX", 0, 1, 2)).toEqual(
+      defaultConnections("CCX", 1, 2),
+    );
+  });
+
+  it("clamps out-of-range wires to the document bounds", () => {
+    expect(spannedConnections("CX", -2, 7, 4)).toEqual({
+      targets: [3],
+      controls: [0],
+    });
+  });
+
+  it("single-wire types dropped between wires snap to the lower wire", () => {
+    expect(spannedConnections("H", 1, 2, 4)).toEqual({
+      targets: [2],
+      controls: [],
+    });
+  });
+
+  it("collapsed pair falls back to on-wire defaults", () => {
+    expect(spannedConnections("CX", 2, 2, 4)).toEqual(
+      defaultConnections("CX", 2, 4),
+    );
+  });
+});
+
+describe("spannedDropConnections", () => {
+  // wireY(1) = 26 + 8 + 38 = 72 logical px (GRID constants).
+  const ON_WIRE_Y = 72;
+
+  it("returns null when the pointer is on a wire (within tolerance)", () => {
+    expect(
+      spannedDropConnections(
+        "CX",
+        ON_WIRE_Y + SPAN_TOLERANCE_PX,
+        1,
+        4,
+      ),
+    ).toBeNull();
+    expect(spannedDropConnections("CX", ON_WIRE_Y, 1, 4)).toBeNull();
+  });
+
+  it("spans when the pointer is below the wire beyond tolerance", () => {
+    expect(
+      spannedDropConnections("CX", ON_WIRE_Y + SPAN_TOLERANCE_PX + 1, 1, 4),
+    ).toEqual({ targets: [2], controls: [1] });
+  });
+
+  it("spans when the pointer is above the wire beyond tolerance", () => {
+    expect(
+      spannedDropConnections("CX", ON_WIRE_Y - SPAN_TOLERANCE_PX - 1, 1, 4),
+    ).toEqual({ targets: [1], controls: [0] });
+  });
+
+  it("returns null for single-wire gate types", () => {
+    expect(spannedDropConnections("H", ON_WIRE_Y + 20, 1, 4)).toBeNull();
+  });
+
+  it("bottom-edge drops beyond the last wire clamp to the last pair", () => {
+    // Pointer below wire 3 (the last of 4): bracket {2, 3}.
+    const y = 26 + 8 + 3 * 38 + 15; // wireY(3) + 15
+    expect(spanBracket(y, 3, 4)).toEqual({ above: 2, below: 3 });
+    expect(spannedDropConnections("CX", y, 3, 4)).toEqual({
+      targets: [3],
+      controls: [2],
+    });
+  });
+
+  it("top-edge drops above the first wire clamp to the first pair", () => {
+    const y = 26 + 8 - 15; // above wire 0
+    expect(spanBracket(y, 0, 4)).toEqual({ above: 0, below: 1 });
+  });
+
+  it("single-wire document never spans", () => {
+    expect(spanBracket(72, 0, 1)).toBeNull();
   });
 });
 

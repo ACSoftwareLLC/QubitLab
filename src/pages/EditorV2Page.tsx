@@ -16,6 +16,7 @@ import { TransportBar } from "../components/editor/TransportBar";
 import {
   docToCircuit,
   useEditorState,
+  spannedDropConnections,
 } from "../components/editor/useEditorState";
 import {
   readDraft,
@@ -129,6 +130,7 @@ export function EditorV2Page() {
     column: number;
     wire: number;
     invalid: boolean;
+    connections: { targets: number[]; controls: number[] } | null;
   } | null>(null);
   const [movePreview, setMovePreview] = useState<{
     opId: number;
@@ -145,6 +147,9 @@ export function EditorV2Page() {
     null,
   );
   const [restoredDraft, setRestoredDraft] = useState(false);
+  /** Op being dragged with the pointer outside the grid — releasing
+   *  deletes it; the glyph renders in the danger style meanwhile. */
+  const [dangerOpId, setDangerOpId] = useState<number | null>(null);
 
   const registerHandle = useCallback((handle: GridHandle | null) => {
     gridHandleRef.current = handle;
@@ -176,16 +181,29 @@ export function EditorV2Page() {
       }
       if (!drag) return;
       const cell = cellAt(e.clientX, e.clientY);
-      if (!cell) return;
       if (drag.kind === "place") {
+        if (!cell) return;
         const occupied = isOccupied(columnOccupancy(activeOps), cell.column);
+        const connections = spannedDropConnections(
+          drag.type,
+          cell.y,
+          cell.wire,
+          doc.numBits,
+        );
         setGhost({
           type: drag.type,
           column: cell.column,
           wire: cell.wire,
           invalid: occupied,
+          connections,
         });
       } else if (drag.kind === "moveOp") {
+        if (!cell) {
+          // Off-grid: preview the delete-on-release cue.
+          setDangerOpId(drag.opId);
+          return;
+        }
+        setDangerOpId(null);
         // Single-bit ops drag in 2-D: the hovered wire re-targets them.
         const dragged = activeOps.find((o) => o.id === drag.opId);
         const wire =
@@ -194,6 +212,7 @@ export function EditorV2Page() {
             : undefined;
         setMovePreview({ opId: drag.opId, column: cell.column, wire });
       } else {
+        if (!cell) return;
         setSlotPreview({ opId: drag.opId, slot: drag.slot, wire: cell.wire });
       }
     };
@@ -206,18 +225,34 @@ export function EditorV2Page() {
             columnOccupancy(activeOps),
             cell.column,
           );
-          editor.placeOp(drag.type, column, cell.wire);
-        } else if (drag.kind === "moveOp" && cell) {
-          const occupancy = columnOccupancy(activeOps);
-          const column = isOccupied(occupancy, cell.column, drag.opId)
-            ? firstFreeColumn(occupancy, cell.column, drag.opId)
-            : cell.column;
-          const dragged = activeOps.find((o) => o.id === drag.opId);
-          const wire =
-            dragged && dragged.targets.length + dragged.controls.length === 1
-              ? cell.wire
-              : undefined;
-          editor.moveOp(drag.opId, column, wire);
+          const connections = spannedDropConnections(
+            drag.type,
+            cell.y,
+            cell.wire,
+            doc.numBits,
+          );
+          editor.placeOp(
+            drag.type,
+            column,
+            cell.wire,
+            connections ?? undefined,
+          );
+        } else if (drag.kind === "moveOp") {
+          if (!cell) {
+            // Released off-grid: delete (undoable, no confirmation).
+            editor.removeOp(drag.opId);
+          } else {
+            const occupancy = columnOccupancy(activeOps);
+            const column = isOccupied(occupancy, cell.column, drag.opId)
+              ? firstFreeColumn(occupancy, cell.column, drag.opId)
+              : cell.column;
+            const dragged = activeOps.find((o) => o.id === drag.opId);
+            const wire =
+              dragged && dragged.targets.length + dragged.controls.length === 1
+                ? cell.wire
+                : undefined;
+            editor.moveOp(drag.opId, column, wire);
+          }
         } else if (drag.kind === "slot" && cell) {
           editor.moveWire(drag.opId, drag.slot, cell.wire);
         }
@@ -227,6 +262,7 @@ export function EditorV2Page() {
       setGhost(null);
       setMovePreview(null);
       setSlotPreview(null);
+      setDangerOpId(null);
     };
 
     const onCancel = () => {
@@ -235,6 +271,7 @@ export function EditorV2Page() {
       setGhost(null);
       setMovePreview(null);
       setSlotPreview(null);
+      setDangerOpId(null);
     };
 
     window.addEventListener("pointermove", onMove);
@@ -417,6 +454,7 @@ export function EditorV2Page() {
           column: firstFreeColumn(columnOccupancy(activeOps), ghost.column),
           wire: ghost.wire,
           invalid: ghost.invalid,
+          connections: ghost.connections,
         }
       : null;
 
@@ -480,6 +518,7 @@ export function EditorV2Page() {
                 armedType={armedType}
                 movePreview={movePreview}
                 slotPreview={slotPreview}
+                dangerOpId={dangerOpId}
                 executing={
                   sim.status === "ready" ||
                   sim.status === "running" ||

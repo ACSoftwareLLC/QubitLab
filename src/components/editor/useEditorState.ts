@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Circuit } from "../../api/types";
 import { GATE_CONFIGS } from "../../constants/gates";
 import type { GateType } from "../../types";
+import { wireY } from "./gridGeometry";
 
 /**
  * Op-centric editor state: the working document IS the persisted circuit
@@ -84,6 +85,89 @@ export function defaultConnections(
   return { targets: [clamp(wire)], controls: [] };
 }
 
+/** Logical-px distance from a wire within which a drop snaps to that wire;
+ *  drops farther away land "between" wires and span the bracketing pair. */
+export const SPAN_TOLERANCE_PX = 10;
+
+/** Wire pair bracketing a pointer dropped between wires, or null when the
+ *  pointer sits on a wire (within SPAN_TOLERANCE_PX). Edge drops clamp to
+ *  the outermost pair; a single-wire document has no pair (null). */
+export function spanBracket(
+  y: number,
+  nearestWire: number,
+  numBits: number,
+): { above: number; below: number } | null {
+  const dy = y - wireY(nearestWire);
+  if (Math.abs(dy) <= SPAN_TOLERANCE_PX) return null;
+  if (dy > 0) {
+    const below = Math.min(nearestWire + 1, numBits - 1);
+    if (below === nearestWire) {
+      // Bottom edge: bracket the last pair.
+      return nearestWire - 1 >= 0
+        ? { above: nearestWire - 1, below: nearestWire }
+        : null;
+    }
+    return { above: nearestWire, below };
+  }
+  const above = Math.max(nearestWire - 1, 0);
+  if (above === nearestWire) {
+    // Top edge: bracket the first pair.
+    return nearestWire + 1 <= numBits - 1
+      ? { above: nearestWire, below: nearestWire + 1 }
+      : null;
+  }
+  return { above, below: nearestWire };
+}
+
+/** Connections for a multi-wire gate dropped BETWEEN two wires so the
+ *  gate spans the cursor: CX/CZ/C target the lower wire with the upper as
+ *  control; SWAP takes both; CCX targets the lower wire with controls
+ *  hugging it from above and below (single-side fallback at the bottom
+ *  edge). Collapsed pairs fall back to on-wire defaults. */
+export function spannedConnections(
+  type: GateType,
+  aboveWire: number,
+  belowWire: number,
+  numBits: number,
+): { targets: number[]; controls: number[] } {
+  const clamp = (w: number) => Math.max(0, Math.min(numBits - 1, w));
+  const above = clamp(aboveWire);
+  const below = clamp(belowWire);
+  if (above === below) return defaultConnections(type, below, numBits);
+
+  if (type === "SWAP") return { targets: [above, below], controls: [] };
+
+  if (type === "CCX") {
+    if (below + 1 < numBits)
+      return { targets: [below], controls: [above, below + 1] };
+    // Bottom edge: hug the target from above (needs two wires above it).
+    if (above - 1 >= 0) return { targets: [below], controls: [above, above - 1] };
+    return defaultConnections(type, below, numBits);
+  }
+
+  if (GATE_CONFIGS[type].category === "multi") {
+    return { targets: [below], controls: [above] };
+  }
+  // Single-wire types dropped between wires: snap to the lower wire.
+  return { targets: [below], controls: [] };
+}
+
+/** Connections for a multi-wire gate dropped at logical pointer y: spans
+ *  the bracketing wire pair when the drop is between wires; null when it
+ *  is on a wire (use defaultConnections) or the gate is not multi-wire. */
+export function spannedDropConnections(
+  type: GateType,
+  y: number,
+  nearestWire: number,
+  numBits: number,
+): { targets: number[]; controls: number[] } | null {
+  if (GATE_CONFIGS[type].category !== "multi") return null;
+  const bracket = spanBracket(y, nearestWire, numBits);
+  return bracket
+    ? spannedConnections(type, bracket.above, bracket.below, numBits)
+    : null;
+}
+
 /** Serialize the document to the wire format. Ops whose connections
  *  don't fit the current wire count are suspended — excluded until the
  *  wires grow back — never serialized in that state. */
@@ -142,8 +226,14 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
     setDoc(next);
   };
 
-  const placeOp = (type: GateType, column: number, wire: number) => {
-    const { targets, controls } = defaultConnections(type, wire, doc.numBits);
+  const placeOp = (
+    type: GateType,
+    column: number,
+    wire: number,
+    connections?: { targets: number[]; controls: number[] },
+  ) => {
+    const { targets, controls } =
+      connections ?? defaultConnections(type, wire, doc.numBits);
     const op: PlacedOp = {
       id: nextId(),
       type,
