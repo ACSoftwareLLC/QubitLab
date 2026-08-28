@@ -80,7 +80,7 @@ describe("CircuitGrid empty-state examples", () => {
     render(
       <CircuitGrid
         doc={{ numBits: 3, ops: [] }}
-        selectedOpId={null}
+        selectedIds={new Set()}
         ghost={null}
         armedType={null}
         movePreview={null}
@@ -136,7 +136,7 @@ describe("CircuitGrid empty-state examples", () => {
             },
           ],
         }}
-        selectedOpId={null}
+        selectedIds={new Set()}
         ghost={null}
         armedType={null}
         movePreview={null}

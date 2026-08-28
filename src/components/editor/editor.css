@@ -378,6 +378,8 @@
   padding: 6px 10px;
   background: transparent;
   border: 1px solid var(--border);
+  /* The empty-hint overlay is pointer-events:none; chips opt back in. */
+  pointer-events: auto;
   border-radius: 8px;
   cursor: pointer;
   color: var(--text);
