@@ -312,6 +312,48 @@
   line-height: 1.45;
 }
 
+/* --- Gate hover tooltip ------------------------------------------------------ */
+.ev2-gate-tip-float {
+  pointer-events: none;
+}
+
+.ev2-gate-tip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 224px;
+  padding: 8px 10px;
+  background: var(--panel, #10192e);
+  border: 1px solid var(--border-strong, #334155);
+  border-radius: 8px;
+ box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text, #e2e8f0);
+  pointer-events: none;
+}
+
+.ev2-gate-tip-title {
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--text, #e2e8f0);
+}
+
+.ev2-gate-tip-desc {
+  color: var(--muted, #94a3b8);
+}
+
+.ev2-gate-tip-matrix {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--accent, #38bdf8);
+  word-break: break-word;
+}
+
+.ev2-gate-tip-angle {
+  color: var(--muted, #94a3b8);
+  font-variant-numeric: tabular-nums;
+}
+
 /* --- Inspector -------------------------------------------------------------- */
 .ev2-inspector {
   width: 264px;

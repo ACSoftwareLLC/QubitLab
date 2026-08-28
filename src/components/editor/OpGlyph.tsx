@@ -1,6 +1,8 @@
-import { GATE_CONFIGS } from "../../constants/gates";
+import { useState } from "react";
+import { GATE_CONFIGS, GATE_MATRICES } from "../../constants/gates";
+import { NUM_SEGMENTS } from "../../constants/canvas";
 import type { PlacedOp, WireSlot } from "./useEditorState";
-import { colCenterX, wireY } from "./gridGeometry";
+import { colCenterX, wireY, GRID } from "./gridGeometry";
 import { glyphColor } from "./glyphColors";
 
 /**
@@ -27,15 +29,82 @@ interface OpGlyphProps {
 const BOX = 30; // labeled box size
 const TARGET_R = 11; // ⊕ radius
 
+// Tooltip geometry (SVG logical units); the visual box is the HTML div.
+const TIP_W = 240;
+const TIP_H = 104;
+const GRID_W = GRID.gutterW + NUM_SEGMENTS * GRID.colW + GRID.padRight;
+
+/** HTML tooltip body rendered inside a foreignObject. */
+function GateTip({
+  fullName,
+  description,
+  matrix,
+  angleDeg,
+}: {
+  fullName: string;
+  description: string;
+  matrix: string;
+  angleDeg: number | null;
+}) {
+  return (
+    <div className="ev2-gate-tip">
+      <div className="ev2-gate-tip-title">{fullName}</div>
+      <div className="ev2-gate-tip-desc">{description}</div>
+      <div className="ev2-gate-tip-matrix">{matrix}</div>
+      {angleDeg != null && (
+        <div className="ev2-gate-tip-angle">θ = {angleDeg}°</div>
+      )}
+    </div>
+  );
+}
+
 export function OpGlyph({
   op,
   ghost,
   invalid,
   onPartPointerDown,
 }: OpGlyphProps) {
+  const [hovered, setHovered] = useState(false);
   const config = GATE_CONFIGS[op.type];
   const color = invalid ? "var(--danger, #f87171)" : glyphColor(op.type);
   const opacity = ghost ? 0.45 : 1;
+  const angleDeg =
+    op.angle != null ? Math.round((op.angle * 180) / Math.PI) : null;
+
+  const tip = (cx: number, top: number, bottom: number) => {
+    if (ghost) {
+      // Ghost/invalid renders: native title fallback (spec item 2).
+      return (
+        <title>{`${config.name} — ${config.fullName}\n${config.description}\n${GATE_MATRICES[op.type]}`}</title>
+      );
+    }
+    if (!hovered) return null;
+    // Prefer above the glyph; fall back below when near the top wire.
+    let ty = top - TIP_H - 10;
+    if (ty < 2) ty = bottom + 10;
+    const tx = Math.max(GRID.gutterW, Math.min(GRID_W - TIP_W - 4, cx + 16));
+    return (
+      <foreignObject
+        x={tx}
+        y={ty}
+        width={TIP_W}
+        height={TIP_H}
+        className="ev2-gate-tip-float"
+      >
+        <GateTip
+          fullName={config.fullName}
+          description={config.description}
+          matrix={GATE_MATRICES[op.type]}
+          angleDeg={angleDeg}
+        />
+      </foreignObject>
+    );
+  };
+
+  const hoverProps = ghost ? {} : {
+    onMouseEnter: () => setHovered(true),
+    onMouseLeave: () => setHovered(false),
+  };
 
   const bodyProps = ghost
     ? {}
@@ -69,7 +138,8 @@ export function OpGlyph({
 
     if (op.type === "SWAP") {
       return (
-        <g className="op-glyph" opacity={opacity}>
+        <g className="op-glyph" opacity={opacity} {...hoverProps}>
+          {tip(cx, top, bottom)}
           <line
             x1={cx}
             y1={top}
@@ -98,7 +168,8 @@ export function OpGlyph({
     }
 
     return (
-      <g className="op-glyph" opacity={opacity}>
+      <g className="op-glyph" opacity={opacity} {...hoverProps}>
+        {tip(cx, top, bottom)}
         <line
           x1={cx}
           y1={top}
@@ -174,7 +245,9 @@ export function OpGlyph({
       className="op-glyph"
       transform={`translate(${cx}, ${y})`}
       opacity={opacity}
+      {...hoverProps}
     >
+      {tip(cx, y - BOX / 2, y + BOX / 2)}
       <rect
         x={-BOX / 2}
         y={-BOX / 2}

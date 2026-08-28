@@ -197,6 +197,35 @@ export const GATE_CONFIGS: Record<GateType, GateConfig> = {
   },
 };
 
+/** Short unicode text forms of each gate's matrix — display-only (used
+ *  by editor tooltips); not a computation source. θ is the gate angle. */
+export const GATE_MATRICES: Record<GateType, string> = {
+  // Single-qubit
+  H: '1/√2 · [[1, 1], [1, −1]]',
+  X: '[[0, 1], [1, 0]]',
+  Y: '[[0, −i], [i, 0]]',
+  Z: '[[1, 0], [0, −1]]',
+  S: '[[1, 0], [0, i]]',
+  T: '[[1, 0], [0, e^(iπ/4)]]',
+  Sdg: '[[1, 0], [0, −i]]',
+  Tdg: '[[1, 0], [0, e^(−iπ/4)]]',
+  SX: '1/2 · [[1+i, 1−i], [1−i, 1+i]]',
+  I: '[[1, 0], [0, 1]]',
+  // Parameterized rotations
+  Rx: '[[cos θ/2, −i sin θ/2], [−i sin θ/2, cos θ/2]]',
+  Ry: '[[cos θ/2, −sin θ/2], [sin θ/2, cos θ/2]]',
+  Rz: '[[e^(−iθ/2), 0], [0, e^(iθ/2)]]',
+  P: '[[1, 0], [0, e^(iθ)]]',
+  // Multi-qubit
+  C: '4×4 — alias of CX (control-target)',
+  CX: '4×4 — X on target when control is |1⟩',
+  CZ: '4×4 — Z on target when control is |1⟩',
+  CCX: '8×8 — X when both controls are |1⟩',
+  SWAP: '4×4 — swaps the two target qubits',
+  // Measurement
+  M: 'collapse to |0⟩/|1⟩',
+};
+
 export const GATE_CATEGORIES: { key: GateConfig['category']; label: string; color: string }[] = [
   { key: 'single', label: 'Single-bit Gates', color: '#FFEB3B' },
   { key: 'parameterized', label: 'Parameterized', color: '#4DB6AC' },
