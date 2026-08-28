@@ -5,7 +5,8 @@ import { useSimulation } from "../hooks/useSimulation";
 import { useFitScale } from "../hooks/useFitScale";
 import { useEditorActions } from "../context/EditorActionsContext";
 import { StatePanel } from "../components/StatePanel";
-import type { Circuit } from "../api/types";
+import { simulateCircuit } from "../api/client";
+import type { Circuit, Snapshot, ValidationError } from "../api/types";
 import { consumeTemplatePrefetch } from "./templatePrefetch";
 import { CircuitGrid } from "../components/editor/CircuitGrid";
 import type { GridHandle } from "../components/editor/CircuitGrid";
@@ -112,6 +113,59 @@ export function EditorV2Page() {
 
   const circuit = useMemo(() => docToCircuit(doc), [doc]);
   const sim = useSimulation(circuit);
+
+  // --- Live auto-simulation (opt-in) --------------------------------------
+  // Final statevector recomputes automatically as the user edits — no
+  // Start press. Manual Start/Step/Run are disabled while on; toggling off
+  // clears the live state and restores the manual transport flow.
+  const [liveAuto, setLiveAuto] = useState(false);
+  const [liveSnapshot, setLiveSnapshot] = useState<Snapshot | null>(null);
+  const [liveErrors, setLiveErrors] = useState<ValidationError[]>([]);
+
+  useEffect(() => {
+    if (!liveAuto) return;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      simulateCircuit(circuit, null)
+        .then((raw) => {
+          if (cancelled) return;
+          // The wasm wrapper returns {valid:false, errors} cast to Snapshot
+          // when the circuit is invalid — detect it before use.
+          const result = raw as Snapshot & {
+            valid?: false;
+            errors?: ValidationError[];
+          };
+          if (result.valid === false && result.errors) {
+            setLiveErrors(result.errors);
+            setLiveSnapshot(null);
+          } else {
+            setLiveErrors([]);
+            setLiveSnapshot(result);
+          }
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setLiveErrors([
+            { opId: null, message: "Simulation engine failed to load." },
+          ]);
+          setLiveSnapshot(null);
+        });
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [liveAuto, circuit]);
+
+  const toggleLive = () => {
+    const next = !liveAuto;
+    setLiveAuto(next);
+    if (!next) {
+      setLiveSnapshot(null);
+      setLiveErrors([]);
+    }
+  };
+
   // Ops hidden while their wires don't fit (wire-count shrink); they return
   // when the count grows back. All interaction works on the visible set.
   const activeOps = useMemo(
@@ -124,7 +178,9 @@ export function EditorV2Page() {
   );
   // Per-wire P(1) readouts derive from whichever snapshot the StatePanel
   // displays (a peek overrides the stepped snapshot while hovering).
-  const displayedSnapshot = sim.peekSnapshot ?? sim.snapshot;
+  const displayedSnapshot = liveAuto
+    ? (sim.peekSnapshot ?? liveSnapshot)
+    : (sim.peekSnapshot ?? sim.snapshot);
   const wireProbabilities = useMemo(
     () =>
       displayedSnapshot
@@ -554,11 +610,11 @@ export function EditorV2Page() {
         </div>
 
         <StatePanel
-          status={sim.status}
-          snapshot={sim.snapshot}
+          status={liveAuto ? "done" : sim.status}
+          snapshot={liveAuto ? liveSnapshot : sim.snapshot}
           peekSnapshot={sim.peekSnapshot}
           snapshotHistory={sim.snapshotHistory}
-          errors={sim.errors}
+          errors={liveAuto ? liveErrors : sim.errors}
           unconnectedGateIds={[]}
           numBits={doc.numBits}
         />
@@ -579,6 +635,8 @@ export function EditorV2Page() {
         canRedo={editor.canRedo}
         onUndo={editor.undo}
         onRedo={editor.redo}
+        isLive={liveAuto}
+        onToggleLive={toggleLive}
       />
     </div>
   );

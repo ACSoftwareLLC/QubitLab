@@ -563,6 +563,14 @@
   box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
 }
 
+/* Live toggle (pressed) — accent-tinted like the armed palette chips. */
+.ev2-btn-live {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+}
+
 .ev2-transport-progress {
   flex: 1;
   display: flex;

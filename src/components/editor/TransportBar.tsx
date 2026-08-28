@@ -19,6 +19,9 @@ interface TransportBarProps {
         canRedo: boolean;
         onUndo: () => void;
         onRedo: () => void;
+        /** Live mode: statevector recomputes automatically on edits. */
+        isLive: boolean;
+        onToggleLive: () => void;
 }
 
 export function TransportBar({
@@ -36,10 +39,16 @@ export function TransportBar({
         canRedo,
         onUndo,
         onRedo,
+        isLive,
+        onToggleLive,
 }: TransportBarProps) {
         const executing =
                 status === "ready" || status === "running" || status === "done";
         const canInteract = status === "ready" || status === "running";
+
+        // Live mode replaces the manual transport: Start/Step/Run would
+        // fight the automatic recompute, so they stay disabled while on.
+        const transportDisabled = isLive;
 
         return (
                 <div className="ev2-transport">
@@ -48,6 +57,7 @@ export function TransportBar({
                                         <button
                                                 className="ev2-btn ev2-btn-primary"
                                                 onClick={onStart}
+                                                disabled={transportDisabled}
                                                 title="Start simulation"
                                                 aria-label="Start simulation"
                                         >
@@ -58,7 +68,10 @@ export function TransportBar({
                                                 <button
                                                         className="ev2-btn"
                                                         onClick={onStep}
-                                                        disabled={!canInteract}
+                                                        disabled={
+                                                                !canInteract ||
+                                                                transportDisabled
+                                                        }
                                                         title="Step one column"
                                                         aria-label="Step one column"
                                                 >
@@ -67,7 +80,10 @@ export function TransportBar({
                                                 <button
                                                         className="ev2-btn ev2-btn-primary"
                                                         onClick={onRun}
-                                                        disabled={!canInteract}
+                                                        disabled={
+                                                                !canInteract ||
+                                                                transportDisabled
+                                                        }
                                                         title="Run to completion"
                                                         aria-label="Run to completion"
                                                 >
@@ -76,6 +92,7 @@ export function TransportBar({
                                                 <button
                                                         className="ev2-btn"
                                                         onClick={onReset}
+                                                        disabled={transportDisabled}
                                                         title="Reset simulation"
                                                         aria-label="Reset simulation"
                                                 >
@@ -132,6 +149,15 @@ export function TransportBar({
                         </div>
 
                         <div className="ev2-transport-edit">
+                                <button
+                                        className={`ev2-btn${isLive ? " ev2-btn-live" : ""}`}
+                                        onClick={onToggleLive}
+                                        aria-pressed={isLive}
+                                        title="Live simulation — recompute as you edit"
+                                        aria-label="Live simulation"
+                                >
+                                        <i className="bi bi-lightning-charge-fill" />
+                                </button>
                                 <button
                                         className="ev2-btn"
                                         onClick={onUndo}
