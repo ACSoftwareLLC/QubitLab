@@ -9,12 +9,14 @@ import type { Circuit } from "../../api/types";
 afterEach(cleanup);
 
 describe("EXAMPLE_CIRCUITS data", () => {
-  it("exports the four starter circuits", () => {
+  it("exports the six starter circuits", () => {
     expect(EXAMPLE_CIRCUITS.map((e) => e.key)).toEqual([
       "bell",
       "ghz3",
       "coin-flips",
       "teleportation",
+      "half-adder",
+      "cuccaro-add1",
     ]);
   });
 
@@ -112,9 +114,8 @@ describe("CircuitGrid empty-state examples", () => {
   it("clicking a chip fires onLoadExample with that circuit", () => {
     const onLoadExample = vi.fn();
     const { container } = renderGrid(onLoadExample);
-    const chips = container.querySelectorAll<HTMLButtonElement>(
-      ".ev2-example-chip",
-    );
+    const chips =
+      container.querySelectorAll<HTMLButtonElement>(".ev2-example-chip");
     fireEvent.click(chips[1]);
     expect(onLoadExample).toHaveBeenCalledTimes(1);
     expect(onLoadExample).toHaveBeenCalledWith(EXAMPLE_CIRCUITS[1].circuit);
