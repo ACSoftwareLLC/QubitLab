@@ -1,0 +1,334 @@
+import { useState } from "react";
+import type { Circuit } from "../../api/types";
+import { GATE_CONFIGS } from "../../constants/gates";
+import type { GateType } from "../../types";
+
+/**
+ * Op-centric editor state: the working document IS the persisted circuit
+ * format (docs/api.md), so serialization is a field rename (column →
+ * segment) and "unconnected gate" bugs are impossible by construction.
+ *
+ * All mutating actions are gesture-scoped: each completed gesture pushes
+ * one entry onto the undo stack.
+ */
+
+export type PlacedOp = {
+  id: number;
+  type: GateType;
+  segment: number;
+  targets: number[];
+  controls: number[];
+  angle: number | null;
+};
+
+export type EditorDoc = {
+  numBits: number;
+  ops: PlacedOp[];
+};
+
+const UNDO_LIMIT = 100;
+
+let idCounter = 0;
+/** Collision-safe op ids (Date.now() can repeat within a millisecond). */
+const nextId = () => Date.now() * 1000 + (idCounter = (idCounter + 1) % 1000);
+
+export const emptyDoc = (): EditorDoc => ({ numBits: 4, ops: [] });
+
+/** Default wire assignments for a newly placed gate dropped on `wire`.
+ *  Multi-wire gates spread their extra connections to adjacent wires,
+ *  clamped to the document's wire count. Mirrors simulator validation
+ *  arity rules (CX: 1t/1c, CCX: 1t/2c, SWAP: 2t). */
+export function defaultConnections(
+  type: GateType,
+  wire: number,
+  numBits: number,
+): { targets: number[]; controls: number[] } {
+  const config = GATE_CONFIGS[type];
+  const clamp = (w: number) => Math.max(0, Math.min(numBits - 1, w));
+  const targets: number[] = [];
+  const controls: number[] = [];
+
+  if (config.category === "multi") {
+    if (type === "SWAP") {
+      targets.push(clamp(wire), clamp(wire + 1));
+      if (targets[0] === targets[1]) {
+        // Single-wire document: SWAP needs two distinct targets; place on
+        // the other wire instead.
+        targets[0] = clamp(wire - 1);
+      }
+    } else {
+      targets.push(clamp(wire));
+      const controlCount = config.controlCapacity; // CX/CZ/C: 1, CCX: 2
+      for (let i = 0; i < controlCount; i++) {
+        // Spread controls upward, falling back downward when out of range.
+        controls.push(
+          clamp(
+            wire - 1 - i >= 0 ? wire - 1 - i : wire + 1 + (i === 0 ? 0 : 1),
+          ),
+        );
+      }
+      // Deduplicate while preserving order (tiny wire counts can collide).
+      const seen = new Set<number>();
+      const unique = (arr: number[]) =>
+        arr.filter((w) => {
+          if (seen.has(w) || targets.includes(w)) return false;
+          seen.add(w);
+          return true;
+        });
+      return { targets, controls: unique(controls) };
+    }
+    return { targets, controls };
+  }
+
+  // Single-qubit, parameterized, and measurement gates: one target.
+  return { targets: [clamp(wire)], controls: [] };
+}
+
+/** Serialize the document to the wire format. Ops whose connections
+ *  don't fit the current wire count are suspended — excluded until the
+ *  wires grow back — never serialized in that state. */
+export function isSuspended(op: PlacedOp, numBits: number): boolean {
+  const config = GATE_CONFIGS[op.type];
+  if (!config) return true;
+  const wires = [...op.targets, ...op.controls];
+  return (
+    wires.some((w) => w >= numBits) ||
+    op.targets.length !== config.targetCapacity ||
+    op.controls.length !== config.controlCapacity
+  );
+}
+
+export function docToCircuit(doc: EditorDoc): Circuit {
+  return {
+    numBits: doc.numBits,
+    ops: doc.ops
+      .filter((op) => !isSuspended(op, doc.numBits))
+      .map((op) => ({ ...op })),
+  };
+}
+
+/** Load a persisted circuit, dropping ops with unknown gate types (the
+ *  simulator rejects those too). */
+export function circuitToDoc(circuit: Circuit): EditorDoc {
+  return {
+    numBits: Math.min(16, Math.max(1, circuit.numBits)),
+    ops: circuit.ops
+      .filter((op) => op.type in GATE_CONFIGS)
+      .map((op) => ({ ...op, type: op.type as GateType })),
+  };
+}
+
+/** Wire coordinates used by glyph hit-testing: each entry in `wires` is
+ *  (kind, wireIndex) where kind is 'target' | 'control'. */
+export type WireSlot = { kind: "target" | "control"; index: number };
+
+export function opWireSlots(op: PlacedOp): WireSlot[] {
+  return [
+    ...op.targets.map((index): WireSlot => ({ kind: "target", index })),
+    ...op.controls.map((index): WireSlot => ({ kind: "control", index })),
+  ];
+}
+
+export function useEditorState(initial: EditorDoc = emptyDoc()) {
+  const [doc, setDoc] = useState<EditorDoc>(initial);
+  const [past, setPast] = useState<EditorDoc[]>([]);
+  const [future, setFuture] = useState<EditorDoc[]>([]);
+  const [selectedOpId, setSelectedOpId] = useState<number | null>(null);
+
+  /** Commit the next document state as one undoable gesture. */
+  const commit = (next: EditorDoc) => {
+    setPast((prev) => [...prev.slice(-UNDO_LIMIT + 1), doc]);
+    setFuture([]);
+    setDoc(next);
+  };
+
+  const placeOp = (type: GateType, column: number, wire: number) => {
+    const { targets, controls } = defaultConnections(type, wire, doc.numBits);
+    const op: PlacedOp = {
+      id: nextId(),
+      type,
+      segment: Math.max(0, Math.min(9, column)),
+      targets,
+      controls,
+      angle: GATE_CONFIGS[type].defaultAngle ?? null,
+    };
+    commit({ ...doc, ops: [...doc.ops, op] });
+    setSelectedOpId(op.id);
+  };
+
+  const moveOp = (opId: number, column: number, wire?: number) => {
+    const op = doc.ops.find((o) => o.id === opId);
+    if (!op) return;
+    const nextColumn = Math.max(0, Math.min(9, column));
+    const nextWire =
+      wire == null ? null : Math.max(0, Math.min(doc.numBits - 1, wire));
+    if (nextColumn === op.segment && nextWire === null) return;
+    if (
+      nextWire != null &&
+      op.targets.length === 1 &&
+      op.targets[0] === nextWire &&
+      nextColumn === op.segment
+    )
+      return;
+    commit({
+      ...doc,
+      ops: doc.ops.map((o) => {
+        if (o.id !== opId) return o;
+        const patch: PlacedOp = { ...o, segment: nextColumn };
+        // Single-bit ops: the body drag carries the target wire.
+        if (nextWire != null && o.targets.length === 1) {
+          patch.targets = [nextWire];
+        }
+        return patch;
+      }),
+    });
+  };
+
+  /** Body-drag a single-bit op to another wire (vertical drag). */
+  const moveOpToWire = (opId: number, wire: number) => {
+    const op = doc.ops.find((o) => o.id === opId);
+    if (!op || op.targets.length !== 1) return;
+    const clamped = Math.max(0, Math.min(doc.numBits - 1, wire));
+    if (op.targets[0] === clamped) return;
+    commit({
+      ...doc,
+      ops: doc.ops.map((o) =>
+        o.id === opId ? { ...o, targets: [clamped] } : o,
+      ),
+    });
+  };
+
+  /** Move one connection (target or control) to a different wire. */
+  const moveWire = (opId: number, slot: WireSlot, wire: number) => {
+    const op = doc.ops.find((o) => o.id === opId);
+    if (!op) return;
+    const clamped = Math.max(0, Math.min(doc.numBits - 1, wire));
+    const key = slot.kind === "target" ? "targets" : "controls";
+    const list = op[key];
+    if (list[slot.index] === clamped) return;
+
+    const otherKey = slot.kind === "target" ? "controls" : "targets";
+    if (op[otherKey].includes(clamped)) return; // a wire can host only one connection of an op
+
+    const next: PlacedOp = {
+      ...op,
+      [key]: list.map((w, i) => (i === slot.index ? clamped : w)),
+    };
+    commit({ ...doc, ops: doc.ops.map((o) => (o.id === opId ? next : o)) });
+  };
+
+  const removeOp = (opId: number) => {
+    if (!doc.ops.some((o) => o.id === opId)) return;
+    commit({ ...doc, ops: doc.ops.filter((o) => o.id !== opId) });
+    setSelectedOpId((prev) => (prev === opId ? null : prev));
+  };
+
+  const setAngle = (opId: number, angle: number) => {
+    const op = doc.ops.find((o) => o.id === opId);
+    if (!op || op.angle === angle) return;
+    commit({
+      ...doc,
+      ops: doc.ops.map((o) => (o.id === opId ? { ...o, angle } : o)),
+    });
+  };
+
+  /** Drag-scrubbing the dial produces many intermediate values; only the
+   *  first value of a scrub should be undoable. */
+  const [scrubBase, setScrubBase] = useState<EditorDoc | null>(null);
+  const [scrubDirty, setScrubDirty] = useState(false);
+  const beginAngleScrub = () => {
+    setScrubBase(doc);
+    setScrubDirty(false);
+  };
+  const updateAngleScrub = (opId: number, angle: number) => {
+    setScrubDirty(true);
+    setDoc((prev) => ({
+      ...prev,
+      ops: prev.ops.map((o) => (o.id === opId ? { ...o, angle } : o)),
+    }));
+  };
+  const endAngleScrub = () => {
+    const base = scrubBase;
+    setScrubBase(null);
+    if (base && scrubDirty) {
+      setPast((prev) => [...prev.slice(-UNDO_LIMIT + 1), base]);
+      setFuture([]);
+    }
+  };
+
+  const setNumBits = (bits: number) => {
+    const clamped = Math.max(1, Math.min(16, bits));
+    if (clamped === doc.numBits) return;
+    // Ops keep their wires; those that no longer fit become suspended
+    // (hidden until the wire count grows back). Fully symmetric — no
+    // truncation, so nothing is lost and undo/grow restores everything.
+    commit({ ...doc, numBits: clamped });
+    // Never keep a suspended op selected (its inspector would show stale
+    // wire indices).
+    setSelectedOpId((prev) => {
+      if (prev == null) return null;
+      const op = doc.ops.find((o) => o.id === prev);
+      return op && isSuspended(op, clamped) ? null : prev;
+    });
+  };
+
+  const duplicateOp = (opId: number) => {
+    const op = doc.ops.find((o) => o.id === opId);
+    if (!op) return;
+    // Find the first free column at or after the source op's column.
+    let column = op.segment;
+    while (column < 10 && doc.ops.some((o) => o.segment === column)) column++;
+    const copy: PlacedOp = {
+      ...op,
+      id: nextId(),
+      segment: Math.min(9, column),
+    };
+    commit({ ...doc, ops: [...doc.ops, copy] });
+    setSelectedOpId(copy.id);
+  };
+
+  const undo = () => {
+    if (past.length === 0) return;
+    setPast(past.slice(0, -1));
+    setFuture([doc, ...future]);
+    setDoc(past.at(-1)!);
+  };
+
+  const redo = () => {
+    if (future.length === 0) return;
+    setPast([...past, doc]);
+    setDoc(future[0]);
+    setFuture(future.slice(1));
+  };
+
+  const loadCircuit = (circuit: Circuit) => {
+    setDoc(circuitToDoc(circuit));
+    setPast([]);
+    setFuture([]);
+    setSelectedOpId(null);
+  };
+
+  return {
+    doc,
+    canUndo: past.length > 0,
+    canRedo: future.length > 0,
+    selectedOpId,
+    placeOp,
+    moveOp,
+    moveOpToWire,
+    moveWire,
+    removeOp,
+    duplicateOp,
+    setAngle,
+    beginAngleScrub,
+    updateAngleScrub,
+    endAngleScrub,
+    setNumBits,
+    undo,
+    redo,
+    loadCircuit,
+    select: setSelectedOpId,
+  };
+}
+
+export type EditorState = ReturnType<typeof useEditorState>;

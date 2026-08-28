@@ -1,8 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
 interface AngleDialProps {
   angle: number; // radians
   onChange: (angle: number) => void;
+  /** Optional scrub bracketing: called when a continuous edit (dial drag,
+   *  text focus session) starts/ends, so callers can group it as one
+   *  undoable gesture. */
+  onScrubStart?: () => void;
+  onScrubEnd?: () => void;
 }
 
 const SIZE = 120;
@@ -15,7 +20,12 @@ const norm360 = (deg: number) => ((deg % 360) + 360) % 360;
 
 /** Rotary dial for setting a gate's rotation angle: drag the radial line
  *  around the circle, or type degrees into the text box above. */
-export function AngleDial({ angle, onChange }: AngleDialProps) {
+export function AngleDial({
+  angle,
+  onChange,
+  onScrubStart,
+  onScrubEnd,
+}: AngleDialProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState(false);
   const [text, setText] = useState(String(Math.round(toDegrees(angle))));
@@ -49,38 +59,72 @@ export function AngleDial({ angle, onChange }: AngleDialProps) {
   const tipY = CENTER - RADIUS * Math.sin(rad);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 8,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <input
           type="number"
           step={1}
           min={0}
           max={359}
           value={text}
-          onChange={e => handleTextChange(e.target.value)}
-          style={{ width: 64, background: '#243349', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 6, padding: '4px 6px' }}
+          onFocus={() => onScrubStart?.()}
+          onBlur={() => onScrubEnd?.()}
+          onChange={(e) => handleTextChange(e.target.value)}
+          style={{
+            width: 64,
+            background: "#243349",
+            color: "#e2e8f0",
+            border: "1px solid #334155",
+            borderRadius: 6,
+            padding: "4px 6px",
+          }}
         />
-        <span style={{ color: '#94a3b8' }}>degrees</span>
+        <span style={{ color: "#94a3b8" }}>degrees</span>
       </div>
 
       <svg
         ref={svgRef}
         width={SIZE}
         height={SIZE}
-        style={{ cursor: 'grab', touchAction: 'none', userSelect: 'none' }}
-        onPointerDown={e => {
+        style={{ cursor: "grab", touchAction: "none", userSelect: "none" }}
+        onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId);
+          onScrubStart?.();
           setDragging(true);
           setFromPointer(e);
         }}
-        onPointerMove={e => dragging && setFromPointer(e)}
-        onPointerUp={() => setDragging(false)}
-        onPointerCancel={() => setDragging(false)}
+        onPointerMove={(e) => dragging && setFromPointer(e)}
+        onPointerUp={() => {
+          if (dragging) {
+            setDragging(false);
+            onScrubEnd?.();
+          }
+        }}
+        onPointerCancel={() => {
+          if (dragging) {
+            setDragging(false);
+            onScrubEnd?.();
+          }
+        }}
       >
         {/* dial face */}
-        <circle cx={CENTER} cy={CENTER} r={RADIUS} fill='#0b1220' stroke='#334155' strokeWidth={2} />
+        <circle
+          cx={CENTER}
+          cy={CENTER}
+          r={RADIUS}
+          fill="#0b1220"
+          stroke="#334155"
+          strokeWidth={2}
+        />
         {/* quarter ticks */}
-        {[0, 90, 180, 270].map(d => {
+        {[0, 90, 180, 270].map((d) => {
           const t = toRadians(d);
           return (
             <line
@@ -89,19 +133,40 @@ export function AngleDial({ angle, onChange }: AngleDialProps) {
               y1={CENTER - (RADIUS - 6) * Math.sin(t)}
               x2={CENTER + RADIUS * Math.cos(t)}
               y2={CENTER - RADIUS * Math.sin(t)}
-              stroke='#475569'
+              stroke="#475569"
               strokeWidth={2}
             />
           );
         })}
         {/* angle line */}
-        <line x1={CENTER} y1={CENTER} x2={tipX} y2={tipY} stroke='#38bdf8' strokeWidth={3} strokeLinecap='round' />
+        <line
+          x1={CENTER}
+          y1={CENTER}
+          x2={tipX}
+          y2={tipY}
+          stroke="#38bdf8"
+          strokeWidth={3}
+          strokeLinecap="round"
+        />
         {/* handle */}
-        <circle cx={tipX} cy={tipY} r={6} fill='#38bdf8' stroke='#e2e8f0' strokeWidth={2} />
+        <circle
+          cx={tipX}
+          cy={tipY}
+          r={6}
+          fill="#38bdf8"
+          stroke="#e2e8f0"
+          strokeWidth={2}
+        />
         {/* center dot */}
-        <circle cx={CENTER} cy={CENTER} r={3} fill='#64748b' />
+        <circle cx={CENTER} cy={CENTER} r={3} fill="#64748b" />
         {/* label */}
-        <text x={CENTER} y={SIZE - 4} textAnchor='middle' fill='#94a3b8' fontSize={11}>
+        <text
+          x={CENTER}
+          y={SIZE - 4}
+          textAnchor="middle"
+          fill="#94a3b8"
+          fontSize={11}
+        >
           {Math.round(degrees)}°
         </text>
       </svg>

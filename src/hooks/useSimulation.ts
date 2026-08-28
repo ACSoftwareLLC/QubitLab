@@ -1,26 +1,34 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { CanvasGate, GateLine } from '../types';
-import { serializeCircuit } from '../api/serialize';
-import { simulateCircuit, validateCircuit } from '../api/client';
-import { SimulationSession } from '../api/ws';
-import type { Snapshot, ValidationError } from '../api/types';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Circuit, ValidationError } from "../api/types";
+import { simulateCircuit, validateCircuit } from "../api/client";
+import { SimulationSession } from "../api/ws";
+import type { Snapshot } from "../api/types";
 
-export type SimStatus = 'idle' | 'ready' | 'running' | 'done' | 'invalid' | 'offline';
+export type SimStatus =
+  | "idle"
+  | "ready"
+  | "running"
+  | "done"
+  | "invalid"
+  | "offline";
 
 export type Simulation = ReturnType<typeof useSimulation>;
 
 /**
- * Execution state for the canvas circuit, backed by the local WASM simulator
+ * Execution state for a circuit, backed by the local WASM simulator
  * (docs/api.md). A stateful stepping session is preferred; falls back to
  * per-step one-shot simulation when the session can't be created.
+ *
+ * @param circuit             Circuit to execute (already serialized).
+ * @param unconnectedGateIds  Editor-only bookkeeping (gates with no bit
+ *                            connections); the canvas editor passes these so
+ *                            the UI can warn about skipped gates.
  */
-export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBits: number) {
-  const { circuit, unconnectedGateIds } = useMemo(
-    () => serializeCircuit(gates, gateLines, numBits),
-    [gates, gateLines, numBits],
-  );
-
-  const [status, setStatus] = useState<SimStatus>('idle');
+export function useSimulation(
+  circuit: Circuit,
+  unconnectedGateIds: number[] = [],
+) {
+  const [status, setStatus] = useState<SimStatus>("idle");
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [peekSnapshot, setPeekSnapshot] = useState<Snapshot | null>(null);
@@ -29,7 +37,8 @@ export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBit
   const sessionRef = useRef<SimulationSession | null>(null);
 
   const segments = useMemo(
-    () => [...new Set(circuit.ops.map(op => op.segment))].sort((a, b) => a - b),
+    () =>
+      [...new Set(circuit.ops.map((op) => op.segment))].sort((a, b) => a - b),
     [circuit],
   );
 
@@ -38,7 +47,7 @@ export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBit
   const [sessionCircuit, setSessionCircuit] = useState(circuit);
   if (sessionCircuit !== circuit) {
     setSessionCircuit(circuit);
-    setStatus('idle');
+    setStatus("idle");
     setSnapshot(null);
     setPeekSnapshot(null);
     setSnapshotHistory([]);
@@ -56,12 +65,12 @@ export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBit
   const start = useCallback(async () => {
     const validation = await validateCircuit(circuit).catch(() => null);
     if (!validation) {
-      setStatus('offline');
+      setStatus("offline");
       return;
     }
     if (!validation.valid) {
       setErrors(validation.errors);
-      setStatus('invalid');
+      setStatus("invalid");
       return;
     }
     setErrors([]);
@@ -70,18 +79,18 @@ export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBit
     try {
       await session.connect();
       const reply = await session.start(circuit);
-      if (reply.type === 'ready') {
+      if (reply.type === "ready") {
         sessionRef.current = session;
         setNumSteps(reply.numSteps);
-        setStatus('ready');
+        setStatus("ready");
         setSnapshot(null);
         setPeekSnapshot(null);
         setSnapshotHistory([]);
         return;
       }
-      if (reply.type === 'error') {
+      if (reply.type === "error") {
         setErrors([{ opId: null, message: reply.message }]);
-        setStatus('invalid');
+        setStatus("invalid");
         return;
       }
     } catch {
@@ -90,100 +99,100 @@ export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBit
     // Stateless fallback: no persistent session, step via one-shot simulate.
     sessionRef.current = null;
     setNumSteps(segments.length);
-    setStatus('ready');
+    setStatus("ready");
     setSnapshot(null);
     setPeekSnapshot(null);
     setSnapshotHistory([]);
   }, [circuit, segments]);
 
   const step = useCallback(async () => {
-    if (status !== 'ready' && status !== 'running') return;
+    if (status !== "ready" && status !== "running") return;
     const session = sessionRef.current;
 
-      if (session) {
+    if (session) {
       const reply = await session.step().catch(() => null);
       if (!reply) {
-        setStatus('offline');
-      } else if (reply.type === 'state') {
+        setStatus("offline");
+      } else if (reply.type === "state") {
         setSnapshot(reply);
-        setSnapshotHistory(prev =>
+        setSnapshotHistory((prev) =>
           prev.length > 0 && prev[prev.length - 1].segment === reply.segment
             ? prev
             : [...prev, reply],
         );
-        setStatus('running');
-      } else if (reply.type === 'done') {
-        setStatus('done');
+        setStatus("running");
+      } else if (reply.type === "done") {
+        setStatus("done");
       }
       return;
     }
 
     // Stateless fallback
     const current = snapshot?.segment ?? -1;
-    const next = segments.find(s => s > current);
+    const next = segments.find((s) => s > current);
     if (next == null) {
-      setStatus('done');
+      setStatus("done");
       return;
     }
     const snap = await simulateCircuit(circuit, next).catch(() => null);
     if (!snap) {
-      setStatus('offline');
+      setStatus("offline");
       return;
     }
     setSnapshot(snap);
-    setSnapshotHistory(prev =>
+    setSnapshotHistory((prev) =>
       prev.length > 0 && prev[prev.length - 1].segment === snap.segment
         ? prev
         : [...prev, snap],
     );
-    setStatus(segments.some(s => s > next) ? 'running' : 'done');
+    setStatus(segments.some((s) => s > next) ? "running" : "done");
   }, [circuit, segments, snapshot, status]);
 
   const run = useCallback(async () => {
-    if (status !== 'ready' && status !== 'running') return;
+    if (status !== "ready" && status !== "running") return;
     const session = sessionRef.current;
 
     if (session) {
       const reply = await session.run().catch(() => null);
       if (!reply) {
-        setStatus('offline');
-      } else if (reply.type === 'state') {
+        setStatus("offline");
+      } else if (reply.type === "state") {
         setSnapshot(reply);
-        setSnapshotHistory(prev =>
+        setSnapshotHistory((prev) =>
           prev.length > 0 && prev[prev.length - 1].segment === reply.segment
             ? prev
             : [...prev, reply],
         );
-        setStatus('done');
+        setStatus("done");
       }
       return;
     }
 
     const snap = await simulateCircuit(circuit, null).catch(() => null);
     if (!snap) {
-      setStatus('offline');
+      setStatus("offline");
       return;
     }
     setSnapshot(snap);
-    setSnapshotHistory(prev =>
+    setSnapshotHistory((prev) =>
       prev.length > 0 && prev[prev.length - 1].segment === snap.segment
         ? prev
         : [...prev, snap],
     );
-    setStatus('done');
+    setStatus("done");
   }, [circuit, status]);
 
   const reset = useCallback(async () => {
     const session = sessionRef.current;
     if (session) {
       const reply = await session.reset().catch(() => null);
-      if (reply?.type === 'state') {
+      if (reply?.type === "state") {
         setSnapshot(null);
-        setStatus('ready');
+        setStatus("ready");
       }
     } else {
       setSnapshot(null);
-      if (status !== 'offline') setStatus('ready');
+      if (status !== "offline") setStatus("ready");
     }
     setPeekSnapshot(null);
     setSnapshotHistory([]);
@@ -194,7 +203,7 @@ export function useSimulation(gates: CanvasGate[], gateLines: GateLine[], numBit
       const session = sessionRef.current;
       if (session) {
         const reply = await session.peek(segment).catch(() => null);
-        if (reply?.type === 'state') setPeekSnapshot(reply);
+        if (reply?.type === "state") setPeekSnapshot(reply);
         return;
       }
       const snap = await simulateCircuit(circuit, segment).catch(() => null);
