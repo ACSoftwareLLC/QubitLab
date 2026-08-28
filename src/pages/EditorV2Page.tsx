@@ -591,6 +591,8 @@ export function EditorV2Page() {
             onItemPointerDown={onItemPointerDown}
             numBits={doc.numBits}
             onNumBitsChange={editor.setNumBits}
+            circuit={circuit}
+            onImportCircuit={editor.loadCircuit}
           />
           <Inspector
             op={selectedOp}

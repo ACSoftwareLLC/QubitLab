@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { GATE_CATEGORIES, GATE_CONFIGS } from "../../constants/gates";
 import type { GateType } from "../../types";
 import { MAX_BITS } from "../../constants/canvas";
 import { glyphColor } from "./glyphColors";
+import { QasmDialog } from "./QasmDialog";
+import type { Circuit } from "../../api/types";
 
 /** Gate palette: drag onto the grid, or click to arm click-to-place. */
 
@@ -12,6 +15,10 @@ interface ToolboxProps {
   onItemPointerDown: (e: React.PointerEvent, type: GateType) => void;
   numBits: number;
   onNumBitsChange: (bits: number) => void;
+  /** Current circuit for QASM export. */
+  circuit: Circuit;
+  /** Replaces the document on QASM import. */
+  onImportCircuit: (c: Circuit) => void;
 }
 
 export function Toolbox({
@@ -20,7 +27,10 @@ export function Toolbox({
   onItemPointerDown,
   numBits,
   onNumBitsChange,
+  circuit,
+  onImportCircuit,
 }: ToolboxProps) {
+  const [qasmOpen, setQasmOpen] = useState(false);
   return (
     <aside className="ev2-toolbox">
       <div className="ev2-toolbox-header">
@@ -99,6 +109,25 @@ export function Toolbox({
             <i className="bi bi-plus" />
           </button>
         </div>
+      </div>
+
+      <div className="ev2-toolbox-section ev2-toolbox-io">
+        <button
+          type="button"
+          className="ev2-chip-btn ev2-qasm-trigger"
+          onClick={() => setQasmOpen(true)}
+          title="Export or import OPENQASM 2.0"
+        >
+          <i className="bi bi-filetype-code" />
+          QASM
+        </button>
+        {qasmOpen && (
+          <QasmDialog
+            circuit={circuit}
+            onImport={onImportCircuit}
+            onClose={() => setQasmOpen(false)}
+          />
+        )}
       </div>
     </aside>
   );
