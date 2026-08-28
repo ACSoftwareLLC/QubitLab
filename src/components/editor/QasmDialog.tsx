@@ -19,6 +19,7 @@ export function QasmDialog({ circuit, onImport, onClose }: QasmDialogProps) {
   const [tab, setTab] = useState<"export" | "import">("export");
   const [importText, setImportText] = useState("");
   const [errors, setErrors] = useState<string[] | null>(null);
+  const [warnings, setWarnings] = useState<string[] | null>(null);
   const [copied, setCopied] = useState(false);
   const copyTimer = useRef<number | null>(null);
 
@@ -62,13 +63,18 @@ export function QasmDialog({ circuit, onImport, onClose }: QasmDialogProps) {
   const runImport = () => {
     const result = qasmToCircuit(importText);
     if ("circuit" in result) {
+      if (result.warnings.length > 0) {
+        // Import succeeds; keep the dialog open so the user sees the
+        // warnings, then import on explicit continue.
+        setWarnings(result.warnings);
+        return;
+      }
       onImport(result.circuit);
       onClose();
       return;
     }
     setErrors(result.errors);
   };
-
   return (
     <div className="ev2-qasm-overlay" onClick={onClose}>
       <div className="ev2-qasm-card" onClick={(e) => e.stopPropagation()}>
@@ -129,6 +135,7 @@ export function QasmDialog({ circuit, onImport, onClose }: QasmDialogProps) {
               onChange={(e) => {
                 setImportText(e.target.value);
                 setErrors(null);
+                setWarnings(null);
               }}
               placeholder={'OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[2];\ncreg c[2];\nh q[0];\ncx q[0], q[1];'}
               spellCheck={false}
@@ -140,17 +147,47 @@ export function QasmDialog({ circuit, onImport, onClose }: QasmDialogProps) {
                 ))}
               </ul>
             )}
-            <div className="ev2-qasm-actions">
-              <button
-                type="button"
-                className="ev2-chip-btn ev2-chip-primary"
-                onClick={runImport}
-                disabled={!importText.trim()}
-              >
-                <i className="bi bi-box-arrow-in-down" />
-                Import
-              </button>
-            </div>
+            {warnings && (
+              <div className="ev2-qasm-warnings">
+                <div className="ev2-qasm-warning-title">
+                  <i className="bi bi-exclamation-triangle" /> Import succeeded with warnings
+                </div>
+                <ul>
+                  {warnings.map((w, i) => (
+                    <li key={i}>{w}</li>
+                  ))}
+                </ul>
+                <div className="ev2-qasm-actions">
+                  <button
+                    type="button"
+                    className="ev2-chip-btn ev2-chip-primary"
+                    onClick={() => {
+                      const result = qasmToCircuit(importText);
+                      if ("circuit" in result) {
+                        onImport(result.circuit);
+                        onClose();
+                      }
+                    }}
+                  >
+                    <i className="bi bi-box-arrow-in-down" />
+                    Continue
+                  </button>
+                </div>
+              </div>
+            )}
+            {!warnings && (
+              <div className="ev2-qasm-actions">
+                <button
+                  type="button"
+                  className="ev2-chip-btn ev2-chip-primary"
+                  onClick={runImport}
+                  disabled={!importText.trim()}
+                >
+                  <i className="bi bi-box-arrow-in-down" />
+                  Import
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
