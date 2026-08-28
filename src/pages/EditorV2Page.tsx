@@ -14,6 +14,7 @@ import type { OpPart } from "../components/editor/OpGlyph";
 import { Toolbox } from "../components/editor/Toolbox";
 import { Inspector } from "../components/editor/Inspector";
 import { TransportBar } from "../components/editor/TransportBar";
+import { ShotsPanel } from "../components/editor/ShotsPanel";
 import {
   docToCircuit,
   useEditorState,
@@ -607,6 +608,8 @@ export function EditorV2Page() {
               />
             </div>
           </div>
+
+          <ShotsPanel circuit={circuit} numBits={doc.numBits} />
         </div>
 
         <StatePanel
