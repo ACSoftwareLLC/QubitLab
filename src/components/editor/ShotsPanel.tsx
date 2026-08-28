@@ -21,7 +21,10 @@ export function ShotsPanel({ circuit, numBits }: ShotsPanelProps) {
   const [result, setResult] = useState<ShotsResult | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
+  // Expanded by default: measurement sampling is a primary flow, and the
+  // open panel keeps the canvas region from looking oversized on small
+  // circuits (it takes the leftover vertical space).
+  const [open, setOpen] = useState(true);
 
   const wires = useMemo(
     () => measuredWires(circuit.ops, numBits),
