@@ -23,6 +23,7 @@ import {
   shouldRestoreDraft,
   useCircuitDraft,
 } from "../components/editor/useCircuitDraft";
+import { wireProbabilitiesFromStatevector } from "../components/editor/stateVectorMath";
 import type { WireSlot } from "../components/editor/useEditorState";
 import {
   gridSize,
@@ -120,6 +121,19 @@ export function EditorV2Page() {
   const activeColumns = useMemo(
     () => [...new Set(activeOps.map((o) => o.segment))],
     [activeOps],
+  );
+  // Per-wire P(1) readouts derive from whichever snapshot the StatePanel
+  // displays (a peek overrides the stepped snapshot while hovering).
+  const displayedSnapshot = sim.peekSnapshot ?? sim.snapshot;
+  const wireProbabilities = useMemo(
+    () =>
+      displayedSnapshot
+        ? wireProbabilitiesFromStatevector(
+            displayedSnapshot.statevector,
+            doc.numBits,
+          )
+        : null,
+    [displayedSnapshot, doc.numBits],
   );
 
   // --- Drag state ---------------------------------------------------------
@@ -526,6 +540,7 @@ export function EditorV2Page() {
                 }
                 currentSegment={sim.currentSegment}
                 measurements={sim.snapshot?.measurements ?? {}}
+                wireProbabilities={wireProbabilities}
                 onSelect={editor.select}
                 onCellClick={onCellClick}
                 onPeekSegment={sim.peek}

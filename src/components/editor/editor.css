@@ -251,6 +251,26 @@
   font-weight: 700;
 }
 
+/* --- Per-wire P(1) probability readout --------------------------------------- */
+.ev2-wire-prob {
+  pointer-events: none;
+}
+
+.ev2-wire-prob-track {
+  fill: rgba(100, 116, 139, 0.35);
+}
+
+.ev2-wire-prob-fill {
+  fill: var(--accent);
+}
+
+.ev2-wire-prob-text {
+  fill: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 /* --- Ops & interaction ------------------------------------------------------ */
 .ev2-op {
   cursor: grab;

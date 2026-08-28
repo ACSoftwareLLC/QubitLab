@@ -16,6 +16,13 @@ import type { OpPart } from "./OpGlyph";
 import type { PlacedOp, EditorDoc, WireSlot } from "./useEditorState";
 import { defaultConnections } from "./useEditorState";
 
+/** Layout offsets for the per-wire P(1) readout at the wire's right end. */
+const PROB_BAR_W = 36;
+const PROB_TEXT_GAP = 4;
+const PROB_TEXT_W = 26;
+/** Space kept between the probability readout and a classical bit box. */
+const PROB_CLASSICAL_GAP = 22;
+
 /** Bridge between the page-level window-pointer drag logic and the SVG
  *  stage: converts client coordinates into grid cells. */
 export type GridHandle = {
@@ -52,6 +59,8 @@ interface CircuitGridProps {
   executing: boolean;
   currentSegment: number;
   measurements: Record<string, 0 | 1>;
+  /** Per-wire P(|1⟩) readouts at the wire's right end; null = no sim data. */
+  wireProbabilities: number[] | null;
   onSelect: (opId: number | null) => void;
   onCellClick: (column: number, wire: number) => void;
   onPeekSegment: (segment: number) => void;
@@ -79,6 +88,7 @@ export function CircuitGrid({
   executing,
   currentSegment,
   measurements,
+  wireProbabilities,
   onSelect,
   onCellClick,
   onPeekSegment,
@@ -229,6 +239,11 @@ export function CircuitGrid({
         {Array.from({ length: doc.numBits }, (_, w) => {
           const y = wireY(w);
           const measured = measuredByWire.get(w);
+          const p1 = wireProbabilities?.[w];
+          // Probability readout sits at the wire's right end, shifted left
+          // of a classical bit box when both are present.
+          const probRightX =
+            width - GRID.padRight - (measured != null ? PROB_CLASSICAL_GAP : 0);
           return (
             <g key={`wire-${w}`} className="ev2-wire-group">
               <line
@@ -247,6 +262,38 @@ export function CircuitGrid({
               >
                 q{w}
               </text>
+              {p1 != null && (
+                <g
+                  className="ev2-wire-prob"
+                  transform={`translate(${probRightX - PROB_BAR_W - PROB_TEXT_GAP - PROB_TEXT_W}, ${y})`}
+                >
+                  <title>{`P(|1⟩) = ${p1.toFixed(2)}`}</title>
+                  <rect
+                    x={0}
+                    y={-3}
+                    width={PROB_BAR_W}
+                    height={6}
+                    rx={3}
+                    className="ev2-wire-prob-track"
+                  />
+                  <rect
+                    x={0}
+                    y={-3}
+                    width={Math.max(0, PROB_BAR_W * p1)}
+                    height={6}
+                    rx={3}
+                    className="ev2-wire-prob-fill"
+                  />
+                  <text
+                    x={PROB_BAR_W + PROB_TEXT_GAP}
+                    y={0}
+                    dominantBaseline="middle"
+                    className="ev2-wire-prob-text"
+                  >
+                    {`${Math.round(p1 * 100)}%`}
+                  </text>
+                </g>
+              )}
               {/* Classical readout after measurement */}
               {measured != null && (
                 <g transform={`translate(${width - GRID.padRight - 10}, ${y})`}>
