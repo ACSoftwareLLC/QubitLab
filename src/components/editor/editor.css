@@ -33,7 +33,8 @@
 /* --- Toolbox -------------------------------------------------------------- */
 .ev2-toolbox {
   display: flex;
-  flex-direction: column;\n  width: 208px;
+  flex-direction: column;
+  width: 208px;
   flex: 0 0 auto;
   background: var(--panel);
   border-right: 1px solid var(--border);
