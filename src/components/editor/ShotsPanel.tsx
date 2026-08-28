@@ -38,7 +38,7 @@ export function ShotsPanel({ circuit, numBits }: ShotsPanelProps) {
     try {
       setResult(await runShots(circuit, shots, numBits));
     } catch {
-      setError("Shots failed — try again.");
+      setError("Sampling failed — try again.");
     } finally {
       setRunning(false);
     }
@@ -53,7 +53,7 @@ export function ShotsPanel({ circuit, numBits }: ShotsPanelProps) {
         aria-expanded={open}
       >
         <i className="bi bi-histogram" />
-        <span className="ev2-shots-title">Shots</span>
+        <span className="ev2-shots-title">Measurements</span>
         <i className={`bi bi-chevron-${open ? "down" : "up"} ev2-shots-chev`} />
       </button>
 
@@ -87,7 +87,7 @@ export function ShotsPanel({ circuit, numBits }: ShotsPanelProps) {
                   <i
                     className={`bi ${running ? "bi-arrow-repeat ev2-spin" : "bi-play-fill"}`}
                   />
-                  Run shots
+                  Sample {shots} runs
                 </button>
               </div>
 

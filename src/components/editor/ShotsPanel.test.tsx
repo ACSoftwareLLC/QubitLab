@@ -45,7 +45,9 @@ describe("ShotsPanel", () => {
     const { container } = render(
       <ShotsPanel circuit={circuitWith(0, 1)} numBits={4} />,
     );
-    const chips = container.querySelectorAll(".ev2-shots-choices .ev2-chip-btn");
+    const chips = container.querySelectorAll(
+      ".ev2-shots-choices .ev2-chip-btn",
+    );
     expect(chips.length).toBe(3);
     expect(container.querySelector(".ev2-shots-run")).not.toBeNull();
   });
@@ -75,9 +77,10 @@ describe("ShotsPanel", () => {
 
   it("run failures surface the error message", async () => {
     const { simulateCircuit } = await import("../../api/client");
-    vi.spyOn(await import("../../api/client"), "simulateCircuit").mockRejectedValue(
-      new Error("boom"),
-    );
+    vi.spyOn(
+      await import("../../api/client"),
+      "simulateCircuit",
+    ).mockRejectedValue(new Error("boom"));
     void simulateCircuit;
     const { container } = render(
       <ShotsPanel circuit={circuitWith(0)} numBits={4} />,
@@ -86,7 +89,7 @@ describe("ShotsPanel", () => {
     // The mocked wasm layer never resolves via import cache in jsdom
     // without the real module; the error state assertion is best-effort:
     await vi.waitFor(() => {
-      expect(container.textContent).toMatch(/Shots failed|Run shots/);
+      expect(container.textContent).toMatch(/Sampling failed|Sample \d+ runs/);
     });
   });
 });

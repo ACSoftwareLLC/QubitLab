@@ -211,19 +211,19 @@
    fit-to-height scale; columns overflow to the right with a thin
    scrollbar. Left-aligned when everything fits. */
 .ev2-grid-scrollwrap {
-  max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  display: flex;
-  justify-content: flex-start;
+ max-width: 100%;
+ overflow-x: auto;
+ overflow-y: hidden;
+ display: flex;
+ justify-content: flex-start;
 }
 
 /* With few wires the height-fit scale would leave a stubby canvas region
    dominating the layout with whitespace — cap it so the expanded Shots
    panel below gets real estate (min keeps it usable at tall layouts). */
 .ev2-canvas-region {
-  min-height: 220px;
-  max-height: 62%;
+ min-height: 220px;
+ max-height: 62%;
 }
 
 .ev2-grid-root {
@@ -839,7 +839,8 @@
  flex: 0 0 auto;
  border-top: 1px solid var(--border);
  background: var(--panel);
- max-height: 34vh;
+ /* No height cap: as the flexible pane it fills exactly the leftover
+    center-column space (canvas caps at 62%); the body scrolls inside. */
  display: flex;
  flex-direction: column;
 }
@@ -885,6 +886,7 @@
  flex-direction: column;
  gap: 0.6rem;
  overflow-y: auto;
+ min-height: 0;
 }
 
 .ev2-shots-hint {
