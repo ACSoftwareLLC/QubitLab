@@ -206,7 +206,11 @@ export function qasmToCircuit(qasm: string): ImportResult {
   /** Evaluate an integer/const expression: number literals, declared
    *  consts, loop variables from `env`, unary +/-, + - * and ( ), plus
    *  bit-indexed consts ("a_in[i]" → bit i of constant a_in). Returns null
-   *  (recording an error) when unresolvable. */
+   *  (recording an error) when unresolvable.
+ *
+ *  Evaluated by a small recursive-descent parser — NOT `new Function`:
+ *  the Worker's CSP blocks unsafe-eval, which silently broke every
+ *  expression in production while unit tests (no CSP) kept passing. */
   const evalInt = (expr: string, line: number, env?: Map<string, number>): number | null => {
     const s = expr.replace(/\s+/g, "");
     // Bit-indexed const: NAME[expr] → bit of the const's value.
@@ -219,28 +223,83 @@ export function qasmToCircuit(qasm: string): ImportResult {
         return (base >> idx) & 1;
       }
     }
-    if (!/^[\d+\-*/()A-Za-z_]+$/.test(s)) return null;
-    // Substitute identifiers with their constant or loop-variable values
-    // (word boundaries). Unknown identifiers become NaN — caught below.
-    const sub = s.replace(/[A-Za-z_]\w*/g, (id) => {
-      const loop = env?.get(id);
-      if (loop != null) return String(loop);
-      const v = consts.get(id);
-      return v == null ? "NaN" : String(v);
-    });
-    try {
-      if (/NaN/.test(sub)) {
-        record(line, `cannot evaluate expression '${expr}'`);
-        return null;
+    // Tokenize: numbers and identifiers.
+    const tokens: (number | string)[] = [];
+    for (let i = 0; i < s.length; ) {
+      const c = s[i];
+      if (/[\d]/.test(c)) {
+        let j = i;
+        while (j < s.length && /[\d]/.test(s[j])) j++;
+        tokens.push(Number(s.slice(i, j)));
+        i = j;
+      } else if (/[A-Za-z_]/.test(c)) {
+        let j = i;
+        while (j < s.length && /[\w]/.test(s[j])) j++;
+        const id = s.slice(i, j);
+        const loop = env?.get(id);
+        if (loop != null) tokens.push(loop);
+        else {
+          const v = consts.get(id);
+          if (v == null) {
+            record(line, `unknown identifier '${id}' in '${expr}'`);
+            return null;
+          }
+          tokens.push(v);
+        }
+        i = j;
+      } else if ("+-*/()".includes(c)) {
+        tokens.push(c);
+        i++;
+      } else {
+        return null; // stray character
       }
-      if (!/^[\d+\-*/().\s]+$/.test(sub)) return null;
-
-      const value = Function(`"use strict"; return (${sub});`)() as number;
-      return Number.isFinite(value) ? value : null;
-    } catch {
+    }
+    // Recursive descent: expr := term (('+'|'-') term)*
+    let pos = 0;
+    const peek = () => tokens[pos];
+    const parseTerm = (): number | null => {
+      const v = parseFactor();
+      if (v == null) return null;
+      while (peek() === "*" || peek() === "/") {
+        const op = tokens[pos++] as string;
+        const rhs = parseFactor();
+        if (rhs == null) return null;
+        return op === "*" ? v * rhs : v / rhs;
+      }
+      return v;
+    };
+    const parseFactor = (): number | null => {
+      // unary +/-
+      if (peek() === "-") { pos++; const v = parseFactor(); return v == null ? null : -v; }
+      if (peek() === "+") { pos++; return parseFactor(); }
+      if (peek() === "(") {
+        pos++;
+        const v = parseExpr();
+        if (v == null || peek() !== ")") return null;
+        pos++;
+        return v;
+      }
+      const t = peek();
+      if (typeof t === "number") { pos++; return t; }
+      return null;
+    };
+    function parseExpr(): number | null {
+      const v = parseTerm();
+      if (v == null) return null;
+      while (peek() === "+" || peek() === "-") {
+        const op = tokens[pos++] as string;
+        const rhs = parseTerm();
+        if (rhs == null) return null;
+        return op === "+" ? v + rhs : v - rhs;
+      }
+      return v;
+    }
+    const value = parseExpr();
+    if (value == null || pos !== tokens.length || !Number.isFinite(value)) {
       record(line, `cannot evaluate expression '${expr}'`);
       return null;
     }
+    return Math.trunc(value);
   };
 
   /** Resolve one register argument ("cin[0]", "a[i + 1]", "q[3]") to a flat
