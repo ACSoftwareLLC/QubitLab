@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import type { SimStatus } from "../../hooks/useSimulation";
 
 /** Full-width simulation transport bar: run controls, status, scrubber. */
@@ -22,6 +23,8 @@ interface TransportBarProps {
         /** Live mode: statevector recomputes automatically on edits. */
         isLive: boolean;
         onToggleLive: () => void;
+        /** Copies a shareable URL for the current circuit to the clipboard. */
+        onShare: () => void;
 }
 
 export function TransportBar({
@@ -41,7 +44,24 @@ export function TransportBar({
         onRedo,
         isLive,
         onToggleLive,
+        onShare,
 }: TransportBarProps) {
+        // Transient "Copied!" feedback after a share click.
+        const [copied, setCopied] = useState(false);
+        const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+        useEffect(
+                () => () => {
+                        if (copiedTimer.current) clearTimeout(copiedTimer.current);
+                },
+                [],
+        );
+        const handleShare = () => {
+                onShare();
+                setCopied(true);
+                if (copiedTimer.current) clearTimeout(copiedTimer.current);
+                copiedTimer.current = setTimeout(() => setCopied(false), 1500);
+        };
+
         const executing =
                 status === "ready" || status === "running" || status === "done";
         const canInteract = status === "ready" || status === "running";
@@ -149,6 +169,16 @@ export function TransportBar({
                         </div>
 
                         <div className="ev2-transport-edit">
+                                <button
+                                        className="ev2-btn"
+                                        onClick={handleShare}
+                                        title="Copy shareable link"
+                                        aria-label="Copy shareable link"
+                                >
+                                        <i
+                                                className={`bi ${copied ? "bi-clipboard-check" : "bi-share"}`}
+                                        />
+                                </button>
                                 <button
                                         className={`ev2-btn${isLive ? " ev2-btn-live" : ""}`}
                                         onClick={onToggleLive}

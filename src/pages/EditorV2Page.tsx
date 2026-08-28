@@ -34,6 +34,10 @@ import {
   firstFreeColumn,
 } from "../components/editor/gridGeometry";
 import { isSuspended } from "../components/editor/useEditorState";
+import {
+  buildShareUrl,
+  decodeHashToCircuit,
+} from "../components/editor/shareUrl";
 import "../components/editor/editor.css";
 
 /**
@@ -218,6 +222,7 @@ export function EditorV2Page() {
     null,
   );
   const [restoredDraft, setRestoredDraft] = useState(false);
+  const [sharedLoaded, setSharedLoaded] = useState(false);
   /** Op being dragged with the pointer outside the grid — releasing
    *  deletes it; the glyph renders in the danger style meanwhile. */
   const [dangerOpId, setDangerOpId] = useState<number | null>(null);
@@ -490,17 +495,30 @@ export function EditorV2Page() {
   }, [registerActions, doc, clearDraft]);
 
   // --- Circuit handoff (My Circuits / template gallery) --------------------------
-  // Priority: template prefetch > navigation-state handoff > saved draft.
-  // A draft is restored only when the user didn't arrive with an explicit
-  // circuit in hand.
+  // Priority: URL hash (explicit external intent) > template prefetch >
+  // navigation-state handoff > saved draft. The hash is consumed once on
+  // mount then stripped via replaceState so a refresh doesn't keep
+  // overriding the draft chain.
   useEffect(() => {
+    const hashCircuit = (() => {
+      const hash = window.location.hash;
+      if (!hash.startsWith("#c=")) return null;
+      const decoded = decodeHashToCircuit(hash.slice(3));
+      // Consume the hash either way — a malformed link must not loop.
+      window.history.replaceState({}, "", "/editor-v2");
+      return decoded;
+    })();
     const handed = location.state as { circuit?: Circuit } | null;
     const prefetched = consumeTemplatePrefetch();
     // Captured before branching so shouldRestoreDraft sees unnarrowed
     // values (the branch tests themselves narrow `prefetched`).
     const handoffCircuit: Circuit | null = handed?.circuit ?? null;
     const prefetchCircuit: Circuit | null = prefetched?.circuit ?? null;
-    if (prefetched) {
+    if (hashCircuit) {
+      sim.reset();
+      editor.loadCircuit(hashCircuit);
+      setSharedLoaded(true);
+    } else if (prefetched) {
       sim.reset();
       editor.loadCircuit(prefetched.circuit);
       setLoadedTemplateName(prefetched.title);
@@ -541,6 +559,14 @@ export function EditorV2Page() {
             onClick={() => setLoadedTemplateName(null)}
             aria-label="Dismiss"
           >
+            <i className="bi bi-x" />
+          </button>
+        </div>
+      )}
+      {sharedLoaded && !loadedTemplateName && !restoredDraft && (
+        <div className="ev2-banner">
+          <span>Loaded shared circuit</span>
+          <button onClick={() => setSharedLoaded(false)} aria-label="Dismiss">
             <i className="bi bi-x" />
           </button>
         </div>
@@ -640,6 +666,13 @@ export function EditorV2Page() {
         onRedo={editor.redo}
         isLive={liveAuto}
         onToggleLive={toggleLive}
+        onShare={() => {
+          const url = buildShareUrl(docToCircuit(doc));
+          navigator.clipboard?.writeText(url).catch(() => {
+            // Clipboard unavailable (permissions/insecure context) — the
+            // URL still builds; failure is silent like the draft writes.
+          });
+        }}
       />
     </div>
   );

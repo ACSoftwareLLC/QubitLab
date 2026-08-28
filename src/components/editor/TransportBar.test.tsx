@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, cleanup, fireEvent } from "@testing-library/react";
+import { render, cleanup, fireEvent, act } from "@testing-library/react";
 import { TransportBar } from "./TransportBar";
 import type { SimStatus } from "../../hooks/useSimulation";
 
@@ -20,6 +20,7 @@ const defaultProps = () => ({
   onRedo: vi.fn(),
   isLive: false,
   onToggleLive: vi.fn(),
+  onShare: vi.fn(),
 });
 
 afterEach(cleanup);
@@ -90,5 +91,52 @@ describe("TransportBar live toggle", () => {
       'button[aria-label="Start simulation"]',
     );
     expect(start!.disabled).toBe(false);
+  });
+});
+
+describe("TransportBar share button", () => {
+  const shareButton = (container: HTMLElement) =>
+    container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Copy shareable link"]',
+    );
+
+  it("renders before the live/undo/redo cluster buttons", () => {
+    const { container } = render(<TransportBar {...defaultProps()} />);
+    const btn = shareButton(container);
+    expect(btn).toBeTruthy();
+    expect(btn!.className).toContain("ev2-btn");
+    // First child of the edit cluster.
+    expect(btn!.parentElement!.firstElementChild).toBe(btn);
+  });
+
+  it("calls onShare on click", () => {
+    const props = defaultProps();
+    const { container } = render(<TransportBar {...props} />);
+    fireEvent.click(shareButton(container)!);
+    expect(props.onShare).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the Copied state (clipboard-check icon) after click", () => {
+    vi.useFakeTimers();
+    try {
+      const props = defaultProps();
+      const { container } = render(<TransportBar {...props} />);
+      const btn = shareButton(container)!;
+      expect(
+        btn.querySelector("i")!.className,
+      ).toContain("bi-share");
+      fireEvent.click(btn);
+      expect(
+        btn.querySelector("i")!.className,
+      ).toContain("bi-clipboard-check");
+      // Reverts after ~1.5s. The timer fires setState outside React's act
+      // batching, so the flush is wrapped explicitly.
+      act(() => {
+        vi.advanceTimersByTime(1600);
+      });
+      expect(btn.querySelector("i")!.className).toContain("bi-share");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
