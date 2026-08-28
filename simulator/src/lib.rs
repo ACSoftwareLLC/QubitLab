@@ -23,4 +23,4 @@ pub use validate::{validate, ValidationError, ValidationResult};
 
 pub const EPS: f64 = 1e-6;
 pub const MAX_BITS: usize = 16;
-pub const NUM_SEGMENTS: i64 = 10;
+pub const NUM_SEGMENTS: i64 = 1024;
