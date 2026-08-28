@@ -2,6 +2,8 @@ import { useCallback, useRef } from "react";
 import { NUM_SEGMENTS } from "../../constants/canvas";
 import { GATE_CONFIGS } from "../../constants/gates";
 import type { GateType } from "../../types";
+import type { Circuit } from "../../api/types";
+import { EXAMPLE_CIRCUITS } from "./exampleCircuits";
 import {
   gridSize,
   wireY,
@@ -72,6 +74,8 @@ interface CircuitGridProps {
     opId: number,
     part: OpPart,
   ) => void;
+  /** Empty-state example loader: replaces the doc with the given circuit. */
+  onLoadExample?: (circuit: Circuit) => void;
   registerHandle: (handle: GridHandle | null) => void;
   /** Display scale (fit-to-container); the viewBox stays logical. */
   scale?: number;
@@ -94,6 +98,7 @@ export function CircuitGrid({
   onPeekSegment,
   onPeekEnd,
   onOpPartPointerDown,
+  onLoadExample,
   registerHandle,
   scale = 1,
 }: CircuitGridProps) {
@@ -358,6 +363,21 @@ export function CircuitGrid({
             Drag a gate from the palette onto a wire, or click a gate then click
             a cell. Columns run left → right in time.
           </span>
+          <span className="ev2-empty-examples-label">Or start from an example</span>
+          <div className="ev2-example-row">
+            {EXAMPLE_CIRCUITS.map(({ key, title, blurb, circuit }) => (
+              <button
+                key={key}
+                type="button"
+                className="ev2-example-chip"
+                title={blurb}
+                onClick={() => onLoadExample?.(circuit)}
+              >
+                <i className="bi bi-diagram-3" />
+                <span>{title}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

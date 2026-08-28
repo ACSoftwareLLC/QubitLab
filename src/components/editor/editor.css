@@ -342,6 +342,48 @@
   line-height: 1.45;
 }
 
+.ev2-empty-examples-label {
+  font-size: 0.72rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--faint);
+  margin-top: 0.35rem;
+}
+
+.ev2-example-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  max-width: 420px;
+}
+
+.ev2-example-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 500;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.ev2-example-chip:hover {
+  background: var(--panel-2);
+  border-color: var(--faint);
+}
+
+.ev2-example-chip i {
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+
 /* --- Gate hover tooltip ------------------------------------------------------ */
 .ev2-gate-tip-float {
   pointer-events: none;

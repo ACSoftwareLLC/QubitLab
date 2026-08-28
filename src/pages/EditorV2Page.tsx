@@ -406,6 +406,9 @@ export function EditorV2Page() {
     }
   };
 
+  /** Empty-state example loader: hands the starter circuit to the editor. */
+  const loadExample = (circuit: Circuit) => editor.loadCircuit(circuit);
+
   // --- Keyboard shortcuts -----------------------------------------------------
   const selectedOp = activeOps.find((o) => o.id === selectedOpId) ?? null;
 
@@ -631,6 +634,7 @@ export function EditorV2Page() {
                 onPeekSegment={sim.peek}
                 onPeekEnd={sim.clearPeek}
                 onOpPartPointerDown={onOpPartPointerDown}
+                onLoadExample={loadExample}
                 registerHandle={registerHandle}
                 scale={fitScale}
               />
