@@ -54,7 +54,10 @@ pub fn validate(circuit: &Value) -> Vec<ValidationError> {
     };
 
     let no_ops: Vec<Value> = Vec::new();
-    let ops = circuit.get("ops").and_then(Value::as_array).unwrap_or(&no_ops);
+    let ops = circuit
+        .get("ops")
+        .and_then(Value::as_array)
+        .unwrap_or(&no_ops);
 
     for op in ops {
         let op_id = op.get("id").and_then(Value::as_u64);
@@ -79,8 +82,14 @@ pub fn validate(circuit: &Value) -> Vec<ValidationError> {
         }
 
         let no_bits: Vec<Value> = Vec::new();
-        let targets = op.get("targets").and_then(Value::as_array).unwrap_or(&no_bits);
-        let controls = op.get("controls").and_then(Value::as_array).unwrap_or(&no_bits);
+        let targets = op
+            .get("targets")
+            .and_then(Value::as_array)
+            .unwrap_or(&no_bits);
+        let controls = op
+            .get("controls")
+            .and_then(Value::as_array)
+            .unwrap_or(&no_bits);
 
         for (bits, label) in [(targets, "target"), (controls, "control")] {
             for b in bits {
@@ -88,7 +97,11 @@ pub fn validate(circuit: &Value) -> Vec<ValidationError> {
                     Some(bi) if (bi as usize) < num_bits => {}
                     _ => errors.push(ValidationError::new(
                         op_id,
-                        format!("{label} bit {} out of range 0..{}", py_repr(b), num_bits - 1),
+                        format!(
+                            "{label} bit {} out of range 0..{}",
+                            py_repr(b),
+                            num_bits - 1
+                        ),
                     )),
                 }
             }

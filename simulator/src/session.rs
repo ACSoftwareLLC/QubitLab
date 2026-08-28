@@ -7,9 +7,7 @@ use num_complex::Complex64;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 
-use crate::engine::{
-    api_to_internal, apply_op, initial_state, measure, snapshot, Snapshot,
-};
+use crate::engine::{api_to_internal, apply_op, initial_state, measure, snapshot, Snapshot};
 use crate::model::{Circuit, GateOp};
 
 pub struct StepSession<R: Rng> {
