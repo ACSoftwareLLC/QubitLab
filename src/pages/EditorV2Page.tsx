@@ -782,11 +782,8 @@ export function EditorV2Page() {
                 onPeekSegment={sim.peek}
                 onPeekEnd={sim.clearPeek}
                 onOpPartPointerDown={onOpPartPointerDown}
-<<<<<<< HEAD
                 onLoadExample={loadExample}
-=======
                 onBackgroundPointerDown={onBackgroundPointerDown}
->>>>>>> 87ef8e2 (feat(editor-v2): marquee multi-select with copy/cut/paste/delete)
                 registerHandle={registerHandle}
                 scale={fitScale}
               />
