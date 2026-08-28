@@ -137,7 +137,20 @@ export function TransportBar({
                                         className="ev2-scrubber"
                                         onPointerLeave={onScrubEnd}
                                 >
-                                        {Array.from({ length: 10 }, (_, i) => {
+                                        {/* Ticks render up to the last active
+                                            column (min 10) — a 1000-column
+                                            grid must not render 1000 nodes. */}
+                                        {Array.from(
+                                                {
+                                                        length: Math.max(
+                                                                10,
+                                                                Math.max(
+                                                                        ...activeColumns,
+                                                                        0,
+                                                                ) + 2,
+                                                        ),
+                                                },
+                                                (_, i) => {
                                                 const active =
                                                         activeColumns.includes(
                                                                 i,

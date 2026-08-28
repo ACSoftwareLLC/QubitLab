@@ -6,6 +6,7 @@ import {
   wireY,
   columnOccupancy,
   isOccupied,
+  MAX_COLUMNS,
 } from "./gridGeometry";
 
 /**
@@ -249,7 +250,7 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
     const op: PlacedOp = {
       id: nextId(),
       type,
-      segment: Math.max(0, Math.min(9, column)),
+      segment: Math.max(0, Math.min(MAX_COLUMNS - 1, column)),
       targets,
       controls,
       angle: GATE_CONFIGS[type].defaultAngle ?? null,
@@ -261,7 +262,7 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
   const moveOp = (opId: number, column: number, wire?: number) => {
     const op = doc.ops.find((o) => o.id === opId);
     if (!op) return;
-    const nextColumn = Math.max(0, Math.min(9, column));
+    const nextColumn = Math.max(0, Math.min(MAX_COLUMNS - 1, column));
     const nextWire =
       wire == null ? null : Math.max(0, Math.min(doc.numBits - 1, wire));
     if (nextColumn === op.segment && nextWire === null) return;
@@ -352,7 +353,7 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
               ...o,
               segment: Math.max(
                 0,
-                Math.min(9, o.segment + deltaColumns),
+                Math.min(MAX_COLUMNS - 1, o.segment + deltaColumns),
               ),
             }
           : o,
@@ -371,7 +372,7 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
     const minSeg = Math.min(...ops.map((o) => o.segment));
     const groupWidth = Math.max(...ops.map((o) => o.segment)) - minSeg;
     let start = -1;
-    for (let s = 0; s + groupWidth <= 9; s++) {
+    for (let s = 0; s + groupWidth <= MAX_COLUMNS - 1; s++) {
       if (
         ops.every((o) => !isOccupied(occupancy, s + (o.segment - minSeg)))
       ) {
@@ -383,7 +384,7 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
     const pasted = ops.map((o) => ({
       ...o,
       id: nextId(),
-      segment: Math.max(0, Math.min(9, start + (o.segment - minSeg))),
+      segment: Math.max(0, Math.min(MAX_COLUMNS - 1, start + (o.segment - minSeg))),
     }));
     commit({ ...doc, ops: [...doc.ops, ...pasted] });
     setSelectedIds(new Set(pasted.map((o) => o.id)));
@@ -469,11 +470,11 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
     if (!op) return;
     // Find the first free column at or after the source op's column.
     let column = op.segment;
-    while (column < 10 && doc.ops.some((o) => o.segment === column)) column++;
+    while (column < MAX_COLUMNS - 1 && doc.ops.some((o) => o.segment === column)) column++;
     const copy: PlacedOp = {
       ...op,
       id: nextId(),
-      segment: Math.min(9, column),
+      segment: Math.min(MAX_COLUMNS - 1, column),
     };
     commit({ ...doc, ops: [...doc.ops, copy] });
     selectOnly(copy.id);

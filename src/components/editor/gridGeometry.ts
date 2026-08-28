@@ -1,9 +1,24 @@
-import { NUM_SEGMENTS, MAX_BITS } from "../../constants/canvas";
+import { MAX_BITS } from "../../constants/canvas";
 
 /**
  * Grid geometry for the v2 wires-based editor: uniform columns × wires with
  * a label gutter. Pure math, no React — exhaustively unit-testable.
+ *
+ * Columns are DYNAMIC: the grid grows past the legacy 10-column minimum as
+ * ops are placed further right (blocks of 8, one spare column), up to the
+ * simulator's segment ceiling. The width scrolls horizontally; height
+ * always fits the container.
  */
+
+export const MIN_COLUMNS = 10;
+export const MAX_COLUMNS = 1024;
+
+/** Column count for a document: a couple of spare columns past the furthest
+ *  used segment, rounded up to blocks of 8, clamped to [MIN, MAX]. */
+export function gridColumnCount(maxSegmentUsed: number): number {
+  const wanted = Math.ceil((Math.max(0, maxSegmentUsed) + 2) / 8) * 8;
+  return Math.max(MIN_COLUMNS, Math.min(MAX_COLUMNS, wanted));
+}
 
 export const GRID = {
   /** Width of the wire-label gutter on the left. */
@@ -20,10 +35,13 @@ export const GRID = {
   padRight: 10,
 } as const;
 
-/** Logical grid size for the given wire count. */
-export function gridSize(numBits: number): { width: number; height: number } {
+/** Logical grid size for the given wire count (and optional column count). */
+export function gridSize(
+  numBits: number,
+  columns: number = MIN_COLUMNS,
+): { width: number; height: number } {
   return {
-    width: GRID.gutterW + NUM_SEGMENTS * GRID.colW + GRID.padRight,
+    width: GRID.gutterW + columns * GRID.colW + GRID.padRight,
     height:
       GRID.rulerH +
       GRID.padTop +
@@ -47,12 +65,12 @@ export function colCenterX(column: number): number {
   return colX(column) + GRID.colW / 2;
 }
 
-/** Snap a pointer x to the nearest column index, clamped 0..9. */
-export function snapColumn(x: number): number {
+/** Snap a pointer x to the nearest column index, clamped to the grid. */
+export function snapColumn(x: number, columns: number = MIN_COLUMNS): number {
   const rel = x - GRID.gutterW;
   return Math.max(
     0,
-    Math.min(NUM_SEGMENTS - 1, Math.round((rel - GRID.colW / 2) / GRID.colW)),
+    Math.min(columns - 1, Math.round((rel - GRID.colW / 2) / GRID.colW)),
   );
 }
 
@@ -74,10 +92,11 @@ export function pointToCell(
 /** Column occupancy: which ops occupy each column (for collision checks). */
 export function columnOccupancy(
   ops: { segment: number; id: number }[],
+  columns: number = MIN_COLUMNS,
 ): Map<number, number[]> {
   const map = new Map<number, number[]>();
   for (const op of ops) {
-    if (op.segment < 0 || op.segment >= NUM_SEGMENTS) continue;
+    if (op.segment < 0 || op.segment >= columns) continue;
     const list = map.get(op.segment) ?? [];
     list.push(op.id);
     map.set(op.segment, list);
@@ -89,9 +108,10 @@ export function columnOccupancy(
 export function firstFreeColumn(
   occupancy: Map<number, number[]>,
   preferred: number,
+  columns: number = MIN_COLUMNS,
   excludeOpId?: number,
 ): number {
-  for (let c = preferred; c < NUM_SEGMENTS; c++) {
+  for (let c = preferred; c < columns; c++) {
     if (!isOccupied(occupancy, c, excludeOpId)) return c;
   }
   // Full to the right: scan left of the preferred column.

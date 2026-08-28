@@ -29,6 +29,7 @@ import { wireProbabilitiesFromStatevector } from "../components/editor/stateVect
 import type { WireSlot } from "../components/editor/useEditorState";
 import {
   gridSize,
+  gridColumnCount,
   columnOccupancy,
   isOccupied,
   firstFreeColumn,
@@ -122,9 +123,6 @@ export function EditorV2Page() {
   const gridHandleRef = useRef<GridHandle | null>(null);
   const gridElRef = useRef<HTMLDivElement | null>(null);
 
-  const logicalSize = useMemo(() => gridSize(doc.numBits), [doc.numBits]);
-  const { ref: fitRef, fitScale } = useFitScale(logicalSize);
-
   const circuit = useMemo(() => docToCircuit(doc), [doc]);
   const sim = useSimulation(circuit);
 
@@ -186,6 +184,17 @@ export function EditorV2Page() {
     () => doc.ops.filter((o) => !isSuspended(o, doc.numBits)),
     [doc],
   );
+  /** Columns grow with the furthest op (blocks of 8, one spare); the grid
+   *  scrolls horizontally when they overflow, so scale is height-fit only. */
+  const columns = useMemo(
+    () => gridColumnCount(activeOps.reduce((m, o) => Math.max(m, o.segment), 0)),
+    [activeOps],
+  );
+  const logicalSize = useMemo(
+    () => gridSize(doc.numBits, columns),
+    [doc.numBits, columns],
+  );
+  const { ref: fitRef, fitScale } = useFitScale(logicalSize, "height");
   const activeColumns = useMemo(
     () => [...new Set(activeOps.map((o) => o.segment))],
     [activeOps],
@@ -331,7 +340,7 @@ export function EditorV2Page() {
       const cell = cellAt(e.clientX, e.clientY);
       if (drag.kind === "place") {
         if (!cell) return;
-        const occupied = isOccupied(columnOccupancy(activeOps), cell.column);
+        const occupied = isOccupied(columnOccupancy(activeOps, columns), cell.column);
         const connections = spannedDropConnections(
           drag.type,
           cell.y,
@@ -370,7 +379,7 @@ export function EditorV2Page() {
       if (drag) {
         if (drag.kind === "place" && cell) {
           const column = firstFreeColumn(
-            columnOccupancy(activeOps),
+            columnOccupancy(activeOps, columns),
             cell.column,
           );
           const connections = spannedDropConnections(
@@ -390,9 +399,9 @@ export function EditorV2Page() {
             // Released off-grid: delete (undoable, no confirmation).
             editor.removeOp(drag.opId);
           } else {
-            const occupancy = columnOccupancy(activeOps);
+            const occupancy = columnOccupancy(activeOps, columns);
             const column = isOccupied(occupancy, cell.column, drag.opId)
-              ? firstFreeColumn(occupancy, cell.column, drag.opId)
+              ? firstFreeColumn(occupancy, cell.column, columns, drag.opId)
               : cell.column;
             const dragged = activeOps.find((o) => o.id === drag.opId);
             const wire =
@@ -431,7 +440,7 @@ export function EditorV2Page() {
       window.removeEventListener("pointercancel", onCancel);
     };
     // editor actions are stable-ish but activeOps matters for occupancy checks
-  }, [pending, drag, doc.numBits, activeOps, editor]);
+  }, [pending, drag, doc.numBits, activeOps, columns, editor]);
 
   // --- Palette callbacks ----------------------------------------------------
   const onItemPointerDown = (e: React.PointerEvent, type: GateType) => {
@@ -480,7 +489,7 @@ export function EditorV2Page() {
       return;
     }
     if (armedType) {
-      const free = firstFreeColumn(columnOccupancy(activeOps), column);
+      const free = firstFreeColumn(columnOccupancy(activeOps, columns), column);
       editor.placeOp(armedType, free, wire);
     } else {
       editor.select(null);
@@ -602,15 +611,15 @@ export function EditorV2Page() {
           return;
         }
         const delta = e.key === "ArrowLeft" ? -1 : 1;
-        const occupancy = columnOccupancy(activeOps);
+        const occupancy = columnOccupancy(activeOps, columns);
         let next = selectedOp.segment + delta;
         while (
           next >= 0 &&
-          next <= 9 &&
+          next <= columns - 1 &&
           isOccupied(occupancy, next, selectedOp.id)
         )
           next += delta;
-        if (next >= 0 && next <= 9) editor.moveOp(selectedOp.id, next);
+        if (next >= 0 && next <= columns - 1) editor.moveOp(selectedOp.id, next);
       }
     };
 
@@ -626,6 +635,7 @@ export function EditorV2Page() {
     pending,
     armedType,
     marquee,
+    columns,
   ]);
 
   // --- Save-button bridge -------------------------------------------------------
@@ -690,7 +700,7 @@ export function EditorV2Page() {
     drag?.kind === "place" && ghost
       ? {
           type: ghost.type,
-          column: firstFreeColumn(columnOccupancy(activeOps), ghost.column),
+          column: firstFreeColumn(columnOccupancy(activeOps, columns), ghost.column),
           wire: ghost.wire,
           invalid: ghost.invalid,
           connections: ghost.connections,
@@ -759,6 +769,7 @@ export function EditorV2Page() {
 
         <div className="ev2-center">
           <div ref={fitRef} className="ev2-canvas-region">
+           <div className="ev2-grid-scrollwrap scrollbar-thin">
             <div ref={gridElRef} className="ev2-grid-root">
               <CircuitGrid
                 doc={{ ...doc, ops: activeOps }}
@@ -786,8 +797,10 @@ export function EditorV2Page() {
                 onBackgroundPointerDown={onBackgroundPointerDown}
                 registerHandle={registerHandle}
                 scale={fitScale}
+                columns={columns}
               />
             </div>
+           </div>
           </div>
 
           <ShotsPanel circuit={circuit} numBits={doc.numBits} />

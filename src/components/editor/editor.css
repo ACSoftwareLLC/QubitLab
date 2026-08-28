@@ -199,6 +199,17 @@
   background-size: 22px 22px;
 }
 
+/* Horizontal scroll lane for the dynamic-column grid: the grid keeps its
+   fit-to-height scale; columns overflow to the right with a thin
+   scrollbar. Left-aligned when everything fits. */
+.ev2-grid-scrollwrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  justify-content: flex-start;
+}
+
 .ev2-grid-root {
   position: relative;
   flex: 0 0 auto;

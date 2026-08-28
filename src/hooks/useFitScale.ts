@@ -15,33 +15,39 @@ import { WORKSPACE_WIDTH, WORKSPACE_HEIGHT } from "../constants/canvas";
  * its own aspect); defaults to the legacy canvas workspace.
  */
 export function useFitScale<T extends HTMLElement = HTMLDivElement>(
-   logicalSize: { width: number; height: number } = {
-      width: WORKSPACE_WIDTH,
-      height: WORKSPACE_HEIGHT,
-   },
+  logicalSize: { width: number; height: number } = {
+    width: WORKSPACE_WIDTH,
+    height: WORKSPACE_HEIGHT,
+  },
+  /** "contain" letterboxes both axes (legacy editor); "height" fits the
+   *  height only and lets the width overflow for horizontal scrolling
+   *  (v2 editor's dynamic columns). */
+  mode: "contain" | "height" = "contain",
 ) {
-   const [el, setEl] = useState<T | null>(null);
-   const [fitScale, setFitScale] = useState(1);
+  const [el, setEl] = useState<T | null>(null);
+  const [fitScale, setFitScale] = useState(1);
 
-   useEffect(() => {
-      if (!el) return;
+  useEffect(() => {
+    if (!el) return;
 
-      const update = () => {
-         const { clientWidth, clientHeight } = el;
-         if (clientWidth === 0 || clientHeight === 0) return;
-         setFitScale(
-            Math.min(
-               clientWidth / logicalSize.width,
-               clientHeight / logicalSize.height,
+    const update = () => {
+      const { clientWidth, clientHeight } = el;
+      if (clientWidth === 0 || clientHeight === 0) return;
+      setFitScale(
+        mode === "height"
+          ? clientHeight / logicalSize.height
+          : Math.min(
+              clientWidth / logicalSize.width,
+              clientHeight / logicalSize.height,
             ),
-         );
-      };
+      );
+    };
 
       update();
       const observer = new ResizeObserver(update);
       observer.observe(el);
       return () => observer.disconnect();
-   }, [el, logicalSize.width, logicalSize.height]);
+   }, [el, logicalSize.width, logicalSize.height, mode]);
 
    return { ref: setEl, fitScale };
 }

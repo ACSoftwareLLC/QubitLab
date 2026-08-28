@@ -336,9 +336,9 @@ describe("useEditorState multi-selection", () => {
     expect(result.current.doc.ops).toHaveLength(2);
   });
 
-  it("pasteOps shifts right past column collisions and clamps on a full grid", () => {
+  it("pasteOps shifts right past column collisions (dynamic columns)", () => {
     const { result } = renderHook(() => useEditorState());
-    // Fill all 10 columns with H gates.
+    // Fill the first 10 columns with H gates.
     for (let c = 0; c < 10; c++) {
       act(() => result.current.placeOp("H", c, c % 4));
     }
@@ -346,24 +346,25 @@ describe("useEditorState multi-selection", () => {
       .filter((o) => o.segment < 2)
       .map((o) => ({ ...o }));
     act(() => result.current.pasteOps(copied));
-    // Grid full: paste stacks at the end, clamped to the last columns.
+    // Columns are dynamic: the paste lands in the first free window —
+    // columns 10 and 11 (the grid grows instead of clamping).
     const pasted = result.current.doc.ops.slice(10);
     expect(pasted).toHaveLength(2);
-    expect(pasted.map((o) => o.segment)).toEqual([8, 9]);
+    expect(pasted.map((o) => o.segment)).toEqual([10, 11]);
   });
 
-  it("moveOpsBy clamps to the grid", () => {
+  it("moveOpsBy clamps to the column ceiling", () => {
     const { result } = renderHook(() => useEditorState());
-    act(() => result.current.placeOp("H", 8, 0));
-    act(() => result.current.placeOp("X", 9, 1));
+    act(() => result.current.placeOp("H", 1021, 0));
+    act(() => result.current.placeOp("X", 1022, 1));
     const ids = result.current.doc.ops.map((o) => o.id);
     act(() => result.current.moveOpsBy(ids, 5));
-    expect(result.current.doc.ops.map((o) => o.segment)).toEqual([9, 9]);
+    expect(result.current.doc.ops.map((o) => o.segment)).toEqual([1023, 1023]);
     act(() => result.current.moveOpsBy(ids, -100));
-    expect(result.current.doc.ops.map((o) => o.segment)).toEqual([0, 0]);
+    expect(result.current.doc.ops.map((o) => o.segment)).toEqual([923, 923]);
     // One gesture each way.
     act(() => result.current.undo());
-    expect(result.current.doc.ops.map((o) => o.segment)).toEqual([9, 9]);
+    expect(result.current.doc.ops.map((o) => o.segment)).toEqual([1023, 1023]);
   });
 
   it("toggleSelect builds and shrinks a selection; selectedOpId is last-selected", () => {

@@ -1,9 +1,4 @@
 import { useCallback, useRef } from "react";
-import { NUM_SEGMENTS } from "../../constants/canvas";
-import { GATE_CONFIGS } from "../../constants/gates";
-import type { GateType } from "../../types";
-import type { Circuit } from "../../api/types";
-import { EXAMPLE_CIRCUITS } from "./exampleCircuits";
 import {
   gridSize,
   wireY,
@@ -12,7 +7,12 @@ import {
   snapColumn,
   snapWire,
   GRID,
+  MIN_COLUMNS,
 } from "./gridGeometry";
+import { GATE_CONFIGS } from "../../constants/gates";
+import type { GateType } from "../../types";
+import type { Circuit } from "../../api/types";
+import { EXAMPLE_CIRCUITS } from "./exampleCircuits";
 import { OpGlyph } from "./OpGlyph";
 import type { OpPart } from "./OpGlyph";
 import type { PlacedOp, EditorDoc, WireSlot } from "./useEditorState";
@@ -93,6 +93,8 @@ interface CircuitGridProps {
   registerHandle: (handle: GridHandle | null) => void;
   /** Display scale (fit-to-container); the viewBox stays logical. */
   scale?: number;
+  /** Column count (dynamic — grows with the furthest op). */
+  columns?: number;
 }
 
 export function CircuitGrid({
@@ -117,9 +119,10 @@ export function CircuitGrid({
   onBackgroundPointerDown,
   registerHandle,
   scale = 1,
+  columns = MIN_COLUMNS,
 }: CircuitGridProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const { width, height } = gridSize(doc.numBits);
+  const { width, height } = gridSize(doc.numBits, columns);
 
   const clientToCell = useCallback(
     (clientX: number, clientY: number) => {
@@ -138,12 +141,12 @@ export function CircuitGrid({
       const x = ((clientX - rect.left) / rect.width) * width;
       const y = ((clientY - rect.top) / rect.height) * height;
       return {
-        column: snapColumn(x),
+        column: snapColumn(x, columns),
         wire: snapWire(y, doc.numBits),
         y,
       };
     },
-    [width, height, doc.numBits],
+    [width, height, doc.numBits, columns],
   );
 
   const clientToLogical = useCallback(
@@ -241,7 +244,7 @@ export function CircuitGrid({
       >
         {/* Column ruler */}
         <g className="ev2-ruler">
-          {Array.from({ length: NUM_SEGMENTS }, (_, i) => (
+          {Array.from({ length: columns }, (_, i) => (
             <g
               key={`ruler-${i}`}
               onMouseEnter={() => executing && onPeekSegment(i)}
