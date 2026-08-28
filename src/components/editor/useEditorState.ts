@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Circuit } from "../../api/types";
 import { GATE_CONFIGS } from "../../constants/gates";
 import type { GateType } from "../../types";
-import { wireY } from "./gridGeometry";
+import {
+  wireY,
+  columnOccupancy,
+  isOccupied,
+} from "./gridGeometry";
 
 /**
  * Op-centric editor state: the working document IS the persisted circuit
@@ -217,7 +221,15 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
   const [doc, setDoc] = useState<EditorDoc>(initial);
   const [past, setPast] = useState<EditorDoc[]>([]);
   const [future, setFuture] = useState<EditorDoc[]>([]);
-  const [selectedOpId, setSelectedOpId] = useState<number | null>(null);
+  // Multi-selection. Sets iterate in insertion order, so the last entry
+  // is the most recently selected op — the one the Inspector edits.
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  const selectedOpId = useMemo(() => {
+    let last: number | null = null;
+    for (const id of selectedIds) last = id;
+    return last;
+  }, [selectedIds]);
 
   /** Commit the next document state as one undoable gesture. */
   const commit = (next: EditorDoc) => {
@@ -243,7 +255,7 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
       angle: GATE_CONFIGS[type].defaultAngle ?? null,
     };
     commit({ ...doc, ops: [...doc.ops, op] });
-    setSelectedOpId(op.id);
+    selectOnly(op.id);
   };
 
   const moveOp = (opId: number, column: number, wire?: number) => {
@@ -307,11 +319,97 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
     commit({ ...doc, ops: doc.ops.map((o) => (o.id === opId ? next : o)) });
   };
 
-  const removeOp = (opId: number) => {
-    if (!doc.ops.some((o) => o.id === opId)) return;
-    commit({ ...doc, ops: doc.ops.filter((o) => o.id !== opId) });
-    setSelectedOpId((prev) => (prev === opId ? null : prev));
+  const removeOp = (opId: number) => removeOps([opId]);
+
+  /** Remove a group of ops as ONE undo gesture. */
+  const removeOps = (ids: number[]) => {
+    const idSet = new Set(ids);
+    if (!doc.ops.some((o) => idSet.has(o.id))) return;
+    commit({ ...doc, ops: doc.ops.filter((o) => !idSet.has(o.id)) });
+    setSelectedIds((prev) => {
+      if (![...prev].some((id) => idSet.has(id))) return prev;
+      const next = new Set(prev);
+      for (const id of idSet) next.delete(id);
+      return next;
+    });
   };
+
+  /** Shift a group of ops by whole columns as ONE undo gesture. Clamped
+   *  to the grid; sharing columns with other ops is allowed (paste-move
+   *  semantics — no occupancy enforcement). */
+  const moveOpsBy = (
+    ids: number[] | Set<number>,
+    deltaColumns: number,
+  ) => {
+    const idSet = ids instanceof Set ? ids : new Set(ids);
+    if (idSet.size === 0 || deltaColumns === 0) return;
+    if (!doc.ops.some((o) => idSet.has(o.id))) return;
+    commit({
+      ...doc,
+      ops: doc.ops.map((o) =>
+        idSet.has(o.id)
+          ? {
+              ...o,
+              segment: Math.max(
+                0,
+                Math.min(9, o.segment + deltaColumns),
+              ),
+            }
+          : o,
+      ),
+    });
+  };
+
+  /** Paste copied ops as ONE undo gesture: ids regenerate, relative
+   *  segment deltas are preserved, and the group lands at the earliest
+   *  column window free of existing ops (shifting right past collisions;
+   *  stacking only when the grid is too full — then clamped to the last
+   *  columns). In-group column sharing stays as copied. */
+  const pasteOps = (ops: PlacedOp[]) => {
+    if (ops.length === 0) return;
+    const occupancy = columnOccupancy(doc.ops);
+    const minSeg = Math.min(...ops.map((o) => o.segment));
+    const groupWidth = Math.max(...ops.map((o) => o.segment)) - minSeg;
+    let start = -1;
+    for (let s = 0; s + groupWidth <= 9; s++) {
+      if (
+        ops.every((o) => !isOccupied(occupancy, s + (o.segment - minSeg)))
+      ) {
+        start = s;
+        break;
+      }
+    }
+    if (start < 0) start = Math.max(0, 9 - groupWidth); // full grid: stack at the end
+    const pasted = ops.map((o) => ({
+      ...o,
+      id: nextId(),
+      segment: Math.max(0, Math.min(9, start + (o.segment - minSeg))),
+    }));
+    commit({ ...doc, ops: [...doc.ops, ...pasted] });
+    setSelectedIds(new Set(pasted.map((o) => o.id)));
+  };
+
+  // --- Selection helpers -------------------------------------------------
+  function selectOnly(id: number) {
+    setSelectedIds(new Set([id]));
+  }
+  function toggleSelect(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+  /** Select exactly `ids` (page passes the active/visible ops). */
+  function selectAll(ids: Iterable<number>) {
+    setSelectedIds(new Set(ids));
+  }
+  const select = (id: number | null) =>
+    id == null ? clearSelection() : selectOnly(id);
 
   const setAngle = (opId: number, angle: number) => {
     const op = doc.ops.find((o) => o.id === opId);
@@ -355,10 +453,14 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
     commit({ ...doc, numBits: clamped });
     // Never keep a suspended op selected (its inspector would show stale
     // wire indices).
-    setSelectedOpId((prev) => {
-      if (prev == null) return null;
-      const op = doc.ops.find((o) => o.id === prev);
-      return op && isSuspended(op, clamped) ? null : prev;
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev;
+      const keep = new Set<number>();
+      for (const id of prev) {
+        const op = doc.ops.find((o) => o.id === id);
+        if (op && !isSuspended(op, clamped)) keep.add(id);
+      }
+      return keep;
     });
   };
 
@@ -374,7 +476,7 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
       segment: Math.min(9, column),
     };
     commit({ ...doc, ops: [...doc.ops, copy] });
-    setSelectedOpId(copy.id);
+    selectOnly(copy.id);
   };
 
   const undo = () => {
@@ -395,7 +497,7 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
     setDoc(circuitToDoc(circuit));
     setPast([]);
     setFuture([]);
-    setSelectedOpId(null);
+    clearSelection();
   };
 
   return {
@@ -403,11 +505,15 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
     canUndo: past.length > 0,
     canRedo: future.length > 0,
     selectedOpId,
+    selectedIds,
     placeOp,
     moveOp,
     moveOpToWire,
     moveWire,
     removeOp,
+    removeOps,
+    moveOpsBy,
+    pasteOps,
     duplicateOp,
     setAngle,
     beginAngleScrub,
@@ -417,7 +523,11 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
     undo,
     redo,
     loadCircuit,
-    select: setSelectedOpId,
+    select,
+    selectOnly,
+    toggleSelect,
+    clearSelection,
+    selectAll,
   };
 }
 

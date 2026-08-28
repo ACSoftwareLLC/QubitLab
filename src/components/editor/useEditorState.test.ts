@@ -10,6 +10,11 @@ import {
   spanBracket,
   SPAN_TOLERANCE_PX,
 } from "./useEditorState";
+import {
+  opIntersectsMarquee,
+  wireY,
+  colX,
+} from "./gridGeometry";
 import type { Circuit } from "../../api/types";
 
 describe("defaultConnections", () => {
@@ -289,5 +294,170 @@ describe("useEditorState", () => {
     act(() => result.current.undo());
     expect(result.current.doc.numBits).toBe(4);
     expect(docToCircuit(result.current.doc).ops).toHaveLength(1);
+  });
+});
+
+describe("useEditorState multi-selection", () => {
+  it("removeOps deletes a group as ONE undo gesture", () => {
+    const { result } = renderHook(() => useEditorState());
+    act(() => result.current.placeOp("H", 0, 0));
+    act(() => result.current.placeOp("X", 1, 1));
+    act(() => result.current.placeOp("Y", 2, 2));
+    const ids = result.current.doc.ops.slice(0, 2).map((o) => o.id);
+    act(() => result.current.selectAll(ids));
+    act(() => result.current.removeOps(ids));
+    expect(result.current.doc.ops).toHaveLength(1);
+    expect(result.current.selectedIds.size).toBe(0);
+    // One undo restores both removed ops.
+    act(() => result.current.undo());
+    expect(result.current.doc.ops).toHaveLength(3);
+  });
+
+  it("pasteOps regenerates ids, preserves relative segments, selects pasted", () => {
+    const { result } = renderHook(() => useEditorState());
+    act(() => result.current.placeOp("H", 0, 0));
+    act(() => result.current.placeOp("CX", 2, 1));
+    const originals = result.current.doc.ops;
+    const copied = originals.map((o) => ({ ...o }));
+    act(() => result.current.pasteOps(copied));
+    // Pasted at the earliest collision-free window: originals occupy cols
+    // 0 and 2, so the group (relative span 0→2) shifts right by one and
+    // lands at cols 1 and 3 — the earliest start with both slots free.
+    expect(result.current.doc.ops).toHaveLength(4);
+    const pasted = result.current.doc.ops.slice(2);
+    expect(pasted.map((o) => o.segment)).toEqual([1, 3]);
+    // New ids, none shared with the originals.
+    const originalIds = new Set(originals.map((o) => o.id));
+    expect(pasted.every((o) => !originalIds.has(o.id))).toBe(true);
+    // Selection is exactly the pasted group.
+    expect([...result.current.selectedIds]).toEqual(pasted.map((o) => o.id));
+    // One undo removes both pasted ops.
+    act(() => result.current.undo());
+    expect(result.current.doc.ops).toHaveLength(2);
+  });
+
+  it("pasteOps shifts right past column collisions and clamps on a full grid", () => {
+    const { result } = renderHook(() => useEditorState());
+    // Fill all 10 columns with H gates.
+    for (let c = 0; c < 10; c++) {
+      act(() => result.current.placeOp("H", c, c % 4));
+    }
+    const copied = result.current.doc.ops
+      .filter((o) => o.segment < 2)
+      .map((o) => ({ ...o }));
+    act(() => result.current.pasteOps(copied));
+    // Grid full: paste stacks at the end, clamped to the last columns.
+    const pasted = result.current.doc.ops.slice(10);
+    expect(pasted).toHaveLength(2);
+    expect(pasted.map((o) => o.segment)).toEqual([8, 9]);
+  });
+
+  it("moveOpsBy clamps to the grid", () => {
+    const { result } = renderHook(() => useEditorState());
+    act(() => result.current.placeOp("H", 8, 0));
+    act(() => result.current.placeOp("X", 9, 1));
+    const ids = result.current.doc.ops.map((o) => o.id);
+    act(() => result.current.moveOpsBy(ids, 5));
+    expect(result.current.doc.ops.map((o) => o.segment)).toEqual([9, 9]);
+    act(() => result.current.moveOpsBy(ids, -100));
+    expect(result.current.doc.ops.map((o) => o.segment)).toEqual([0, 0]);
+    // One gesture each way.
+    act(() => result.current.undo());
+    expect(result.current.doc.ops.map((o) => o.segment)).toEqual([9, 9]);
+  });
+
+  it("toggleSelect builds and shrinks a selection; selectedOpId is last-selected", () => {
+    const { result } = renderHook(() => useEditorState());
+    act(() => result.current.placeOp("H", 0, 0));
+    act(() => result.current.placeOp("X", 1, 1));
+    act(() => result.current.placeOp("Y", 2, 2));
+    const [a, b, c] = result.current.doc.ops;
+    act(() => result.current.selectOnly(a.id));
+    act(() => result.current.toggleSelect(b.id));
+    act(() => result.current.toggleSelect(c.id));
+    expect([...result.current.selectedIds]).toEqual([a.id, b.id, c.id]);
+    expect(result.current.selectedOpId).toBe(c.id); // last-selected
+    act(() => result.current.toggleSelect(a.id));
+    expect([...result.current.selectedIds]).toEqual([b.id, c.id]);
+    act(() => result.current.clearSelection());
+    expect(result.current.selectedIds.size).toBe(0);
+    expect(result.current.selectedOpId).toBeNull();
+  });
+
+  it("selectAll + removeOps clears the document in one gesture", () => {
+    const { result } = renderHook(() => useEditorState());
+    act(() => result.current.placeOp("H", 0, 0));
+    act(() => result.current.placeOp("CX", 1, 2));
+    const ids = result.current.doc.ops.map((o) => o.id);
+    act(() => result.current.selectAll(ids));
+    act(() => result.current.removeOps(ids));
+    expect(result.current.doc.ops).toHaveLength(0);
+    act(() => result.current.undo());
+    expect(result.current.doc.ops).toHaveLength(2);
+  });
+
+  it("single-op actions still work within the set model", () => {
+    const { result } = renderHook(() => useEditorState());
+    act(() => result.current.placeOp("H", 3, 1));
+    const id = result.current.doc.ops[0].id;
+    expect(result.current.selectedOpId).toBe(id);
+    act(() => result.current.select(id)); // select() on an id selects only it
+    expect([...result.current.selectedIds]).toEqual([id]);
+    act(() => result.current.removeOp(id));
+    expect(result.current.doc.ops).toHaveLength(0);
+    expect(result.current.selectedIds.size).toBe(0);
+  });
+});
+
+describe("opIntersectsMarquee", () => {
+  // GRID: gutterW 46, colW 56, rulerH 26, padTop 8, wireSpacing 38.
+  // colX(0)=46, colX(1)=102; wireY(0)=34, wireY(1)=72, wireY(2)=110.
+  it("selects a single-wire op whose column the rect crosses", () => {
+    const op = { segment: 1, targets: [1], controls: [] };
+    const rect = { x1: 100, y1: 40, x2: 160, y2: 90 };
+    expect(opIntersectsMarquee(op, rect)).toBe(true);
+  });
+
+  it("misses an op in a different column", () => {
+    const op = { segment: 1, targets: [1], controls: [] };
+    const rect = { x1: 46, y1: 0, x2: 100, y2: 200 }; // column 0 only
+    expect(opIntersectsMarquee(op, rect)).toBe(false);
+  });
+
+  it("misses an op on a non-spanned wire", () => {
+    const op = { segment: 1, targets: [2], controls: [] }; // wireY 110
+    const rect = { x1: 100, y1: 30, x2: 200, y2: 80 }; // wires 0-1 span only
+    expect(opIntersectsMarquee(op, rect)).toBe(false);
+  });
+
+  it("selects multi-wire ops whose span the rect partially crosses", () => {
+    const cx = { segment: 2, targets: [2], controls: [0] }; // wires 0→2
+    const rect = { x1: 150, y1: 100, x2: 220, y2: 140 }; // touches wire 2 only
+    expect(opIntersectsMarquee(cx, rect)).toBe(true);
+  });
+
+  it("treats reversed corner order identically", () => {
+    const op = { segment: 1, targets: [1], controls: [] };
+    expect(
+      opIntersectsMarquee(op, { x1: 160, y1: 90, x2: 100, y2: 40 }),
+    ).toBe(true);
+  });
+
+  it("op footprint is the full column width", () => {
+    const op = { segment: 1, targets: [0], controls: [] };
+    // Rect covers only the left half of column 1's cell.
+    const rect = {
+      x1: colX(1) + 1,
+      y1: 0,
+      x2: colX(1) + 10,
+      y2: 100,
+    };
+    expect(opIntersectsMarquee(op, rect)).toBe(true);
+  });
+
+  it("an empty-wire op defaults to wire 0 for the hit test", () => {
+    const op = { segment: 0, targets: [], controls: [] };
+    const rect = { x1: 0, y1: wireY(0) - 10, x2: 100, y2: wireY(0) + 10 };
+    expect(opIntersectsMarquee(op, rect)).toBe(true);
   });
 });

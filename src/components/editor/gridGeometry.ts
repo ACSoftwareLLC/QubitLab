@@ -111,5 +111,39 @@ export function isOccupied(
   return ids.some((id) => id !== excludeOpId);
 }
 
+/** Marquee rectangle in logical SVG coordinates (any corner order). */
+export type MarqueeRect = { x1: number; y1: number; x2: number; y2: number };
+
+/** Marquee hit-test: does an op's footprint intersect the rect?
+ *
+ * The op footprint mirrors its rendered glyph: the full column cell width
+ * (colX..colX+colW of its segment) × the vertical span its wires occupy,
+ * padded to the glyph extents (half a wire spacing above/below the outer
+ * wires so boxed glyphs centered on the outer wires are fully covered).
+ * Wire-relative semantics keep the test exact without duplicating glyph
+ * drawing details. */
+export function opIntersectsMarquee(
+  op: { segment: number; targets: number[]; controls: number[] },
+  rect: MarqueeRect,
+): boolean {
+  const left = colX(op.segment);
+  const right = left + GRID.colW;
+  const wires = op.targets.length > 0 || op.controls.length > 0
+    ? [...op.targets, ...op.controls]
+    : [0];
+  const top = wireY(Math.min(...wires)) - GRID.wireSpacing / 2;
+  const bottom = wireY(Math.max(...wires)) + GRID.wireSpacing / 2;
+  const rectLeft = Math.min(rect.x1, rect.x2);
+  const rectRight = Math.max(rect.x1, rect.x2);
+  const rectTop = Math.min(rect.y1, rect.y2);
+  const rectBottom = Math.max(rect.y1, rect.y2);
+  return (
+    right > rectLeft &&
+    left < rectRight &&
+    bottom > rectTop &&
+    top < rectBottom
+  );
+}
+
 /** Maximum wires the grid supports (matches simulator MAX_BITS). */
 export const MAX_WIRES = MAX_BITS;

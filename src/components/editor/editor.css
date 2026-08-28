@@ -213,6 +213,18 @@
   cursor: crosshair;
 }
 
+/* --- Marquee rubber-band ------------------------------------------------ */
+.ev2-grid:has(.ev2-marquee) {
+  cursor: crosshair;
+}
+
+.ev2-marquee {
+  fill: rgba(56, 189, 248, 0.08);
+  stroke: var(--accent, #38bdf8);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
 .ev2-ruler-label {
   fill: var(--faint);
   font-size: 10px;

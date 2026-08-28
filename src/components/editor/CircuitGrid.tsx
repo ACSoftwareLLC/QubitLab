@@ -34,6 +34,13 @@ export type GridHandle = {
     clientX: number,
     clientY: number,
   ): { column: number; wire: number; y: number } | null;
+  /** Raw logical SVG coordinates for a client point (no bounds check —
+   *  used by the marquee, which may start/travel outside the stage);
+   *  null only when the stage itself is unavailable. */
+  clientToLogical(
+    clientX: number,
+    clientY: number,
+  ): { x: number; y: number } | null;
 };
 
 export type GhostPreview = {
@@ -48,7 +55,9 @@ export type GhostPreview = {
 
 interface CircuitGridProps {
   doc: EditorDoc;
-  selectedOpId: number | null;
+  /** Multi-selection set; the derived single selection drives the
+      Inspector (last-selected op). */
+  selectedIds: Set<number>;
   ghost: GhostPreview | null;
   armedType: GateType | null;
   /** In-progress op move: render the op at this column (and wire for
@@ -58,6 +67,8 @@ interface CircuitGridProps {
   slotPreview: { opId: number; slot: WireSlot; wire: number } | null;
   /** Op whose move drag is currently off-grid — releasing deletes it. */
   dangerOpId?: number | null;
+  /** Rubber-band rect in logical SVG coords (any corner order). */
+  marquee?: { x1: number; y1: number; x2: number; y2: number } | null;
   executing: boolean;
   currentSegment: number;
   measurements: Record<string, 0 | 1>;
@@ -76,6 +87,9 @@ interface CircuitGridProps {
   ) => void;
   /** Empty-state example loader: replaces the doc with the given circuit. */
   onLoadExample?: (circuit: Circuit) => void;
+  /** Pointer press on empty grid background (no op part consumed it) —
+      the page starts a marquee selection. */
+  onBackgroundPointerDown?: (e: React.PointerEvent) => void;
   registerHandle: (handle: GridHandle | null) => void;
   /** Display scale (fit-to-container); the viewBox stays logical. */
   scale?: number;
@@ -83,12 +97,13 @@ interface CircuitGridProps {
 
 export function CircuitGrid({
   doc,
-  selectedOpId,
+  selectedIds,
   ghost,
   armedType,
   movePreview,
   slotPreview,
   dangerOpId = null,
+  marquee,
   executing,
   currentSegment,
   measurements,
@@ -99,6 +114,7 @@ export function CircuitGrid({
   onPeekEnd,
   onOpPartPointerDown,
   onLoadExample,
+  onBackgroundPointerDown,
   registerHandle,
   scale = 1,
 }: CircuitGridProps) {
@@ -130,15 +146,29 @@ export function CircuitGrid({
     [width, height, doc.numBits],
   );
 
+  const clientToLogical = useCallback(
+    (clientX: number, clientY: number) => {
+      const el = svgRef.current;
+      if (!el) return null;
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return null;
+      return {
+        x: ((clientX - rect.left) / rect.width) * width,
+        y: ((clientY - rect.top) / rect.height) * height,
+      };
+    },
+    [width, height],
+  );
+
   const register = useCallback(
     (el: HTMLDivElement | null) => {
       if (el) {
-        registerHandle({ clientToCell });
+        registerHandle({ clientToCell, clientToLogical });
       } else {
         registerHandle(null);
       }
     },
-    [clientToCell, registerHandle],
+    [clientToCell, clientToLogical, registerHandle],
   );
 
   const handleClick = (e: React.MouseEvent) => {
@@ -207,6 +237,7 @@ export function CircuitGrid({
         height={Math.max(1, Math.round(height * scale))}
         viewBox={`0 0 ${width} ${height}`}
         onClick={handleClick}
+        onPointerDown={onBackgroundPointerDown}
       >
         {/* Column ruler */}
         <g className="ev2-ruler">
@@ -332,7 +363,7 @@ export function CircuitGrid({
               e.stopPropagation();
               onSelect(op.id);
             }}
-            className={`ev2-op${selectedOpId === op.id ? " selected" : ""}${
+            className={`ev2-op${selectedIds.has(op.id) ? " selected" : ""}${
               movePreview?.opId === op.id || slotPreview?.opId === op.id
                 ? " dragging"
                 : ""
@@ -346,6 +377,20 @@ export function CircuitGrid({
             />
           </g>
         ))}
+
+        {/* Marquee rubber-band — drawn above ops, hit-test happens in the
+            page on release. */}
+        {marquee && (
+          <rect
+            x={Math.min(marquee.x1, marquee.x2)}
+            y={Math.min(marquee.y1, marquee.y2)}
+            width={Math.abs(marquee.x2 - marquee.x1)}
+            height={Math.abs(marquee.y2 - marquee.y1)}
+            className="ev2-marquee"
+            rx={4}
+            pointerEvents="none"
+          />
+        )}
 
         {/* Ghost preview — the complete glyph, translucent */}
         {ghost && (

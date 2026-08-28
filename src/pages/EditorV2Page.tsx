@@ -32,8 +32,11 @@ import {
   columnOccupancy,
   isOccupied,
   firstFreeColumn,
+  opIntersectsMarquee,
+  type MarqueeRect,
 } from "../components/editor/gridGeometry";
 import { isSuspended } from "../components/editor/useEditorState";
+import type { PlacedOp } from "../components/editor/useEditorState";
 import {
   buildShareUrl,
   decodeHashToCircuit,
@@ -66,6 +69,11 @@ type ActiveDrag =
   | { kind: "place"; type: GateType }
   | { kind: "moveOp"; opId: number }
   | { kind: "slot"; opId: number; slot: WireSlot };
+
+/** Module-level clipboard for copy/paste (survives selection changes but
+ *  not page reloads — that's the draft's job). JSON round-trip gives us a
+ *  structured clone; shape is validated on paste by useEditorState. */
+let editorClipboard: PlacedOp[] = [];
 
 async function captureSvgThumbnail(
   svg: SVGSVGElement | null,
@@ -108,7 +116,8 @@ export function EditorV2Page() {
   const { registerActions } = useEditorActions();
   const location = useLocation();
   const editor = useEditorState();
-  const { doc, selectedOpId } = editor;
+  const { doc, selectedIds } = editor;
+  const selectedOpId = editor.selectedOpId; // derived: last-selected (Inspector)
 
   const gridHandleRef = useRef<GridHandle | null>(null);
   const gridElRef = useRef<HTMLDivElement | null>(null);
@@ -226,6 +235,12 @@ export function EditorV2Page() {
   /** Op being dragged with the pointer outside the grid — releasing
    *  deletes it; the glyph renders in the danger style meanwhile. */
   const [dangerOpId, setDangerOpId] = useState<number | null>(null);
+  /** Rubber-band marquee in logical SVG coords; null when inactive. */
+  const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
+  const marqueeRef = useRef<MarqueeRect | null>(null);
+  /** Set when a completed marquee owns the selection — the trailing click
+   *  event must not fall through to onCellClick (which would clear it). */
+  const marqueeJustFinished = useRef(false);
 
   const registerHandle = useCallback((handle: GridHandle | null) => {
     gridHandleRef.current = handle;
@@ -233,6 +248,63 @@ export function EditorV2Page() {
 
   const cellAt = (clientX: number, clientY: number) =>
     gridHandleRef.current?.clientToCell(clientX, clientY) ?? null;
+
+  const logicalAt = (clientX: number, clientY: number) =>
+    gridHandleRef.current?.clientToLogical(clientX, clientY) ?? null;
+
+  // --- Marquee selection (window-level, mirrors the drag router) --------
+  useEffect(() => {
+    if (!marquee) return;
+    const onMove = (e: PointerEvent) => {
+      const p = logicalAt(e.clientX, e.clientY);
+      if (!p) return;
+      const next = { ...marqueeRef.current!, x2: p.x, y2: p.y };
+      marqueeRef.current = next;
+      setMarquee(next);
+    };
+    const onUp = () => {
+      const rect = marqueeRef.current;
+      marqueeRef.current = null;
+      setMarquee(null);
+      if (!rect) return;
+      // Degenerate (click-sized) rects clear the selection — the same as
+      // clicking empty space, which is what the user did.
+      const w = Math.abs(rect.x2 - rect.x1);
+      const h = Math.abs(rect.y2 - rect.y1);
+      if (w < 2 && h < 2) {
+        editor.clearSelection();
+        return;
+      }
+      marqueeJustFinished.current = true;
+      const hit = activeOps.filter((o) => opIntersectsMarquee(o, rect));
+      if (hit.length > 0) editor.selectAll(hit.map((o) => o.id));
+      else editor.clearSelection();
+    };
+    const onCancel = () => {
+      marqueeRef.current = null;
+      setMarquee(null);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marquee != null, activeOps, editor]);
+
+  /** Pointer press on the empty grid background (ops stopPropagation, so
+   *  this only fires where no glyph was hit) — starts a marquee. */
+  const onBackgroundPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    const p = logicalAt(e.clientX, e.clientY);
+    if (!p) return;
+    const rect: MarqueeRect = { x1: p.x, y1: p.y, x2: p.x, y2: p.y };
+    marqueeRef.current = rect;
+    setMarquee(rect);
+  };
 
   // --- Window-level pointer routing ----------------------------------------
   useEffect(() => {
@@ -369,7 +441,9 @@ export function EditorV2Page() {
 
   // --- Grid callbacks -------------------------------------------------------
   /** Unified per-part routing from OpGlyph: the box/connector starts an op
-   *  move; a control dot / ⊕ / ✕ starts that connection's re-wire drag. */
+   *  move; a control dot / ⊕ / ✕ starts that connection's re-wire drag.
+   *  Shift press toggles the op into the multi-selection instead of
+   *  selecting it alone. */
   const onOpPartPointerDown = (
     e: React.PointerEvent,
     opId: number,
@@ -378,7 +452,8 @@ export function EditorV2Page() {
     if (e.button !== 0) return;
     // Any part press selects the op (this is the authoritative selection
     // path — the glyph's stopPropagation blocks bubbling to the grid).
-    editor.select(opId);
+    if (e.shiftKey) editor.toggleSelect(opId);
+    else if (!editor.selectedIds.has(opId)) editor.selectOnly(opId);
     if (part.part === "body") {
       setPending({
         kind: "moveOp",
@@ -398,6 +473,12 @@ export function EditorV2Page() {
   };
 
   const onCellClick = (column: number, wire: number) => {
+    if (marqueeJustFinished.current) {
+      // The click that follows a completed marquee — swallow it so the
+      // fresh selection survives.
+      marqueeJustFinished.current = false;
+      return;
+    }
     if (armedType) {
       const free = firstFreeColumn(columnOccupancy(activeOps), column);
       editor.placeOp(armedType, free, wire);
@@ -411,6 +492,14 @@ export function EditorV2Page() {
 
   // --- Keyboard shortcuts -----------------------------------------------------
   const selectedOp = activeOps.find((o) => o.id === selectedOpId) ?? null;
+  /** Selected ops restricted to the visible (active) set — suspended ops
+   *  can't be copied or deleted from the grid, mirroring their exclusion
+   *  from rendering and serialization. */
+  const activeSelectedIds = useMemo(
+    () => [...selectedIds].filter((id) => activeOps.some((o) => o.id === id)),
+    [selectedIds, activeOps],
+  );
+  const hasMultiSelection = activeSelectedIds.length > 1;
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -432,38 +521,86 @@ export function EditorV2Page() {
           setGhost(null);
           setMovePreview(null);
           setSlotPreview(null);
+        } else if (marquee) {
+          marqueeRef.current = null;
+          setMarquee(null);
         } else if (armedType) {
           setArmedType(null);
         } else {
-          editor.select(null);
+          editor.clearSelection();
         }
         return;
       }
 
       const mod = e.ctrlKey || e.metaKey;
-      if (mod && e.key.toLowerCase() === "z") {
+      const key = e.key.toLowerCase();
+      if (mod && key === "z") {
         e.preventDefault();
         if (e.shiftKey) editor.redo();
         else editor.undo();
         return;
       }
-      if (mod && e.key.toLowerCase() === "y") {
+      if (mod && key === "y") {
         e.preventDefault();
         editor.redo();
         return;
       }
-      if (mod && e.key.toLowerCase() === "d" && selectedOp) {
+      if (mod && key === "a") {
+        e.preventDefault();
+        editor.selectAll(activeOps.map((o) => o.id));
+        return;
+      }
+      if (mod && key === "c" && activeSelectedIds.length > 0) {
+        e.preventDefault();
+        // Structured clone via JSON — ops are plain data.
+        editorClipboard = activeOps
+          .filter((o) => activeSelectedIds.includes(o.id))
+          .map((o) => JSON.parse(JSON.stringify(o)) as PlacedOp);
+        return;
+      }
+      if (mod && key === "x" && activeSelectedIds.length > 0) {
+        e.preventDefault();
+        editorClipboard = activeOps
+          .filter((o) => activeSelectedIds.includes(o.id))
+          .map((o) => JSON.parse(JSON.stringify(o)) as PlacedOp);
+        editor.removeOps(activeSelectedIds);
+        return;
+      }
+      if (mod && key === "v" && editorClipboard.length > 0) {
+        e.preventDefault();
+        editor.pasteOps(editorClipboard);
+        return;
+      }
+      if (mod && key === "d" && selectedOp && !hasMultiSelection) {
         e.preventDefault();
         editor.duplicateOp(selectedOp.id);
         return;
       }
-      if ((e.key === "Delete" || e.key === "Backspace") && selectedOp) {
+      if (mod && key === "d" && hasMultiSelection) {
+        // Duplicate group: copy semantics (paste finds free columns).
         e.preventDefault();
-        editor.removeOp(selectedOp.id);
+        const group = activeOps.filter((o) => activeSelectedIds.includes(o.id));
+        editor.pasteOps(group.map((o) => ({ ...o })));
+        return;
+      }
+      if (
+        (e.key === "Delete" || e.key === "Backspace") &&
+        activeSelectedIds.length > 0
+      ) {
+        e.preventDefault();
+        editor.removeOps(activeSelectedIds);
         return;
       }
       if (selectedOp && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
         e.preventDefault();
+        if (hasMultiSelection) {
+          // Move the whole selection as one undoable gesture.
+          editor.moveOpsBy(
+            activeSelectedIds,
+            e.key === "ArrowLeft" ? -1 : 1,
+          );
+          return;
+        }
         const delta = e.key === "ArrowLeft" ? -1 : 1;
         const occupancy = columnOccupancy(activeOps);
         let next = selectedOp.segment + delta;
@@ -479,7 +616,17 @@ export function EditorV2Page() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [editor, selectedOp, activeOps, drag, pending, armedType]);
+  }, [
+    editor,
+    selectedOp,
+    activeOps,
+    activeSelectedIds,
+    hasMultiSelection,
+    drag,
+    pending,
+    armedType,
+    marquee,
+  ]);
 
   // --- Save-button bridge -------------------------------------------------------
   // Saving also clears any restored draft so it stops reappearing on
@@ -615,12 +762,13 @@ export function EditorV2Page() {
             <div ref={gridElRef} className="ev2-grid-root">
               <CircuitGrid
                 doc={{ ...doc, ops: activeOps }}
-                selectedOpId={selectedOpId}
+                selectedIds={selectedIds}
                 ghost={ghostForGrid}
                 armedType={armedType}
                 movePreview={movePreview}
                 slotPreview={slotPreview}
                 dangerOpId={dangerOpId}
+                marquee={marquee}
                 executing={
                   sim.status === "ready" ||
                   sim.status === "running" ||
@@ -634,7 +782,11 @@ export function EditorV2Page() {
                 onPeekSegment={sim.peek}
                 onPeekEnd={sim.clearPeek}
                 onOpPartPointerDown={onOpPartPointerDown}
+<<<<<<< HEAD
                 onLoadExample={loadExample}
+=======
+                onBackgroundPointerDown={onBackgroundPointerDown}
+>>>>>>> 87ef8e2 (feat(editor-v2): marquee multi-select with copy/cut/paste/delete)
                 registerHandle={registerHandle}
                 scale={fitScale}
               />
