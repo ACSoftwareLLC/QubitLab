@@ -35,14 +35,20 @@ const TARGET_R = 11; // ⊕ radius
  *  SVG-internal foreignObject would be clipped by the scroll container
  *  and stretched by the viewBox transform. */
 function GateTip({
+  symbol,
   fullName,
+  description,
   matrix,
   angleDeg,
+  wires,
   anchor,
 }: {
+  symbol: string;
   fullName: string;
+  description: string;
   matrix: string;
   angleDeg: number | null;
+  wires: string | null;
   anchor: DOMRect | null;
 }) {
   const elRef = useRef<HTMLDivElement | null>(null);
@@ -68,12 +74,15 @@ function GateTip({
   return createPortal(
     <div ref={elRef} className="ev2-gate-tip">
       <div className="ev2-gate-tip-title">
+        <span className="ev2-gate-tip-symbol">{symbol}</span>
         {fullName}
         {angleDeg != null && (
-          <span className="ev2-gate-tip-angle"> θ={angleDeg}°</span>
+          <span className="ev2-gate-tip-angle"> θ = {angleDeg}°</span>
         )}
       </div>
+      <div className="ev2-gate-tip-desc">{description}</div>
       <div className="ev2-gate-tip-matrix">{matrix}</div>
+      {wires && <div className="ev2-gate-tip-wires">{wires}</div>}
     </div>,
     document.body,
   );
@@ -102,11 +111,21 @@ export function OpGlyph({
       );
     }
     if (!hovered) return null;
+    // Connection context: which wires this op touches, in reading order.
+    const wires =
+      op.controls.length > 0
+        ? `control q${op.controls.join(", q")} → target q${op.targets.join(", q")}`
+        : op.type === "M"
+          ? `measures q${op.targets.join(", q")}`
+          : `acts on q${op.targets.join(", q")}`;
     return (
       <GateTip
+        symbol={config.symbol}
         fullName={config.fullName}
+        description={config.description}
         matrix={GATE_MATRICES[op.type]}
         angleDeg={angleDeg}
+        wires={wires}
         anchor={hoverAnchor}
       />
     );
@@ -154,7 +173,12 @@ export function OpGlyph({
 
     if (op.type === "SWAP") {
       return (
-        <g ref={groupRef} className="op-glyph" opacity={opacity} {...hoverProps}>
+        <g
+          ref={groupRef}
+          className="op-glyph"
+          opacity={opacity}
+          {...hoverProps}
+        >
           {tip()}
           <line
             x1={cx}
