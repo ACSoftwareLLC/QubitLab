@@ -85,9 +85,10 @@ const formatAngle = (rad: number): string => String(Number(rad.toPrecision(4)));
  */
 export function parseAngle(expr: string): number {
   const s = expr.replace(/\s+/g, "");
-  const m = /^([+-]?)(?:(?:(\d+(?:\.\d+)?)\*)?pi(?:\/(\d+(?:\.\d+)?))?|(\d+(?:\.\d+)?))$/.exec(
-    s,
-  );
+  const m =
+    /^([+-]?)(?:(?:(\d+(?:\.\d+)?)\*)?pi(?:\/(\d+(?:\.\d+)?))?|(\d+(?:\.\d+)?))$/.exec(
+      s,
+    );
   if (!m) return Number.NaN;
   const sign = m[1] === "-" ? -1 : 1;
   if (m[4] != null) return sign * Number(m[4]);
@@ -102,7 +103,9 @@ export function parseAngle(expr: string): number {
  *  ends the statement (QASM blocks carry no trailing semicolon). */
 function statementsWithLines(qasm: string): { text: string; line: number }[] {
   // Strip block comments across lines, keeping newlines.
-  const noBlocks = qasm.replace(/\/\*[\s\S]*?\*\//g, (m) => "\n".repeat(m.split("\n").length - 1));
+  const noBlocks = qasm.replace(/\/\*[\s\S]*?\*\//g, (m) =>
+    "\n".repeat(m.split("\n").length - 1),
+  );
   const lines = noBlocks.split("\n").map((l) => l.replace(/\/\/.*$/, ""));
   const out: { text: string; line: number }[] = [];
   let buf = "";
@@ -161,7 +164,9 @@ export function circuitToQasm(circuit: Circuit): string {
     }
     const name = EXPORT_NAMES[op.type];
     if (!name) continue; // unknown types are skipped, like circuitToDoc
-    const args = [...op.controls, ...op.targets].map((w) => `q[${w}]`).join(", ");
+    const args = [...op.controls, ...op.targets]
+      .map((w) => `q[${w}]`)
+      .join(", ");
     if (PARAMETERIZED.has(name)) {
       lines.push(`${name}(${formatAngle(op.angle ?? 0)}) ${args};`);
     } else {
@@ -187,7 +192,11 @@ export function qasmToCircuit(qasm: string): ImportResult {
   let statementsEmitted = 0;
 
   // --- Symbol tables -----------------------------------------------------
-  type Macro = { params: string[]; body: { text: string; line: number }[]; line: number };
+  type Macro = {
+    params: string[];
+    body: { text: string; line: number }[];
+    line: number;
+  };
   const macros = new Map<string, Macro>();
   const consts = new Map<string, number>();
   /** Register name → [startWire, size). Registers concatenate in
@@ -207,11 +216,15 @@ export function qasmToCircuit(qasm: string): ImportResult {
    *  consts, loop variables from `env`, unary +/-, + - * and ( ), plus
    *  bit-indexed consts ("a_in[i]" → bit i of constant a_in). Returns null
    *  (recording an error) when unresolvable.
- *
- *  Evaluated by a small recursive-descent parser — NOT `new Function`:
- *  the Worker's CSP blocks unsafe-eval, which silently broke every
- *  expression in production while unit tests (no CSP) kept passing. */
-  const evalInt = (expr: string, line: number, env?: Map<string, number>): number | null => {
+   *
+   *  Evaluated by a small recursive-descent parser — NOT `new Function`:
+   *  the Worker's CSP blocks unsafe-eval, which silently broke every
+   *  expression in production while unit tests (no CSP) kept passing. */
+  const evalInt = (
+    expr: string,
+    line: number,
+    env?: Map<string, number>,
+  ): number | null => {
     const s = expr.replace(/\s+/g, "");
     // Bit-indexed const: NAME[expr] → bit of the const's value.
     const bitIdx = /^([A-Za-z_]\w*)\[(.+)\]$/.exec(s);
@@ -270,8 +283,15 @@ export function qasmToCircuit(qasm: string): ImportResult {
     };
     const parseFactor = (): number | null => {
       // unary +/-
-      if (peek() === "-") { pos++; const v = parseFactor(); return v == null ? null : -v; }
-      if (peek() === "+") { pos++; return parseFactor(); }
+      if (peek() === "-") {
+        pos++;
+        const v = parseFactor();
+        return v == null ? null : -v;
+      }
+      if (peek() === "+") {
+        pos++;
+        return parseFactor();
+      }
       if (peek() === "(") {
         pos++;
         const v = parseExpr();
@@ -280,7 +300,10 @@ export function qasmToCircuit(qasm: string): ImportResult {
         return v;
       }
       const t = peek();
-      if (typeof t === "number") { pos++; return t; }
+      if (typeof t === "number") {
+        pos++;
+        return t;
+      }
       return null;
     };
     function parseExpr(): number | null {
@@ -305,7 +328,11 @@ export function qasmToCircuit(qasm: string): ImportResult {
   /** Resolve one register argument ("cin[0]", "a[i + 1]", "q[3]") to a flat
    *  wire index; null when malformed/out of range. Accepts env for loop
    *  variables inside index expressions. */
-  const resolveArg = (arg: string, line: number, env?: Map<string, number>): number | null => {
+  const resolveArg = (
+    arg: string,
+    line: number,
+    env?: Map<string, number>,
+  ): number | null => {
     const m = /^([A-Za-z_]\w*)\[(.+)\]$/.exec(arg.trim());
     if (m) {
       const reg = qregs.get(m[1]);
@@ -332,7 +359,11 @@ export function qasmToCircuit(qasm: string): ImportResult {
   };
 
   /** Resolve a possibly-ranged argument to one or more flat wires. */
-  const resolveArgs = (arg: string, line: number, env?: Map<string, number>): number[] => {
+  const resolveArgs = (
+    arg: string,
+    line: number,
+    env?: Map<string, number>,
+  ): number[] => {
     const m = /^([A-Za-z_]\w*)\[(.+?):(.+?)\]$/.exec(arg.trim());
     if (m) {
       const reg = qregs.get(m[1]);
@@ -359,7 +390,11 @@ export function qasmToCircuit(qasm: string): ImportResult {
   type Stmt = { text: string; line: number };
   /** Expand a statement list, honoring macro calls, for-loops and
    *  compile-time ifs. env maps loop variables to their current values. */
-  const expand = (stmts: Stmt[], env: Map<string, number>, depth: number): Stmt[] => {
+  const expand = (
+    stmts: Stmt[],
+    env: Map<string, number>,
+    depth: number,
+  ): Stmt[] => {
     const out: Stmt[] = [];
     for (const { text, line } of stmts) {
       if (statementsEmitted + out.length > UNROLL_LIMIT) {
@@ -378,7 +413,10 @@ export function qasmToCircuit(qasm: string): ImportResult {
         }
         const callArgs = macroCall[2].split(",").map((a) => a.trim());
         if (callArgs.length !== macro.params.length) {
-          record(line, `macro '${name}' expects ${macro.params.length} args, got ${callArgs.length}`);
+          record(
+            line,
+            `macro '${name}' expects ${macro.params.length} args, got ${callArgs.length}`,
+          );
           continue;
         }
         // Bind params to *textual* argument expressions (word-boundary
@@ -386,7 +424,8 @@ export function qasmToCircuit(qasm: string): ImportResult {
         // the c in "cx"), then re-expand the body so nested macros see them.
         const bound = macro.body.map(({ text: t, line: l }) => ({
           text: macro.params.reduce(
-            (acc, p, i) => acc.replace(new RegExp(`\\b${p}\\b`, "g"), callArgs[i]),
+            (acc, p, i) =>
+              acc.replace(new RegExp(`\\b${p}\\b`, "g"), callArgs[i]),
             t,
           ),
           line: l,
@@ -396,7 +435,8 @@ export function qasmToCircuit(qasm: string): ImportResult {
       }
 
       // for <var> in [A : B] { ... }  (also [A : step : B] with negative step)
-      const loop = /^for\s+\w*\s*(\w+)\s+in\s*\[\s*(.+?)\s*\]\s*\{([\s\S]*)\}$/.exec(text);
+      const loop =
+        /^for\s+\w*\s*(\w+)\s+in\s*\[\s*(.+?)\s*\]\s*\{([\s\S]*)\}$/.exec(text);
       if (loop) {
         const [, v, range, bodyText] = loop;
         const parts = range.split(":").map((p) => p.trim());
@@ -451,7 +491,10 @@ export function qasmToCircuit(qasm: string): ImportResult {
     if (/^barrier\b/.test(lowered)) continue;
 
     // const NAME = value;  /  uint[n] NAME = value;
-    const constDecl = /^(?:const|uint(?:\[\d+\])?)\s+([A-Za-z_]\w*)\s*=\s*([\d+\-*/()\s]+)$/.exec(text);
+    const constDecl =
+      /^(?:const|uint(?:\[\d+\])?)\s+([A-Za-z_]\w*)\s*=\s*([\d+\-*/()\s]+)$/.exec(
+        text,
+      );
     if (constDecl) {
       const v = evalInt(constDecl[2], line);
       if (v != null) consts.set(constDecl[1], v);
@@ -461,10 +504,21 @@ export function qasmToCircuit(qasm: string): ImportResult {
 
     // gate NAME params { body } — macro definition. Body statements are
     // re-extracted raw (statementsWithLines over the brace text).
-    const macroDecl = /^gate\s+([A-Za-z_]\w*)\s*([^{};]*)\{([\s\S]*)\}$/.exec(text);
+    const macroDecl = /^gate\s+([A-Za-z_]\w*)\s*([^{};]*)\{([\s\S]*)\}$/.exec(
+      text,
+    );
     if (macroDecl) {
-      const params = macroDecl[2].trim() ? macroDecl[2].trim().split(",").map((p) => p.trim()) : [];
-      macros.set(macroDecl[1], { params, body: statementsWithLines(macroDecl[3] + ";"), line });
+      const params = macroDecl[2].trim()
+        ? macroDecl[2]
+            .trim()
+            .split(",")
+            .map((p) => p.trim())
+        : [];
+      macros.set(macroDecl[1], {
+        params,
+        body: statementsWithLines(macroDecl[3] + ";"),
+        line,
+      });
       continue;
     }
 
@@ -480,7 +534,10 @@ export function qasmToCircuit(qasm: string): ImportResult {
       if (qregs.has(name)) {
         record(line, `duplicate register '${name}'`);
       } else if (nextWire + size > MAX_QUBITS) {
-        record(line, `circuit needs ${nextWire + size} qubits; editor supports ${MAX_QUBITS}`);
+        record(
+          line,
+          `circuit needs ${nextWire + size} qubits; editor supports ${MAX_QUBITS}`,
+        );
       } else {
         qregs.set(name, [nextWire, size]);
         nextWire += size;
@@ -500,7 +557,10 @@ export function qasmToCircuit(qasm: string): ImportResult {
 
     pending.push({ text, line });
   }
-  if (resetCount > 0) warnings.push(`skipped ${resetCount} reset statement(s) — qubits start in |0⟩`);
+  if (resetCount > 0)
+    warnings.push(
+      `skipped ${resetCount} reset statement(s) — qubits start in |0⟩`,
+    );
 
   // --- Pass 2: expand + execute -------------------------------------------
   // Flat dialect default: with no explicit register declaration, "q" spans
@@ -518,13 +578,23 @@ export function qasmToCircuit(qasm: string): ImportResult {
       const flatIdx = /^q\[(\d+)\]$/.exec(measure[1].trim());
       const flatC = /^c\[(\d+)\]$/.exec(measure[2].trim());
       if (flatIdx && flatC && Number(flatIdx[1]) !== Number(flatC[1])) {
-        record(line, `measure target must match (q[${flatIdx[1]}] -> c[${flatIdx[1]}] expected)`);
+        record(
+          line,
+          `measure target must match (q[${flatIdx[1]}] -> c[${flatIdx[1]}] expected)`,
+        );
         continue;
       }
       const src = resolveArgs(measure[1], line, env);
       for (const w of src) {
         maxIndex = Math.max(maxIndex, w);
-        ops.push({ id: nextId++, type: "M", segment: 0, targets: [w], controls: [], angle: null });
+        ops.push({
+          id: nextId++,
+          type: "M",
+          segment: 0,
+          targets: [w],
+          controls: [],
+          angle: null,
+        });
       }
       continue;
     }
@@ -547,10 +617,20 @@ export function qasmToCircuit(qasm: string): ImportResult {
     maxIndex = Math.max(maxIndex, ...args);
 
     const isParam = PARAMETERIZED.has(name);
-    const expectedArity = name === "ccx" ? 3 : name === "swap" ? 2 : ["cx", "cz"].includes(name) ? 2 : 1;
+    const expectedArity =
+      name === "ccx"
+        ? 3
+        : name === "swap"
+          ? 2
+          : ["cx", "cz"].includes(name)
+            ? 2
+            : 1;
     const arity = isParam ? 1 : expectedArity;
     if (args.length !== arity) {
-      record(line, `${name} expects ${arity} qubit argument${arity === 1 ? "" : "s"}, got ${args.length}`);
+      record(
+        line,
+        `${name} expects ${arity} qubit argument${arity === 1 ? "" : "s"}, got ${args.length}`,
+      );
       continue;
     }
 

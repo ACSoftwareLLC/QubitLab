@@ -61,10 +61,7 @@ describe("circuitToQasm", () => {
   it("exports swap and ccx with both/three args", () => {
     const c: Circuit = {
       numBits: 3,
-      ops: [
-        op(1, "SWAP", 0, [0, 2]),
-        op(2, "CCX", 1, [2], [0, 1]),
-      ],
+      ops: [op(1, "SWAP", 0, [0, 2]), op(2, "CCX", 1, [2], [0, 1])],
     };
     const q = circuitToQasm(c);
     expect(q).toContain("swap q[0], q[2];");
@@ -135,11 +132,7 @@ describe("qasmToCircuit", () => {
   it("round-trips mixed M with Sdg/Tdg", () => {
     const c: Circuit = {
       numBits: 2,
-      ops: [
-        op(1, "Sdg", 0, [1]),
-        op(2, "Tdg", 1, [0]),
-        op(3, "M", 2, [0]),
-      ],
+      ops: [op(1, "Sdg", 0, [1]), op(2, "Tdg", 1, [0]), op(3, "M", 2, [0])],
     };
     equivalent(asCircuit(qasmToCircuit(circuitToQasm(c))), c);
   });
@@ -184,7 +177,7 @@ describe("qasmToCircuit", () => {
     const errors = asErrors(
       // `h q` on a 1-qubit register is now legal (bare single-qubit
       // register name); an unresolvable index expression is malformed.
-      qasmToCircuit('OPENQASM 2.0;\nqreg q[1];\ncreg c[1];\nh q[nope];'),
+      qasmToCircuit("OPENQASM 2.0;\nqreg q[1];\ncreg c[1];\nh q[nope];"),
     );
     expect(errors.length).toBeGreaterThan(0);
     expect(errors[0]).toMatch(/^line \d+:/);
@@ -193,7 +186,9 @@ describe("qasmToCircuit", () => {
   it("rejects circuits exceeding 1024 time columns", () => {
     // The column ceiling is now dynamic (simulator allows 1024 segments),
     // so only a truly oversized source overflows.
-    const stmts = Array.from({ length: 1025 }, (_, i) => `x q[${i % 2}];`).join("\n");
+    const stmts = Array.from({ length: 1025 }, (_, i) => `x q[${i % 2}];`).join(
+      "\n",
+    );
     const errors = asErrors(
       qasmToCircuit(
         `OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[2];\ncreg c[2];\n${stmts}`,
@@ -205,33 +200,35 @@ describe("qasmToCircuit", () => {
   it("derives numBits from qreg, floored at max used index", () => {
     // qreg declares 4, only q[0] used → numBits stays 4.
     const four = asCircuit(
-      qasmToCircuit('OPENQASM 2.0;\nqreg q[4];\ncreg c[4];\nh q[0];'),
+      qasmToCircuit("OPENQASM 2.0;\nqreg q[4];\ncreg c[4];\nh q[0];"),
     );
     expect(four.numBits).toBe(4);
     // qreg declares 2 but q[3] used → floored up to 4.
     const bumped = asCircuit(
-      qasmToCircuit('OPENQASM 2.0;\nqreg q[2];\ncreg c[2];\nh q[3];'),
+      qasmToCircuit("OPENQASM 2.0;\nqreg q[2];\ncreg c[2];\nh q[3];"),
     );
     expect(bumped.numBits).toBe(4);
   });
 
   it("rejects qubit indices above 15", () => {
     const errors = asErrors(
-      qasmToCircuit('OPENQASM 2.0;\nqreg q[20];\ncreg c[20];\nh q[17];'),
+      qasmToCircuit("OPENQASM 2.0;\nqreg q[20];\ncreg c[20];\nh q[17];"),
     );
     expect(errors.some((e) => e.includes("out of range"))).toBe(true);
   });
 
   it("rejects a measure whose creg index mismatches", () => {
     const errors = asErrors(
-      qasmToCircuit('OPENQASM 2.0;\nqreg q[2];\ncreg c[2];\nmeasure q[0] -> c[1];'),
+      qasmToCircuit(
+        "OPENQASM 2.0;\nqreg q[2];\ncreg c[2];\nmeasure q[0] -> c[1];",
+      ),
     );
     expect(errors.some((e) => e.includes("measure target must match"))).toBe(
       true,
     );
   });
-describe("Cuccaro ripple-carry adder import (quant-ph/0410184)", () => {
-  const CUCCARO = `
+  describe("Cuccaro ripple-carry adder import (quant-ph/0410184)", () => {
+    const CUCCARO = `
 /*
  * quantum ripple-carry adder
  * Cuccaro et al, quant-ph/0410184
@@ -275,29 +272,28 @@ measure b[0:3] -> ans[0:3];
 measure cout[0] -> ans[4];
 `;
 
-  it("imports cleanly with 10 wires and 35 unrolled ops", () => {
-    const r = qasmToCircuit(CUCCARO);
-    if ("errors" in r) throw new Error(r.errors.join("; "));
-    // x-inputs: a=1 → 1 x, b=15 → 4 x; majority 4 calls ×3 = 12;
-    // carry cx 1; unmaj 4 calls ×3 = 12; measures 4+1 = 5 → 35 ops.
-    expect(r.circuit.numBits).toBe(10);
-    expect(r.circuit.ops).toHaveLength(35);
-    // Sequential columns 0..34.
-    r.circuit.ops.forEach((op, i) => expect(op.segment).toBe(i));
-    // Wires stay within the declared registers (cin=0, a=1..4, b=5..8, cout=9).
-    for (const op of r.circuit.ops) {
-      for (const w of [...op.targets, ...op.controls]) {
-        expect(w).toBeLessThan(10);
-        expect(w).toBeGreaterThanOrEqual(0);
+    it("imports cleanly with 10 wires and 35 unrolled ops", () => {
+      const r = qasmToCircuit(CUCCARO);
+      if ("errors" in r) throw new Error(r.errors.join("; "));
+      // x-inputs: a=1 → 1 x, b=15 → 4 x; majority 4 calls ×3 = 12;
+      // carry cx 1; unmaj 4 calls ×3 = 12; measures 4+1 = 5 → 35 ops.
+      expect(r.circuit.numBits).toBe(10);
+      expect(r.circuit.ops).toHaveLength(35);
+      // Sequential columns 0..34.
+      r.circuit.ops.forEach((op, i) => expect(op.segment).toBe(i));
+      // Wires stay within the declared registers (cin=0, a=1..4, b=5..8, cout=9).
+      for (const op of r.circuit.ops) {
+        for (const w of [...op.targets, ...op.controls]) {
+          expect(w).toBeLessThan(10);
+          expect(w).toBeGreaterThanOrEqual(0);
+        }
       }
-    }
-  });
+    });
 
-  it("warns about skipped resets", () => {
-    const r = qasmToCircuit(CUCCARO);
-    if ("errors" in r) throw new Error(r.errors.join("; "));
-    expect(r.warnings.some((w) => w.includes("4 reset"))).toBe(true);
+    it("warns about skipped resets", () => {
+      const r = qasmToCircuit(CUCCARO);
+      if ("errors" in r) throw new Error(r.errors.join("; "));
+      expect(r.warnings.some((w) => w.includes("4 reset"))).toBe(true);
+    });
   });
-});
-
 });

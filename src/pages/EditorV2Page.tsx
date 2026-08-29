@@ -187,7 +187,8 @@ export function EditorV2Page() {
   /** Columns grow with the furthest op (blocks of 8, one spare); the grid
    *  scrolls horizontally when they overflow, so scale is height-fit only. */
   const columns = useMemo(
-    () => gridColumnCount(activeOps.reduce((m, o) => Math.max(m, o.segment), 0)),
+    () =>
+      gridColumnCount(activeOps.reduce((m, o) => Math.max(m, o.segment), 0)),
     [activeOps],
   );
   const logicalSize = useMemo(
@@ -340,7 +341,10 @@ export function EditorV2Page() {
       const cell = cellAt(e.clientX, e.clientY);
       if (drag.kind === "place") {
         if (!cell) return;
-        const occupied = isOccupied(columnOccupancy(activeOps, columns), cell.column);
+        const occupied = isOccupied(
+          columnOccupancy(activeOps, columns),
+          cell.column,
+        );
         const connections = spannedDropConnections(
           drag.type,
           cell.y,
@@ -604,10 +608,7 @@ export function EditorV2Page() {
         e.preventDefault();
         if (hasMultiSelection) {
           // Move the whole selection as one undoable gesture.
-          editor.moveOpsBy(
-            activeSelectedIds,
-            e.key === "ArrowLeft" ? -1 : 1,
-          );
+          editor.moveOpsBy(activeSelectedIds, e.key === "ArrowLeft" ? -1 : 1);
           return;
         }
         const delta = e.key === "ArrowLeft" ? -1 : 1;
@@ -619,7 +620,8 @@ export function EditorV2Page() {
           isOccupied(occupancy, next, selectedOp.id)
         )
           next += delta;
-        if (next >= 0 && next <= columns - 1) editor.moveOp(selectedOp.id, next);
+        if (next >= 0 && next <= columns - 1)
+          editor.moveOp(selectedOp.id, next);
       }
     };
 
@@ -700,7 +702,10 @@ export function EditorV2Page() {
     drag?.kind === "place" && ghost
       ? {
           type: ghost.type,
-          column: firstFreeColumn(columnOccupancy(activeOps, columns), ghost.column),
+          column: firstFreeColumn(
+            columnOccupancy(activeOps, columns),
+            ghost.column,
+          ),
           wire: ghost.wire,
           invalid: ghost.invalid,
           connections: ghost.connections,
@@ -734,10 +739,7 @@ export function EditorV2Page() {
       {restoredDraft && !loadedTemplateName && (
         <div className="ev2-banner">
           <span>Restored unsaved draft</span>
-          <button
-            onClick={() => setRestoredDraft(false)}
-            aria-label="Dismiss"
-          >
+          <button onClick={() => setRestoredDraft(false)} aria-label="Dismiss">
             <i className="bi bi-x" />
           </button>
         </div>
@@ -769,38 +771,38 @@ export function EditorV2Page() {
 
         <div className="ev2-center">
           <div ref={fitRef} className="ev2-canvas-region">
-           <div className="ev2-grid-scrollwrap scrollbar-thin">
-            <div ref={gridElRef} className="ev2-grid-root">
-              <CircuitGrid
-                doc={{ ...doc, ops: activeOps }}
-                selectedIds={selectedIds}
-                ghost={ghostForGrid}
-                armedType={armedType}
-                movePreview={movePreview}
-                slotPreview={slotPreview}
-                dangerOpId={dangerOpId}
-                marquee={marquee}
-                executing={
-                  sim.status === "ready" ||
-                  sim.status === "running" ||
-                  sim.status === "done"
-                }
-                currentSegment={sim.currentSegment}
-                measurements={sim.snapshot?.measurements ?? {}}
-                wireProbabilities={wireProbabilities}
-                onSelect={editor.select}
-                onCellClick={onCellClick}
-                onPeekSegment={sim.peek}
-                onPeekEnd={sim.clearPeek}
-                onOpPartPointerDown={onOpPartPointerDown}
-                onLoadExample={loadExample}
-                onBackgroundPointerDown={onBackgroundPointerDown}
-                registerHandle={registerHandle}
-                scale={fitScale}
-                columns={columns}
-              />
+            <div className="ev2-grid-scrollwrap scrollbar-thin">
+              <div ref={gridElRef} className="ev2-grid-root">
+                <CircuitGrid
+                  doc={{ ...doc, ops: activeOps }}
+                  selectedIds={selectedIds}
+                  ghost={ghostForGrid}
+                  armedType={armedType}
+                  movePreview={movePreview}
+                  slotPreview={slotPreview}
+                  dangerOpId={dangerOpId}
+                  marquee={marquee}
+                  executing={
+                    sim.status === "ready" ||
+                    sim.status === "running" ||
+                    sim.status === "done"
+                  }
+                  currentSegment={sim.currentSegment}
+                  measurements={sim.snapshot?.measurements ?? {}}
+                  wireProbabilities={wireProbabilities}
+                  onSelect={editor.select}
+                  onCellClick={onCellClick}
+                  onPeekSegment={sim.peek}
+                  onPeekEnd={sim.clearPeek}
+                  onOpPartPointerDown={onOpPartPointerDown}
+                  onLoadExample={loadExample}
+                  onBackgroundPointerDown={onBackgroundPointerDown}
+                  registerHandle={registerHandle}
+                  scale={fitScale}
+                  columns={columns}
+                />
+              </div>
             </div>
-           </div>
           </div>
 
           <ShotsPanel circuit={circuit} numBits={doc.numBits} />

@@ -148,9 +148,10 @@ export function opIntersectsMarquee(
 ): boolean {
   const left = colX(op.segment);
   const right = left + GRID.colW;
-  const wires = op.targets.length > 0 || op.controls.length > 0
-    ? [...op.targets, ...op.controls]
-    : [0];
+  const wires =
+    op.targets.length > 0 || op.controls.length > 0
+      ? [...op.targets, ...op.controls]
+      : [0];
   const top = wireY(Math.min(...wires)) - GRID.wireSpacing / 2;
   const bottom = wireY(Math.max(...wires)) + GRID.wireSpacing / 2;
   const rectLeft = Math.min(rect.x1, rect.x2);
@@ -158,10 +159,7 @@ export function opIntersectsMarquee(
   const rectTop = Math.min(rect.y1, rect.y2);
   const rectBottom = Math.max(rect.y1, rect.y2);
   return (
-    right > rectLeft &&
-    left < rectRight &&
-    bottom > rectTop &&
-    top < rectBottom
+    right > rectLeft && left < rectRight && bottom > rectTop && top < rectBottom
   );
 }
 

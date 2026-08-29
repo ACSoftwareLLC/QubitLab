@@ -43,11 +43,11 @@ export function useFitScale<T extends HTMLElement = HTMLDivElement>(
       );
     };
 
-      update();
-      const observer = new ResizeObserver(update);
-      observer.observe(el);
-      return () => observer.disconnect();
-   }, [el, logicalSize.width, logicalSize.height, mode]);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [el, logicalSize.width, logicalSize.height, mode]);
 
-   return { ref: setEl, fitScale };
+  return { ref: setEl, fitScale };
 }

@@ -10,11 +10,7 @@ import {
   spanBracket,
   SPAN_TOLERANCE_PX,
 } from "./useEditorState";
-import {
-  opIntersectsMarquee,
-  wireY,
-  colX,
-} from "./gridGeometry";
+import { opIntersectsMarquee, wireY, colX } from "./gridGeometry";
 import type { Circuit } from "../../api/types";
 
 describe("defaultConnections", () => {
@@ -120,12 +116,7 @@ describe("spannedDropConnections", () => {
 
   it("returns null when the pointer is on a wire (within tolerance)", () => {
     expect(
-      spannedDropConnections(
-        "CX",
-        ON_WIRE_Y + SPAN_TOLERANCE_PX,
-        1,
-        4,
-      ),
+      spannedDropConnections("CX", ON_WIRE_Y + SPAN_TOLERANCE_PX, 1, 4),
     ).toBeNull();
     expect(spannedDropConnections("CX", ON_WIRE_Y, 1, 4)).toBeNull();
   });
@@ -439,9 +430,9 @@ describe("opIntersectsMarquee", () => {
 
   it("treats reversed corner order identically", () => {
     const op = { segment: 1, targets: [1], controls: [] };
-    expect(
-      opIntersectsMarquee(op, { x1: 160, y1: 90, x2: 100, y2: 40 }),
-    ).toBe(true);
+    expect(opIntersectsMarquee(op, { x1: 160, y1: 90, x2: 100, y2: 40 })).toBe(
+      true,
+    );
   });
 
   it("op footprint is the full column width", () => {

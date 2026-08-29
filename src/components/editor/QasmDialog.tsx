@@ -137,7 +137,9 @@ export function QasmDialog({ circuit, onImport, onClose }: QasmDialogProps) {
                 setErrors(null);
                 setWarnings(null);
               }}
-              placeholder={'OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[2];\ncreg c[2];\nh q[0];\ncx q[0], q[1];'}
+              placeholder={
+                'OPENQASM 2.0;\ninclude "qelib1.inc";\nqreg q[2];\ncreg c[2];\nh q[0];\ncx q[0], q[1];'
+              }
               spellCheck={false}
             />
             {errors && (
@@ -150,7 +152,8 @@ export function QasmDialog({ circuit, onImport, onClose }: QasmDialogProps) {
             {warnings && (
               <div className="ev2-qasm-warnings">
                 <div className="ev2-qasm-warning-title">
-                  <i className="bi bi-exclamation-triangle" /> Import succeeded with warnings
+                  <i className="bi bi-exclamation-triangle" /> Import succeeded
+                  with warnings
                 </div>
                 <ul>
                   {warnings.map((w, i) => (

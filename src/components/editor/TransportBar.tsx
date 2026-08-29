@@ -51,7 +51,8 @@ export function TransportBar({
         const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
         useEffect(
                 () => () => {
-                        if (copiedTimer.current) clearTimeout(copiedTimer.current);
+                        if (copiedTimer.current)
+                                clearTimeout(copiedTimer.current);
                 },
                 [],
         );
@@ -112,7 +113,9 @@ export function TransportBar({
                                                 <button
                                                         className="ev2-btn"
                                                         onClick={onReset}
-                                                        disabled={transportDisabled}
+                                                        disabled={
+                                                                transportDisabled
+                                                        }
                                                         title="Reset simulation"
                                                         aria-label="Reset simulation"
                                                 >
@@ -151,33 +154,35 @@ export function TransportBar({
                                                         ),
                                                 },
                                                 (_, i) => {
-                                                const active =
-                                                        activeColumns.includes(
-                                                                i,
+                                                        const active =
+                                                                activeColumns.includes(
+                                                                        i,
+                                                                );
+                                                        const current =
+                                                                executing &&
+                                                                currentSegment ===
+                                                                        i;
+                                                        return (
+                                                                <button
+                                                                        key={i}
+                                                                        type="button"
+                                                                        className={`ev2-scrub-tick${active ? " active" : ""}${current ? " current" : ""}`}
+                                                                        onPointerEnter={() =>
+                                                                                executing &&
+                                                                                active &&
+                                                                                onScrub(
+                                                                                        i,
+                                                                                )
+                                                                        }
+                                                                        disabled={
+                                                                                !executing ||
+                                                                                !active
+                                                                        }
+                                                                        aria-label={`Scrub to column ${i + 1}`}
+                                                                />
                                                         );
-                                                const current =
-                                                        executing &&
-                                                        currentSegment === i;
-                                                return (
-                                                        <button
-                                                                key={i}
-                                                                type="button"
-                                                                className={`ev2-scrub-tick${active ? " active" : ""}${current ? " current" : ""}`}
-                                                                onPointerEnter={() =>
-                                                                        executing &&
-                                                                        active &&
-                                                                        onScrub(
-                                                                                i,
-                                                                        )
-                                                                }
-                                                                disabled={
-                                                                        !executing ||
-                                                                        !active
-                                                                }
-                                                                aria-label={`Scrub to column ${i + 1}`}
-                                                        />
-                                                );
-                                        })}
+                                                },
+                                        )}
                                 </div>
                         </div>
 

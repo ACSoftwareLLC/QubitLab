@@ -146,7 +146,8 @@ export function spannedConnections(
     if (below + 1 < numBits)
       return { targets: [below], controls: [above, below + 1] };
     // Bottom edge: hug the target from above (needs two wires above it).
-    if (above - 1 >= 0) return { targets: [below], controls: [above, above - 1] };
+    if (above - 1 >= 0)
+      return { targets: [below], controls: [above, above - 1] };
     return defaultConnections(type, below, numBits);
   }
 
@@ -338,10 +339,7 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
   /** Shift a group of ops by whole columns as ONE undo gesture. Clamped
    *  to the grid; sharing columns with other ops is allowed (paste-move
    *  semantics — no occupancy enforcement). */
-  const moveOpsBy = (
-    ids: number[] | Set<number>,
-    deltaColumns: number,
-  ) => {
+  const moveOpsBy = (ids: number[] | Set<number>, deltaColumns: number) => {
     const idSet = ids instanceof Set ? ids : new Set(ids);
     if (idSet.size === 0 || deltaColumns === 0) return;
     if (!doc.ops.some((o) => idSet.has(o.id))) return;
@@ -373,9 +371,7 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
     const groupWidth = Math.max(...ops.map((o) => o.segment)) - minSeg;
     let start = -1;
     for (let s = 0; s + groupWidth <= MAX_COLUMNS - 1; s++) {
-      if (
-        ops.every((o) => !isOccupied(occupancy, s + (o.segment - minSeg)))
-      ) {
+      if (ops.every((o) => !isOccupied(occupancy, s + (o.segment - minSeg)))) {
         start = s;
         break;
       }
@@ -384,7 +380,10 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
     const pasted = ops.map((o) => ({
       ...o,
       id: nextId(),
-      segment: Math.max(0, Math.min(MAX_COLUMNS - 1, start + (o.segment - minSeg))),
+      segment: Math.max(
+        0,
+        Math.min(MAX_COLUMNS - 1, start + (o.segment - minSeg)),
+      ),
     }));
     commit({ ...doc, ops: [...doc.ops, ...pasted] });
     setSelectedIds(new Set(pasted.map((o) => o.id)));
@@ -470,7 +469,11 @@ export function useEditorState(initial: EditorDoc = emptyDoc()) {
     if (!op) return;
     // Find the first free column at or after the source op's column.
     let column = op.segment;
-    while (column < MAX_COLUMNS - 1 && doc.ops.some((o) => o.segment === column)) column++;
+    while (
+      column < MAX_COLUMNS - 1 &&
+      doc.ops.some((o) => o.segment === column)
+    )
+      column++;
     const copy: PlacedOp = {
       ...op,
       id: nextId(),
